@@ -29,7 +29,7 @@ export async function generateMetadata({
   const path = `/projects/${project.slug}`;
 
   return {
-    title: project.name,
+    title: project.slug,
     description: project.metaDescription,
     alternates: {
       canonical: path,
