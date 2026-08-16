@@ -44,6 +44,6 @@ cards retain their full hit area, and the page has no horizontal overflow.
   handling requires a client boundary.
 - Use Tailwind utilities for component styling. Keep `src/app/globals.css` limited
   to Tailwind setup and truly global tokens or defaults.
-- Update portfolio content in `src/app/content.ts`.
+- Update portfolio content in `src/content/portfolio.ts`.
 - Use Next.js `Link` for navigation and preserve visible focus states.
 - Write English Conventional Commit messages.

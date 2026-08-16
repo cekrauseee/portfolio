@@ -24,9 +24,10 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Structure
 
-- `src/app/_components` contains the portfolio's reusable UI.
-- `src/app/content.ts` keeps profile, social, and project content together.
-- `src/app/page.tsx` composes the home page.
+- `src/app` contains routes, metadata files, and global styles.
+- `src/components` contains reusable UI.
+- `src/content/portfolio.ts` keeps profile, social, and project content together.
+- `src/config/site.ts` keeps site-wide configuration.
 - `public/` and project configuration remain at the repository root.
 
 Read the [developer documentation](docs/index.md) for project boundaries,
