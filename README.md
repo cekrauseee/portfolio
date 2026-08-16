@@ -15,18 +15,19 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Commands
 
-| Command | Purpose |
-| --- | --- |
-| `npm run dev` | Start the development server |
-| `npm run build` | Create a production build |
-| `npm run start` | Serve the production build |
-| `npm run lint` | Run ESLint |
+| Command         | Purpose                      |
+| --------------- | ---------------------------- |
+| `npm run dev`   | Start the development server |
+| `npm run build` | Create a production build    |
+| `npm run start` | Serve the production build   |
+| `npm run lint`  | Run ESLint                   |
 
 ## Structure
 
-- `app/_components` contains the portfolio's reusable UI.
-- `app/content.ts` keeps profile, social, and project content together.
-- `app/page.tsx` composes the home page.
+- `src/app/_components` contains the portfolio's reusable UI.
+- `src/app/content.ts` keeps profile, social, and project content together.
+- `src/app/page.tsx` composes the home page.
+- `public/` and project configuration remain at the repository root.
 
 Read the [developer documentation](docs/index.md) for project boundaries,
 architecture, and contribution guidance.
