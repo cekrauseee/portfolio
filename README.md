@@ -1,4 +1,4 @@
-# cekrause
+# portfolio
 
 A static, terminal-inspired personal portfolio built with Next.js and Tailwind CSS. The visual language follows the companion Shell project while presenting profile, project, and contact information as a readable document rather than an interactive command line.
 

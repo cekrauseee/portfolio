@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`cekrause` is Henrique Krause's personal portfolio. It presents identity,
+`portfolio` is Henrique Krause's personal portfolio. It presents identity,
 contact links, and selected projects in a compact interface inspired by a
 terminal and the companion Shell project.
 
@@ -28,7 +28,7 @@ runtime data fetching, or a content management system.
 
 ## Boundaries
 
-- Keep the public handle in the heading as `cekrause`.
+- Keep the public handle in the heading as `portfolio`.
 - Keep social accounts and GitHub repositories under `cekrauseee`.
 - Keep the page static and readable without client-side JavaScript behavior.
 - Preserve the terminal-inspired visual language without imitating an
