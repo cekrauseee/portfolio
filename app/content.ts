@@ -1,5 +1,5 @@
 export const profile = {
-  handle: "cekrause",
+  handle: "portfolio",
   name: "Henrique Krause",
   role: "Software engineer",
   location: "Lisbon",
