@@ -1,10 +1,6 @@
 import type { ComponentProps } from "react";
-import Link from "next/link";
 
-type ExternalLinkProps = Omit<
-  ComponentProps<typeof Link>,
-  "rel" | "target"
->;
+type ExternalLinkProps = Omit<ComponentProps<"a">, "rel" | "target">;
 
 export const linkFocusClassName =
   "touch-manipulation focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-foreground";
@@ -17,7 +13,7 @@ export function ExternalLink({
   ...props
 }: ExternalLinkProps) {
   return (
-    <Link
+    <a
       {...props}
       className={`${textLinkClassName} ${className ?? ""}`}
       target="_blank"
@@ -25,6 +21,6 @@ export function ExternalLink({
     >
       {children}
       <span className="sr-only"> (opens in a new tab)</span>
-    </Link>
+    </a>
   );
 }
