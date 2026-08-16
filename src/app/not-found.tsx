@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SiteNavigation } from "./_components/site-navigation";
+import { SiteNavigation } from "@/components/site-navigation";
 
 export default function NotFound() {
   return (

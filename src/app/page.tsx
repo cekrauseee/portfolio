@@ -1,8 +1,8 @@
-import { textLinkClassName } from "./_components/external-link";
-import { ProjectList } from "./_components/project-list";
-import { SiteNavigation } from "./_components/site-navigation";
-import { profile, socialLinks } from "./content";
-import { site } from "./site";
+import { textLinkClassName } from "@/components/external-link";
+import { ProjectList } from "@/components/project-list";
+import { SiteNavigation } from "@/components/site-navigation";
+import { site } from "@/config/site";
+import { profile, socialLinks } from "@/content/portfolio";
 
 const jsonLd = {
   "@context": "https://schema.org",
@@ -46,10 +46,7 @@ export default function Home() {
           <p>
             {profile.role} based in {profile.location}.
           </p>
-          <a
-            className={textLinkClassName}
-            href={`mailto:${profile.email}`}
-          >
+          <a className={textLinkClassName} href={`mailto:${profile.email}`}>
             {profile.email}
           </a>
         </header>

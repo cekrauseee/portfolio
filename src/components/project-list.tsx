@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { projects } from "../content";
-import { linkFocusClassName } from "./external-link";
+import { projects } from "@/content/portfolio";
+import { linkFocusClassName } from "@/components/external-link";
 
 export function ProjectList() {
   return (

@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ExternalLink } from "../../_components/external-link";
-import { SiteNavigation } from "../../_components/site-navigation";
-import { getProject, projectDetails } from "../../content";
-import { site } from "../../site";
+import { ExternalLink } from "@/components/external-link";
+import { SiteNavigation } from "@/components/site-navigation";
+import { site } from "@/config/site";
+import { getProject, projectDetails } from "@/content/portfolio";
 
 type ProjectPageProps = {
   params: Promise<{ slug: string }>;
