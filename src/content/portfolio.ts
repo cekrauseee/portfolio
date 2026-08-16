@@ -16,25 +16,25 @@ export const projects = [
   {
     slug: "avioes",
     name: "cekrauseee/avioes",
-    description: "An offline-first PWA for counting airplanes together.",
+    description: "An offline-first PWA for groups to count airplane sightings.",
     repositoryUrl: "https://github.com/cekrauseee/avioes",
   },
   {
     slug: "shell",
     name: "cekrauseee/shell",
-    description: "A conversational interface built around the terminal.",
+    description: "A terminal-style AI chat built with the OpenAI Responses API.",
     repositoryUrl: "https://github.com/cekrauseee/shell",
   },
   {
     slug: "harness",
     name: "cekrauseee/harness",
-    description: "Continuity and orchestration for coding agents.",
+    description: "A file-native continuity and orchestration layer for agents.",
     repositoryUrl: "https://github.com/cekrauseee/harness",
   },
   {
     slug: "portfolio",
     name: "cekrauseee/portfolio",
-    description: "This personal website.",
+    description: "A static portfolio for selected software projects.",
     repositoryUrl: "https://github.com/cekrauseee/portfolio",
   },
 ] as const;
@@ -53,37 +53,37 @@ export const projectDetails: readonly Project[] = [
   {
     ...projects[0],
     metaDescription:
-      "Aviões is an offline-first PWA for groups to count airplanes, keep a shared tally, and review sighting streaks.",
+      "Aviões is an offline-first PWA for groups to count airplane sightings, track streaks, and compare shared scoreboards.",
     summary:
-      "Aviões is a small group-based PWA for turning airplane sightings into a shared record. People can count together, keep a diary of streaks, and compare the group scoreboard.",
+      "Aviões is an offline-first PWA for groups of friends who count airplane sightings together. One tap records a sighting, updates the group tally, and keeps a shared diary and scoreboard.",
     highlights: [
       "Offline-first",
-      "Shared groups",
-      "PWA",
+      "Multi-tenant groups",
       "Next.js",
       "Postgres",
       "IndexedDB",
+      "PWA",
     ],
     sections: [
       {
-        title: "What it does",
+        title: "Product",
         paragraphs: [
-          "Aviões gives a group one shared place to register airplane sightings. Each sighting adds to a tally, while consecutive sightings by the same person are kept together as a streak.",
-          "The product also includes group totals, individual leaders, and a global ranking so the activity remains easy to revisit over time.",
+          "Members tap once when they see an airplane. The app records each sighting for the active group, combines consecutive sightings by the same person into streaks, and keeps totals, leaders, and recent activity easy to revisit.",
+          "Groups are private and invite-only. Each person can join more than one group, switch between them, and review each shared history without mixing their data.",
         ],
       },
       {
-        title: "How it is built",
+        title: "What I built",
         paragraphs: [
-          "The app is an installable PWA built in a Turborepo with Next.js, React, TypeScript, and Postgres. The repository also includes a separate backoffice application for group and user management.",
-          "Offline work is part of the product model. An IndexedDB snapshot and pending-operation queue keep a local record, while a service worker manages a build-versioned cache.",
+          "I built the installable PWA and its backoffice as a Turborepo with Next.js, React, TypeScript, Postgres, and Drizzle. The backoffice provides a separate place to manage users and groups.",
+          "The product supports email and password, one-time code, passkey, and Google sign-in. It ships in Brazilian Portuguese and English, with light and dark themes and six color palettes.",
         ],
       },
       {
-        title: "Product choices",
+        title: "Engineering choices",
         paragraphs: [
-          "The main interaction is deliberately small: tap once for a sighting. The rest of the interface supports that action with shared group context instead of turning it into a complex form.",
-          "Brazilian Portuguese is the default language, with English available alongside it. Light and dark themes and selectable color palettes let people keep the app comfortable in different settings.",
+          "An IndexedDB snapshot and ordered operation queue keep counting available offline. Pending changes sync through Server Actions when the connection returns, while Postgres remains the source of truth.",
+          "Every group read and write is checked against server-side membership. This keeps the one-tap interaction fast without moving authentication or tenancy decisions into the browser.",
         ],
       },
     ],
@@ -91,27 +91,37 @@ export const projectDetails: readonly Project[] = [
   {
     ...projects[1],
     metaDescription:
-      "Shell is a conversational interface that uses the terminal as its primary interaction model.",
+      "Shell is a terminal-style AI chat interface built with Next.js and the OpenAI Responses API.",
     summary:
-      "Shell explores a conversational interface through the language and constraints of the terminal. It treats commands, prompts, and replies as a focused way to move through a conversation.",
+      "Shell is a terminal-style AI chat built around one focused conversation. It combines keyboard-first controls with readable Markdown responses and a minimal full-screen interface.",
     highlights: [
-      "Conversational UI",
-      "Terminal interaction",
-      "Focused interaction",
+      "AI chat",
+      "Terminal UI",
+      "Next.js",
+      "OpenAI API",
+      "Markdown",
+      "Accessibility",
     ],
     sections: [
       {
-        title: "Intent",
+        title: "Product",
         paragraphs: [
-          "The project asks how a terminal can be used as a conversation surface without making the experience feel like a command-line imitation.",
-          "Its interface keeps the directness of a prompt while making room for readable responses and a calmer pace than a traditional terminal window.",
+          "Visitors write multiline prompts, move through earlier prompts with the arrow keys, and clear the conversation with a familiar keyboard shortcut. The assistant replies in the language of the latest message.",
+          "The interface uses the directness of a terminal without pretending to be a command line. The conversation remains the only primary surface.",
         ],
       },
       {
-        title: "Interface",
+        title: "What I built",
         paragraphs: [
-          "Shell is built around a single interaction model instead of a collection of panels. This makes the conversation itself the primary structure of the product.",
-          "The visual language informed this portfolio: compact navigation, restrained hierarchy, and content that reads like a document rather than a dashboard.",
+          "I built the full-screen chat interface with a custom block cursor, prompt history, pending and error states, and accessible status announcements.",
+          "Responses render safe GitHub Flavored Markdown and reveal word by word. The animation is disabled when the visitor prefers reduced motion.",
+        ],
+      },
+      {
+        title: "Engineering choices",
+        paragraphs: [
+          "A Next.js Server Action validates the conversation before calling the OpenAI Responses API. The API key stays on the server, and requests disable OpenAI response storage.",
+          "Messages remain in browser memory and disappear after a reload or clear action. The project does not yet include accounts, persistent history, rate limits, or the controls required for a public production service.",
         ],
       },
     ],
@@ -119,36 +129,37 @@ export const projectDetails: readonly Project[] = [
   {
     ...projects[2],
     metaDescription:
-      "Harness is a file-native continuity and orchestration layer for coding agents and skill-compatible hosts.",
+      "Harness is a file-native toolkit for agent continuity, project handoffs, and bounded multi-agent orchestration.",
     summary:
-      "Harness is a lean, file-native layer for helping coding agents keep useful project context, write concise handoffs, and coordinate bounded work across compatible hosts.",
+      "Harness is a file-native toolkit that helps agents recover relevant project context, maintain concise handoffs, and coordinate bounded work across compatible hosts.",
     highlights: [
       "Agent continuity",
       "Project handoffs",
-      "Multi-agent work",
+      "Bounded orchestration",
+      "File-native state",
       "Python",
       "Git",
     ],
     sections: [
       {
-        title: "Problem",
+        title: "Product",
         paragraphs: [
-          "Long-running work with coding agents needs continuity, but loading every previous conversation is noisy and expensive. Harness keeps durable project context locally and makes it discoverable when it is relevant.",
-          "The project is designed to work with Codex, Claude Code, and other hosts that support the same skill model without requiring a specific application framework.",
+          "Long-running agent work needs continuity, but loading every past conversation adds noise and cost. Harness keeps selected project context available without turning full transcripts into memory.",
+          "It works with Git and non-Git projects through Codex, Claude Code, and other skill-compatible hosts. Projects do not need to adopt an application framework or store Harness files in their repositories.",
         ],
       },
       {
-        title: "Approach",
+        title: "What I built",
         paragraphs: [
-          "Context is recovered in two stages. Agents first search a compact semantic catalog, then load only the selected record under a defined budget.",
-          "The same system supports concise session handoffs and bounded multi-agent orchestration. Git conventions, documentation, and project artifacts remain available when they are useful, rather than becoming requirements for every project.",
+          "I built self-contained skills for project identity, selective recall, handoffs, worktrees, commits, pull requests, reviews, documentation, and artifacts.",
+          "The same toolkit can coordinate a bounded, depth-one graph of agents with explicit dependencies, budgets, and write ownership.",
         ],
       },
       {
-        title: "Boundaries",
+        title: "Engineering choices",
         paragraphs: [
-          "Harness keeps its state outside the repository. It does not add project identity files or automatically inject memory into every conversation.",
-          "This keeps the layer optional and lets a project remain useful with its existing tools and conventions.",
+          "Recall is pull-based. Agents search a compact catalog first, then load only the selected record under an explicit context budget.",
+          "State stays under a machine-local Harness directory, outside target projects. The system stores concise, scoped records instead of raw chat transcripts and requires no database, daemon, or network service.",
         ],
       },
     ],
@@ -156,36 +167,36 @@ export const projectDetails: readonly Project[] = [
   {
     ...projects[3],
     metaDescription:
-      "A static, terminal-inspired software engineering portfolio built with Next.js and Tailwind CSS.",
+      "Henrique Krause's static software engineering portfolio, built with Next.js and focused on readable project case studies.",
     summary:
-      "This portfolio is a static personal site for presenting selected work, contact details, and the reasoning behind each project in a compact, readable format.",
+      "This portfolio presents selected software projects in a compact, readable format. Each project has a factual case study, its own indexable page, and a direct link to the source code.",
     highlights: [
-      "Content-first",
-      "Static site",
+      "Static rendering",
+      "Project case studies",
       "SEO",
       "Next.js",
       "Tailwind CSS",
     ],
     sections: [
       {
-        title: "Purpose",
+        title: "Product",
         paragraphs: [
-          "The site presents a short professional profile and a focused set of projects. Each project page adds enough context to explain the work without turning the portfolio into a full product manual.",
-          "The interface takes visual cues from Shell but is intentionally a document, not an interactive terminal.",
+          "The site keeps the professional profile, contact details, and selected work in one small interface. Project pages explain the product, the work completed, and the engineering decisions behind it.",
+          "Its visual language comes from Shell, but the site behaves like a document instead of simulating a terminal.",
         ],
       },
       {
-        title: "SEO and sharing",
+        title: "What I built",
         paragraphs: [
-          "Every project page is generated statically with its own title, description, canonical URL, structured data, and sitemap entry. This gives search engines a distinct, indexable page for each project.",
-          "The site also provides Open Graph and X card metadata so shared links have a consistent title, description, and preview image.",
+          "I built the site with the Next.js App Router, React Server Components, TypeScript, and Tailwind CSS. Portfolio content stays in one local data module instead of a CMS.",
+          "Each case study is generated statically with its own metadata, canonical URL, structured data, and sitemap entry. Open Graph and X card metadata provide consistent link previews.",
         ],
       },
       {
-        title: "Implementation",
+        title: "Engineering choices",
         paragraphs: [
-          "Content lives in local TypeScript data and routes are rendered as React Server Components. The production build outputs static pages without a CMS or client-side data layer.",
-          "Tailwind CSS keeps the presentation responsive across desktop and mobile while preserving light and dark color schemes.",
+          "The production build outputs static pages without authentication, a backend, runtime data fetching, or a client-side data layer. This keeps the site fast and the content easy to maintain.",
+          "The responsive layout supports desktop and narrow mobile screens, visible keyboard focus, safe-area insets, and system light and dark color schemes.",
         ],
       },
     ],
