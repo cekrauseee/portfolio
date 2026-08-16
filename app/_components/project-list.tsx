@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { projects } from "../content";
 import { linkFocusClassName } from "./external-link";
 
@@ -10,7 +9,7 @@ export function ProjectList() {
     >
       {projects.map((project) => (
         <article key={project.href}>
-          <Link
+          <a
             className={`${linkFocusClassName} group block bg-black/[0.025] p-4 no-underline [@media(max-height:42rem)]:py-3.5 [@media(max-width:23rem)_and_(max-height:42rem)]:py-3 dark:bg-white/[0.035]`}
             href={project.href}
             target="_blank"
@@ -23,7 +22,7 @@ export function ProjectList() {
               {project.description}
             </p>
             <span className="sr-only"> (opens in a new tab)</span>
-          </Link>
+          </a>
         </article>
       ))}
     </section>
