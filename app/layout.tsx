@@ -1,13 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { Geist_Mono } from "next/font/google";
+import { Geist } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { profile } from "./content";
 import { site } from "./site";
 import "./globals.css";
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const geistSans = Geist({
+  variable: "--font-geist-sans",
   subsets: ["latin"],
 });
 
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     locale: site.locale,
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: site.title,
     description: site.description,
     creator: `@${site.xHandle}`,
@@ -68,9 +68,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistMono.variable} min-h-full min-w-0 overscroll-none bg-background [color-scheme:light_dark] [-webkit-text-size-adjust:100%] [text-size-adjust:100%]`}
+      className={`${geistSans.variable} min-h-full min-w-0 overscroll-none bg-background [color-scheme:light_dark] [-webkit-text-size-adjust:100%] [text-size-adjust:100%]`}
     >
-      <body className="min-h-full min-w-0 overscroll-none bg-background font-mono text-sm leading-5 text-foreground antialiased">
+      <body className="min-h-full min-w-0 overscroll-none bg-background font-sans text-sm leading-5 text-foreground antialiased">
         {children}
         <Analytics />
         <SpeedInsights />
