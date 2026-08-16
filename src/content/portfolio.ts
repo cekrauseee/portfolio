@@ -15,25 +15,25 @@ export const socialLinks = [
 export const projects = [
   {
     slug: "avioes",
-    name: "cekrauseee/avioes",
+    name: "cekrause/avioes",
     description: "An offline-first PWA for groups to count airplane sightings.",
     repositoryUrl: "https://github.com/cekrauseee/avioes",
   },
   {
     slug: "shell",
-    name: "cekrauseee/shell",
+    name: "cekrause/shell",
     description: "A terminal-style AI chat built with the OpenAI Responses API.",
     repositoryUrl: "https://github.com/cekrauseee/shell",
   },
   {
     slug: "harness",
-    name: "cekrauseee/harness",
+    name: "cekrause/harness",
     description: "A file-native continuity and orchestration layer for agents.",
     repositoryUrl: "https://github.com/cekrauseee/harness",
   },
   {
     slug: "portfolio",
-    name: "cekrauseee/portfolio",
+    name: "cekrause/portfolio",
     description: "A static portfolio for selected software projects.",
     repositoryUrl: "https://github.com/cekrauseee/portfolio",
   },

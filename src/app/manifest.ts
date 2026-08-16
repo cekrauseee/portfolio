@@ -4,7 +4,7 @@ import { site } from "@/config/site";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: site.title,
-    short_name: site.name,
+    short_name: site.title,
     description: site.description,
     start_url: "/",
     display: "standalone",
