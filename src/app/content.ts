@@ -1,5 +1,5 @@
 export const profile = {
-  handle: "portfolio",
+  handle: "cekrause",
   name: "Henrique Krause",
   role: "Software engineer",
   location: "Lisbon",
@@ -42,7 +42,7 @@ export const projects = [
 export type Project = (typeof projects)[number] & {
   readonly metaDescription: string;
   readonly summary: string;
-  readonly technologies: readonly string[];
+  readonly highlights: readonly string[];
   readonly sections: readonly {
     readonly title: string;
     readonly paragraphs: readonly string[];
@@ -56,12 +56,12 @@ export const projectDetails: readonly Project[] = [
       "Aviões is an offline-first PWA for groups to count airplanes, keep a shared tally, and review sighting streaks.",
     summary:
       "Aviões is a small group-based PWA for turning airplane sightings into a shared record. People can count together, keep a diary of streaks, and compare the group scoreboard.",
-    technologies: [
+    highlights: [
+      "Offline-first",
+      "Shared groups",
+      "PWA",
       "Next.js",
-      "React",
-      "TypeScript",
       "Postgres",
-      "Drizzle ORM",
       "IndexedDB",
     ],
     sections: [
@@ -94,7 +94,11 @@ export const projectDetails: readonly Project[] = [
       "Shell is a conversational interface that uses the terminal as its primary interaction model.",
     summary:
       "Shell explores a conversational interface through the language and constraints of the terminal. It treats commands, prompts, and replies as a focused way to move through a conversation.",
-    technologies: ["Conversational UI", "Terminal interaction"],
+    highlights: [
+      "Conversational UI",
+      "Terminal interaction",
+      "Focused interaction",
+    ],
     sections: [
       {
         title: "Intent",
@@ -118,7 +122,13 @@ export const projectDetails: readonly Project[] = [
       "Harness is a file-native continuity and orchestration layer for coding agents and skill-compatible hosts.",
     summary:
       "Harness is a lean, file-native layer for helping coding agents keep useful project context, write concise handoffs, and coordinate bounded work across compatible hosts.",
-    technologies: ["Python", "Agent skills", "Local files", "Git"],
+    highlights: [
+      "Agent continuity",
+      "Project handoffs",
+      "Multi-agent work",
+      "Python",
+      "Git",
+    ],
     sections: [
       {
         title: "Problem",
@@ -149,7 +159,13 @@ export const projectDetails: readonly Project[] = [
       "A static, terminal-inspired software engineering portfolio built with Next.js and Tailwind CSS.",
     summary:
       "This portfolio is a static personal site for presenting selected work, contact details, and the reasoning behind each project in a compact, readable format.",
-    technologies: ["Next.js", "React", "TypeScript", "Tailwind CSS"],
+    highlights: [
+      "Content-first",
+      "Static site",
+      "SEO",
+      "Next.js",
+      "Tailwind CSS",
+    ],
     sections: [
       {
         title: "Purpose",

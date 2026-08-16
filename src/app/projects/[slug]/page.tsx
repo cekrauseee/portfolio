@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  ExternalLink,
-  linkFocusClassName,
-} from "../../_components/external-link";
+import { ExternalLink } from "../../_components/external-link";
 import { SiteNavigation } from "../../_components/site-navigation";
 import { getProject, projectDetails } from "../../content";
 import { site } from "../../site";
@@ -106,7 +103,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
       description: project.metaDescription,
       url: projectUrl,
       codeRepository: project.repositoryUrl,
-      keywords: project.technologies.join(", "),
+      keywords: project.highlights.join(", "),
       author: {
         "@id": `${site.url}/#person`,
       },
@@ -124,43 +121,22 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
       <div className="flex w-full max-w-[42rem] flex-col gap-10 [@media(max-height:42rem)]:gap-7">
         <SiteNavigation />
 
-        <nav
-          className="flex flex-wrap gap-x-2 text-black/55 dark:text-white/65"
-          aria-label="Breadcrumb"
-        >
-          <Link className={linkFocusClassName} href="/">
-            portfolio
-          </Link>
-          <span aria-hidden="true">/</span>
-          <span aria-current="page">{project.slug}</span>
-        </nav>
-
         <article className="max-w-[65ch]">
           <header>
-            <p className="text-black/55 dark:text-white/65">Project notes</p>
-            <h1 className="mt-2 text-2xl leading-8 font-medium tracking-[-0.02em] text-balance">
+            <h1 className="text-2xl leading-8 font-medium tracking-[-0.02em] text-balance">
               {project.name}
             </h1>
-            <p className="mt-5 text-base leading-7 text-pretty text-black/75 dark:text-white/85">
+            <p className="mt-4 text-base leading-7 text-pretty text-black/75 dark:text-white/85">
               {project.summary}
             </p>
-
-            <dl className="mt-8 flex flex-col gap-5 border-y border-black/10 py-6 dark:border-white/15">
-              <div>
-                <dt className="text-black/55 dark:text-white/65">Technology</dt>
-                <dd className="mt-1 leading-6">
-                  {project.technologies.join(", ")}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-black/55 dark:text-white/65">Source</dt>
-                <dd className="mt-1">
-                  <ExternalLink href={project.repositoryUrl}>
-                    View the {project.name} repository
-                  </ExternalLink>
-                </dd>
-              </div>
-            </dl>
+            <p className="mt-6">
+              <ExternalLink href={project.repositoryUrl}>
+                Repository
+              </ExternalLink>
+            </p>
+            <p className="mt-3 max-w-[48ch] text-sm leading-6 text-black/60 dark:text-white/70">
+              {project.highlights.join(" · ")}
+            </p>
           </header>
 
           <div className="mt-10 flex flex-col gap-10 [@media(max-height:42rem)]:gap-8">
@@ -177,14 +153,16 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
               </section>
             ))}
           </div>
-        </article>
 
-        <Link
-          className="w-fit text-black/70 underline decoration-black/30 underline-offset-4 hover:text-black focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-foreground dark:text-white/75 dark:decoration-white/30 dark:hover:text-white"
-          href="/"
-        >
-          Back to portfolio
-        </Link>
+          <footer className="mt-12 [@media(max-height:42rem)]:mt-9">
+            <Link
+              className="w-fit text-black/70 underline decoration-black/30 underline-offset-4 hover:text-black focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-foreground dark:text-white/75 dark:decoration-white/30 dark:hover:text-white"
+              href="/"
+            >
+              Back
+            </Link>
+          </footer>
+        </article>
       </div>
     </main>
   );

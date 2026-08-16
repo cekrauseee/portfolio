@@ -20,16 +20,16 @@ runtime data fetching, or a content management system.
 
 ## Core Concepts
 
-- `app/content.ts` is the canonical source for profile, social, project, and
+- `src/app/content.ts` is the canonical source for profile, social, project, and
   case-study content.
-- Route files compose the page; components under `app/_components` own
+- Route files compose the page; components under `src/app/_components` own
   reusable presentation and link behavior.
 - Project cards link directly to internal case studies. Each case study links
   to its source repository as an external destination.
 
 ## Boundaries
 
-- Keep the public handle in the heading as `portfolio`.
+- Keep the public handle in the heading as `cekrause`.
 - Keep social accounts and GitHub repositories under `cekrauseee`.
 - Keep the page static and readable without client-side JavaScript behavior.
 - Preserve the terminal-inspired visual language without imitating an
