@@ -22,7 +22,8 @@ export const projects = [
   {
     slug: "shell",
     name: "cekrause/shell",
-    description: "A terminal-style AI chat built with the OpenAI Responses API.",
+    description:
+      "A terminal-style AI chat built with the OpenAI Responses API.",
     repositoryUrl: "https://github.com/cekrauseee/shell",
   },
   {

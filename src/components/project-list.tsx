@@ -11,7 +11,7 @@ export function ProjectList() {
       {projects.map((project) => (
         <article key={project.slug}>
           <Link
-            className={`${linkFocusClassName} group block bg-black/[0.025] px-6 py-5 no-underline transition-colors hover:bg-black/[0.045] focus-visible:bg-black/[0.045] [@media(max-height:42rem)]:px-5 [@media(max-height:42rem)]:py-4 [@media(max-width:23rem)_and_(max-height:42rem)]:px-4 [@media(max-width:23rem)_and_(max-height:42rem)]:py-3.5 dark:bg-white/[0.035] dark:hover:bg-white/[0.06] dark:focus-visible:bg-white/[0.06]`}
+            className={`${linkFocusClassName} group block bg-black/[0.025] px-6 py-5 no-underline transition-colors hover:bg-black/[0.045] focus-visible:bg-black/[0.045] dark:bg-white/[0.035] dark:hover:bg-white/[0.06] dark:focus-visible:bg-white/[0.06] [@media(max-height:42rem)]:px-5 [@media(max-height:42rem)]:py-4 [@media(max-width:23rem)_and_(max-height:42rem)]:px-4 [@media(max-width:23rem)_and_(max-height:42rem)]:py-3.5`}
             href={`/projects/${project.slug}`}
           >
             <h2 className="text-lg leading-7 font-medium">{project.name}</h2>
