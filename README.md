@@ -15,12 +15,27 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Commands
 
-| Command         | Purpose                      |
-| --------------- | ---------------------------- |
-| `npm run dev`   | Start the development server |
-| `npm run build` | Create a production build    |
-| `npm run start` | Serve the production build   |
-| `npm run lint`  | Run ESLint                   |
+| Command                | Purpose                          |
+| ---------------------- | -------------------------------- |
+| `npm run dev`          | Start the development server     |
+| `npm run build`        | Create a production build        |
+| `npm run start`        | Serve the production build       |
+| `npm run format`       | Format supported files           |
+| `npm run format:check` | Check formatting without writing |
+| `npm run lint`         | Run ESLint                       |
+| `npm run typecheck`    | Check TypeScript types           |
+
+## Continuous delivery
+
+GitHub Actions runs formatting, lint, TypeScript, and production-build checks on
+every push and pull request. A passing push to `main` then triggers the Vercel
+Deploy Hook stored in the `VERCEL_DEPLOY_HOOK_URL` GitHub Actions secret.
+
+Disable Vercel's Git-based automatic deployments before enabling this workflow;
+the deploy hook becomes the sole production deployment trigger. The committed
+`vercel.json` uses `git.deploymentEnabled: false` for this. Keep the Git
+repository connected, and do not use the legacy `github.enabled: false` setting:
+Vercel Deploy Hooks require that integration to remain enabled.
 
 ## Structure
 

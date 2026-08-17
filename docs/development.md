@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Node.js 20.9 or newer
+- Node.js 20.19 or newer
 - npm
 
 ## Setup
@@ -18,21 +18,36 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Commands
 
-| Command         | Purpose                                          |
-| --------------- | ------------------------------------------------ |
-| `npm run dev`   | Start the development server                     |
-| `npm run build` | Type-check and create the production build       |
-| `npm run start` | Serve a completed production build               |
-| `npm run lint`  | Run ESLint with the Next.js and TypeScript rules |
+| Command                | Purpose                                          |
+| ---------------------- | ------------------------------------------------ |
+| `npm run dev`          | Start the development server                     |
+| `npm run build`        | Type-check and create the production build       |
+| `npm run start`        | Serve a completed production build               |
+| `npm run format`       | Format supported files                           |
+| `npm run format:check` | Check formatting without writing                 |
+| `npm run lint`         | Run ESLint with the Next.js and TypeScript rules |
+| `npm run typecheck`    | Run TypeScript without emitting files            |
 
 ## Testing
 
 There is no automated test suite. Before publishing a change, run:
 
 ```bash
+npm run format:check
 npm run lint
+npm run typecheck
 npm run build
 ```
+
+## CI/CD
+
+GitHub Actions runs the same checks on every push and pull request. After all
+checks pass for a push to `main`, the workflow calls the Vercel Deploy Hook in
+the `VERCEL_DEPLOY_HOOK_URL` repository secret. Disable Vercel's Git-based
+automatic deployments so this hook is the only production deployment trigger.
+`vercel.json` enforces this with `git.deploymentEnabled: false`. Keep the Git
+repository connected and do not use the legacy `github.enabled: false` setting,
+because Vercel Deploy Hooks need that integration enabled.
 
 For layout changes, also inspect the page at desktop width and at mobile widths
 down to 320 CSS pixels. Confirm that links remain keyboard accessible, project

@@ -68,9 +68,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} min-h-full min-w-0 overscroll-none bg-background [color-scheme:light_dark] [-webkit-text-size-adjust:100%] [text-size-adjust:100%]`}
+      className={`${geistSans.variable} bg-background min-h-full min-w-0 overscroll-none [color-scheme:light_dark] [-webkit-text-size-adjust:100%] [text-size-adjust:100%]`}
     >
-      <body className="min-h-full min-w-0 overscroll-none bg-background font-sans text-sm leading-5 text-foreground antialiased">
+      <body className="bg-background text-foreground min-h-full min-w-0 overscroll-none font-sans text-sm leading-5 antialiased">
         {children}
         <Analytics />
         <SpeedInsights />
