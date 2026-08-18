@@ -1,38 +1,41 @@
 {
-  "description": "A portfolio for selected software projects.",
+  "description": "A terminal-inspired software engineering portfolio with static case studies, role-fit assessment, and one-hour meeting scheduling.",
   "highlights": [
-    "Static rendering",
-    "Project case studies",
-    "SEO",
-    "Next.js",
-    "Tailwind CSS"
+    "Static, indexable case studies",
+    "Opt-in GitHub project records",
+    "Validated build-time snapshots",
+    "Role-fit assessment",
+    "One-hour Google Calendar and Meet scheduling",
+    "Calendar conflict checking and notifications",
+    "SEO metadata and structured data"
   ],
-  "metaDescription": "Henrique Krause's software engineering portfolio, built with Next.js and focused on readable project case studies.",
+  "metaDescription": "Henrique Krause's software engineering portfolio with static case studies, role-fit assessment, and one-hour Google Calendar and Google Meet scheduling.",
   "name": "cekrause/portfolio",
   "repositoryUrl": "https://github.com/cekrauseee/portfolio",
   "sections": [
     {
       "title": "Product",
       "paragraphs": [
-        "The site keeps the professional profile, contact details, and selected work in one small interface. Project pages explain the product, the work completed, and the engineering decisions behind it.",
-        "Its visual language comes from Shell, but the site behaves like a document instead of simulating a terminal."
+        "This portfolio brings a professional profile, contact links, and selected software projects into one compact interface.",
+        "Project pages are static and indexable, with canonical metadata, structured data, sitemap entries, and social previews."
       ]
     },
     {
       "title": "What I built",
       "paragraphs": [
-        "I built the site with the Next.js App Router, React Server Components, TypeScript, and Tailwind CSS. Portfolio content stays in one local data module instead of a CMS.",
-        "Each case study is generated statically with its own metadata, canonical URL, structured data, and sitemap entry. Open Graph and X card metadata provide consistent link previews."
+        "Public repositories owned by the configured GitHub account opt in with a `.portfolio/project.json` record. The sync validates eligible records into a build-time snapshot.",
+        "The role-fit route uses the published project records as context, returns a concise plain-text assessment, and stores neither the submitted description nor the response.",
+        "Scheduling accepts a name, email, local whole-hour start, and time zone. It checks Google Calendar free/busy, creates a private one-hour Google Calendar event with a Google Meet conference request, sends the invitation, and notifies the owner through Resend."
       ]
     },
     {
       "title": "Engineering choices",
       "paragraphs": [
-        "Portfolio and project pages render statically from local data. The role-fit and scheduling tools use focused Client Components and Node.js Route Handlers only where browser state or external APIs require them.",
+        "Client Components are limited to interactive forms, while Node.js Route Handlers validate input before external requests.",
         "The responsive layout supports desktop and narrow mobile screens, visible keyboard focus, safe-area insets, and system light and dark color schemes."
       ]
     }
   ],
   "slug": "portfolio",
-  "summary": "This portfolio presents selected software projects in a compact, readable format. Each project has a factual case study, its own indexable page, and a direct link to the source code."
+  "summary": "This portfolio presents selected software projects as static, indexable case studies. Visitors can compare a role with the published experience and schedule a one-hour conversation."
 }

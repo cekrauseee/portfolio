@@ -11,6 +11,7 @@ assessment and meeting scheduling.
 - one-hour meeting scheduling with Google Calendar and Google Meet;
 - responsive light and dark layouts with accessible keyboard interactions;
 - canonical metadata, structured data, sitemap, and social previews.
+- optional build-time project records reconciled from public GitHub repositories.
 
 ## Development
 
@@ -28,18 +29,14 @@ assessment requires `OPENAI_API_KEY`; meeting scheduling requires Google Calenda
 OAuth credentials and Resend configuration. See
 [Development](docs/development.md) for setup details.
 
-## Commands
+Project case studies come from the validated `.cache/github-projects.json`
+snapshot. `npm run dev` and `npm run build` refresh it automatically by scanning
+public repositories owned by `GITHUB_OWNER` (default `cekrauseee`) and reading
+`.portfolio/project.json` from each default branch. Use `npm run projects:sync`
+when you want to refresh or inspect the snapshot explicitly.
 
-| Command                             | Purpose                              |
-| ----------------------------------- | ------------------------------------ |
-| `npm run dev`                       | Start the development server         |
-| `npm run build`                     | Create a production build            |
-| `npm run start`                     | Serve the production build           |
-| `npm run google-calendar:authorize` | Authorize the meeting calendar owner |
-| `npm run format`                    | Format supported files               |
-| `npm run format:check`              | Check formatting without writing     |
-| `npm run lint`                      | Run ESLint                           |
-| `npm run typecheck`                 | Check TypeScript types               |
+See [Development](docs/development.md) for the complete command catalog,
+integration setup, testing, and CI details.
 
 ## Continuous delivery
 
@@ -58,7 +55,9 @@ Vercel Deploy Hooks require that integration to remain enabled.
 - `src/app` contains routes, metadata files, and global styles.
 - `src/components` contains reusable UI.
 - `src/features` groups role-fit and meeting-scheduling code by capability.
-- `src/content/portfolio.ts` keeps profile, social, and project content together.
+- `src/content/portfolio.ts` keeps profile, social, and the normalized Project contract together.
+- `src/content/github-projects.ts` validates the build-time GitHub snapshot.
+- `scripts/sync-github-projects.mjs` reconciles convention files into the ignored `.cache/github-projects.json` snapshot.
 - `src/config/site.ts` keeps site-wide configuration.
 - `public/` and project configuration remain at the repository root.
 

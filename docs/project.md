@@ -24,8 +24,9 @@ application data, or a content management system.
 
 ## Core Concepts
 
-- `src/content/portfolio.ts` is the canonical source for profile, social, project, and
-  case-study content.
+- `src/content/portfolio.ts` is the canonical source for profile, social, and the
+  normalized Project contract. It validates and uses the GitHub project snapshot
+  at build time.
 - Route files under `src/app` compose pages and HTTP endpoints. Shared components
   live under `src/components`; capability-specific code lives under
   `src/features`.
@@ -42,3 +43,6 @@ application data, or a content management system.
   interactive command prompt.
 - Keep case-study claims factual. Do not add unverified metrics, business
   impact, team details, or personal responsibilities.
+- Adopt `.portfolio/project.json` in source repositories only when its complete
+  record is ready for publication; invalid or duplicate records fail the sync.
+- GitHub reconciliation is public-only: private repositories never participate.

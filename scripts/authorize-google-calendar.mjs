@@ -29,7 +29,7 @@ if (process.argv.includes("--help")) {
   console.log(`Authorize the portfolio to access one Google Calendar account.
 
 Usage:
-  npm run google-calendar:authorize
+  npm run calendar:authorize
 
 Before running, set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env.local or
 .env. Web OAuth clients must allow this redirect URI:
