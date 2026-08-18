@@ -9,6 +9,8 @@ export const textLinkClassName = `${linkFocusClassName} underline [text-decorati
 
 export const actionClassName = `${linkFocusClassName} inline-flex w-fit cursor-pointer items-center justify-center bg-black px-4 py-2 text-sm text-white no-underline hover:bg-black/80 dark:bg-white dark:text-black dark:hover:bg-white/80`;
 
+export const mutedTextLinkClassName = `${linkFocusClassName} text-black/70 underline decoration-black/30 underline-offset-4 hover:text-black dark:text-white/75 dark:decoration-white/30 dark:hover:text-white`;
+
 export function ExternalLink({
   children,
   className,

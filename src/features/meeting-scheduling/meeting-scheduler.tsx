@@ -1,7 +1,8 @@
 "use client";
 
-import { FormEvent, useMemo, useRef, useState } from "react";
-import { actionClassName, ExternalLink } from "@/components/external-link";
+import type { FormEvent } from "react";
+import { useState } from "react";
+import { actionClassName, ExternalLink } from "@/components/links";
 
 type FieldName = "name" | "email" | "date" | "time";
 type Fields = Record<FieldName, string>;
@@ -41,8 +42,7 @@ export function MeetingScheduler() {
   const [success, setSuccess] = useState("");
   const [meetingLink, setMeetingLink] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
-  const firstInvalidRef = useRef<HTMLInputElement | HTMLSelectElement>(null);
-  const minDate = useMemo(() => today(), []);
+  const [minDate] = useState(today);
 
   function updateField(field: FieldName, value: string) {
     setFields((current) => ({ ...current, [field]: value }));
@@ -54,14 +54,22 @@ export function MeetingScheduler() {
 
   function validate() {
     const nextErrors: Errors = {};
-    if (!fields.name.trim()) nextErrors.name = "Enter your name.";
-    if (!fields.email.trim()) nextErrors.email = "Enter your email address.";
-    else if (!/^\S+@\S+\.\S+$/.test(fields.email.trim()))
+    if (!fields.name.trim()) {
+      nextErrors.name = "Enter your name.";
+    }
+    if (!fields.email.trim()) {
+      nextErrors.email = "Enter your email address.";
+    } else if (!/^\S+@\S+\.\S+$/.test(fields.email.trim())) {
       nextErrors.email = "Enter a valid email address.";
-    if (!fields.date) nextErrors.date = "Choose a date.";
-    else if (fields.date < minDate) nextErrors.date = "Choose a future date.";
-    if (!fields.time) nextErrors.time = "Choose a time.";
-    else if (new Date(`${fields.date}T${fields.time}:00`) <= new Date()) {
+    }
+    if (!fields.date) {
+      nextErrors.date = "Choose a date.";
+    } else if (fields.date < minDate) {
+      nextErrors.date = "Choose a future date.";
+    }
+    if (!fields.time) {
+      nextErrors.time = "Choose a time.";
+    } else if (new Date(`${fields.date}T${fields.time}:00`) <= new Date()) {
       nextErrors.time = "Choose a future time.";
     }
     return nextErrors;
@@ -78,11 +86,9 @@ export function MeetingScheduler() {
       const first = (Object.keys(initialFields) as FieldName[]).find(
         (field) => nextErrors[field],
       );
-      if (first)
-        firstInvalidRef.current = document.getElementById(
-          `meeting-${first}`,
-        ) as HTMLInputElement | HTMLSelectElement;
-      firstInvalidRef.current?.focus();
+      if (first) {
+        document.getElementById(`meeting-${first}`)?.focus();
+      }
       return;
     }
 
@@ -169,7 +175,6 @@ export function MeetingScheduler() {
           "name",
           "Name",
           <input
-            ref={firstInvalidRef as React.Ref<HTMLInputElement>}
             autoComplete="name"
             className={inputClass}
             id="meeting-name"
@@ -184,7 +189,6 @@ export function MeetingScheduler() {
           "email",
           "Email",
           <input
-            ref={firstInvalidRef as React.Ref<HTMLInputElement>}
             autoComplete="email"
             className={inputClass}
             id="meeting-email"
@@ -200,7 +204,6 @@ export function MeetingScheduler() {
           "date",
           "Date",
           <input
-            ref={firstInvalidRef as React.Ref<HTMLInputElement>}
             className={`${inputClass} cursor-pointer`}
             id="meeting-date"
             min={minDate}
@@ -220,7 +223,6 @@ export function MeetingScheduler() {
           "Time",
           <div className="relative">
             <select
-              ref={firstInvalidRef as React.Ref<HTMLSelectElement>}
               className={`${inputClass} cursor-pointer appearance-none pr-10`}
               id="meeting-time"
               name="time"

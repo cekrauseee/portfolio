@@ -1,6 +1,6 @@
 import { Fragment } from "react";
 import { profile, socialLinks } from "@/content/portfolio";
-import { ExternalLink } from "@/components/external-link";
+import { ExternalLink } from "@/components/links";
 
 export function SiteNavigation() {
   return (

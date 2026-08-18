@@ -3,7 +3,7 @@ import {
   MeetingInputError,
   scheduleMeeting,
   validateMeetingRequest,
-} from "@/lib/meeting";
+} from "@/features/meeting-scheduling/schedule-meeting";
 
 export const runtime = "nodejs";
 
@@ -28,10 +28,12 @@ export async function POST(request: Request) {
       { status: 201 },
     );
   } catch (error) {
-    if (error instanceof MeetingInputError)
+    if (error instanceof MeetingInputError) {
       return Response.json({ error: error.message }, { status: 400 });
-    if (error instanceof MeetingConflictError)
+    }
+    if (error instanceof MeetingConflictError) {
       return Response.json({ error: error.message }, { status: 409 });
+    }
     console.error("Meeting scheduling failed", error);
     return Response.json(
       { error: "Unable to schedule a meeting right now." },

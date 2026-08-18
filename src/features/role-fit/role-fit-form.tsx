@@ -1,8 +1,9 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import type { FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { actionClassName } from "@/components/external-link";
+import { actionClassName } from "@/components/links";
 
 const MAX_DESCRIPTION_LENGTH = 16_000;
 const MAX_DESCRIPTION_LABEL = "16,000";
@@ -10,7 +11,7 @@ const WORD_INTERVAL_MS = 24;
 
 type Status = "idle" | "loading" | "revealing" | "done" | "error";
 
-export function PositionFitForm() {
+export function RoleFitForm() {
   const [description, setDescription] = useState("");
   const [answer, setAnswer] = useState("");
   const [visibleWordCount, setVisibleWordCount] = useState(0);
@@ -54,6 +55,13 @@ export function PositionFitForm() {
     const words = Array.from(nextAnswer.matchAll(/\S+(?:\s+|$)/g));
 
     setAnswer(nextAnswer);
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setVisibleWordCount(words.length);
+      setStatus("done");
+      return;
+    }
+
     setVisibleWordCount(0);
     setStatus("revealing");
 

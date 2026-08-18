@@ -1,12 +1,15 @@
-import { google, calendar_v3 } from "googleapis";
+import type { calendar_v3 } from "googleapis";
+import { google } from "googleapis";
 
-export type CalendarConfig = {
+type CalendarConfig = {
   calendarId: string;
 };
 
 function requiredEnv(name: string) {
   const value = process.env[name]?.trim();
-  if (!value) throw new Error(`Missing ${name}.`);
+  if (!value) {
+    throw new Error(`Missing ${name}.`);
+  }
   return value;
 }
 
@@ -20,7 +23,7 @@ function calendarClient() {
 }
 
 export function getCalendarConfig(): CalendarConfig {
-  return { calendarId: requiredEnv("GOOGLE_CALENDAR_ID") };
+  return { calendarId: process.env.GOOGLE_CALENDAR_ID?.trim() || "primary" };
 }
 
 export async function hasCalendarConflict(
@@ -61,9 +64,18 @@ export async function createMeetingEvent(input: {
   config?: CalendarConfig;
 }) {
   const config = input.config ?? getCalendarConfig();
+  const meetingOwnerName = ownerName();
   const event: calendar_v3.Schema$Event = {
-    summary: `${ownerName()} and ${input.name}`,
-    description: "A one-hour conversation scheduled through cekrause.eu.",
+    summary: `${meetingOwnerName} and ${input.name}`,
+    description: [
+      `Hi ${input.name},`,
+      "",
+      `Thanks for scheduling a conversation with ${meetingOwnerName}.`,
+      "",
+      "The conversation is scheduled for one hour.",
+      "",
+      "Use the Google Meet link in this event to join.",
+    ].join("\n"),
     start: { dateTime: input.start.toISOString(), timeZone: input.timeZone },
     end: { dateTime: input.end.toISOString(), timeZone: input.timeZone },
     visibility: "private",
@@ -85,18 +97,21 @@ export async function createMeetingEvent(input: {
     conferenceDataVersion: 1,
     sendUpdates: "all",
   });
-  if (!response.data.id) throw new Error("Google did not return an event id.");
+  if (!response.data.id) {
+    throw new Error("Google did not return an event id.");
+  }
   let currentEvent = response.data;
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const meetLink = currentEvent.conferenceData?.entryPoints?.find(
       (entry) => entry.entryPointType === "video",
     )?.uri;
-    if (meetLink)
+    if (meetLink) {
       return {
         id: currentEvent.id,
         meetLink,
         calendarLink: currentEvent.htmlLink,
       };
+    }
     if (attempt < 4) {
       await new Promise((resolve) => setTimeout(resolve, 500));
       try {

@@ -2,8 +2,8 @@ import {
   createMeetingEvent,
   getCalendarConfig,
   hasCalendarConflict,
-} from "@/lib/google-calendar";
-import { sendOwnerMeetingNotification } from "@/lib/resend";
+} from "@/features/meeting-scheduling/google-calendar";
+import { sendMeetingNotification } from "@/features/meeting-scheduling/meeting-notification";
 
 export type MeetingRequest = {
   name: string;
@@ -16,8 +16,9 @@ export class MeetingInputError extends Error {}
 export class MeetingConflictError extends Error {}
 
 export function validateMeetingRequest(body: unknown): MeetingRequest {
-  if (!body || typeof body !== "object")
+  if (!body || typeof body !== "object") {
     throw new MeetingInputError("Provide meeting details as JSON.");
+  }
   const value = body as Record<string, unknown>;
   const name = typeof value.name === "string" ? value.name.trim() : "";
   const email =
@@ -25,14 +26,18 @@ export function validateMeetingRequest(body: unknown): MeetingRequest {
   const start = typeof value.start === "string" ? value.start.trim() : "";
   const timeZone =
     typeof value.timeZone === "string" ? value.timeZone.trim() : "";
-  if (name.length < 2 || name.length > 120)
+  if (name.length < 2 || name.length > 120) {
     throw new MeetingInputError("Provide a valid name.");
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254)
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
     throw new MeetingInputError("Provide a valid email.");
-  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:00(?::00)?$/.test(start))
+  }
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:00(?::00)?$/.test(start)) {
     throw new MeetingInputError("Start must be a local whole-hour time.");
-  if (!isTimeZone(timeZone))
+  }
+  if (!isTimeZone(timeZone)) {
     throw new MeetingInputError("Provide a valid IANA time zone.");
+  }
   const [datePart, timePart] = start.split("T");
   const [year, month, day] = datePart.split("-").map(Number);
   const [hour] = timePart.split(":").map(Number);
@@ -42,12 +47,14 @@ export function validateMeetingRequest(body: unknown): MeetingRequest {
     month > 12 ||
     day < 1 ||
     day > new Date(Date.UTC(year, month, 0)).getUTCDate()
-  )
+  ) {
     throw new MeetingInputError("Provide a valid start time.");
+  }
   const utcStart = localToUtc(start, timeZone);
   const now = Date.now();
-  if (utcStart.getTime() <= now)
+  if (utcStart.getTime() <= now) {
     throw new MeetingInputError("Choose a future start time.");
+  }
   return {
     name,
     email,
@@ -60,8 +67,9 @@ export async function scheduleMeeting(request: MeetingRequest) {
   const startDate = localToUtc(request.start, request.timeZone);
   const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
   const config = getCalendarConfig();
-  if (await hasCalendarConflict(startDate, endDate, config))
+  if (await hasCalendarConflict(startDate, endDate, config)) {
     throw new MeetingConflictError("That time is no longer available.");
+  }
   const event = await createMeetingEvent({
     ...request,
     start: startDate,
@@ -69,9 +77,9 @@ export async function scheduleMeeting(request: MeetingRequest) {
     config,
   });
   try {
-    await sendOwnerMeetingNotification({
+    await sendMeetingNotification({
       ...request,
-      startLabel: request.start.replace("T", " "),
+      start: startDate,
       meetLink: event.meetLink ?? undefined,
       calendarLink: event.calendarLink ?? undefined,
     });

@@ -2,39 +2,53 @@
 
 ## Overview
 
-The project is a static Next.js App Router application. `src/app` contains only
-routes, framework metadata, and global styles; reusable UI, portfolio data, and
-site configuration live alongside it under `src`. Project configuration and
-public assets remain at the repository root. The home page and project case
-studies are rendered from local TypeScript data with React Server Components.
-The `/projects` route permanently redirects to the home page. Tailwind CSS
-provides component styling, while `src/app/globals.css` contains only the
-Tailwind import, global color tokens, and body defaults.
+The project uses the Next.js App Router. `src/app` contains route composition,
+HTTP endpoints, framework metadata, and global styles. Shared presentation lives
+in `src/components`, while interactive capabilities and their integrations are
+grouped under `src/features`. Portfolio content and site configuration remain
+separate under `src/content` and `src/config`.
+
+The home page and project case studies render from local TypeScript data with
+React Server Components. Client Components are limited to the role-fit and
+meeting-scheduling forms. Node.js Route Handlers connect those forms to OpenAI,
+Google Calendar, and Resend. Tailwind CSS provides component styling;
+`src/app/globals.css` contains only global tokens and defaults.
 
 ## Components
 
-| Path                                 | Responsibility                                                      |
-| ------------------------------------ | ------------------------------------------------------------------- |
-| `src/app/layout.tsx`                 | Root metadata, viewport behavior, font loading, and document styles |
-| `src/app/page.tsx`                   | Home-page composition and contact block                             |
-| `src/app/not-found.tsx`              | Root 404 page                                                       |
-| `src/app/projects/page.tsx`          | Permanent redirect from `/projects` to `/`                          |
-| `src/app/projects/[slug]/page.tsx`   | Static project pages, metadata, and structured data                 |
-| `src/app/globals.css`                | Tailwind entry point and global color tokens                        |
-| `src/components/site-navigation.tsx` | Primary social navigation                                           |
-| `src/components/project-list.tsx`    | Full-card internal project links                                    |
-| `src/components/external-link.tsx`   | Shared external-link behavior and Tailwind states                   |
-| `src/content/portfolio.ts`           | Canonical profile, social-link, project, and case-study data        |
-| `src/config/site.ts`                 | Site-wide identity and canonical URL configuration                  |
+| Path                                    | Responsibility                                                   |
+| --------------------------------------- | ---------------------------------------------------------------- |
+| `src/app`                               | Pages, Route Handlers, metadata, and global styles               |
+| `src/components`                        | Shared page shell, navigation, project list, and link primitives |
+| `src/features/role-fit`                 | Role-fit form, input parsing, prompt context, and OpenAI request |
+| `src/features/meeting-scheduling`       | Scheduling form, validation, calendar access, and notification   |
+| `src/content/portfolio.ts`              | Profile, social links, and complete project records              |
+| `src/config/site.ts`                    | Site identity and canonical URL configuration                    |
+| `scripts/authorize-google-calendar.mjs` | Local Google Calendar OAuth authorization                        |
 
 ## Data Flow
 
-`src/content/portfolio.ts` exports static values. Server Components read those values
-during rendering and produce `/` and `/projects/[slug]` routes.
-`generateStaticParams` pre-renders every case study, while each route exports
-unique canonical metadata. The sitemap derives case-study URLs from the same
-content source. The production build emits static pages; the browser only
-handles native links, responsive CSS, and color scheme selection.
+`src/content/portfolio.ts` exports one complete record per project. Server
+Components use those records to render `/` and `/projects/[slug]`.
+`generateStaticParams` pre-renders every case study, and the sitemap derives its
+project URLs from the same array. The role-fit feature builds its assessment
+context from that content instead of maintaining a second candidate profile.
+
+The `/fit` and `/schedule` forms send JSON to Node.js Route Handlers. Validation
+occurs again on the server before any external API request. Browser state stays
+inside the two feature forms; portfolio pages do not require hydration.
+
+## Role-fit assessment
+
+`POST /api/fit` accepts a `description` string of up to 16,000 characters. The
+feature builds its candidate context from the same project records used by the
+portfolio pages. It treats the submitted role description as untrusted content,
+requests a concise plain-text assessment in the same language, and disables
+OpenAI response storage.
+
+The handler returns `400` for invalid input, `503` when `OPENAI_API_KEY` is not
+configured, and `502` when the upstream assessment fails. It does not persist
+the role description or assessment in application storage.
 
 ## Meeting scheduling
 
@@ -54,7 +68,10 @@ idempotency, rate-limiting, or locking layer.
 ## Invariants
 
 - The home page remains a Server Component and does not require hydration.
-- Content changes belong in `src/content/portfolio.ts`, not duplicated across components.
+- Content changes belong in `src/content/portfolio.ts`, not duplicated across
+  components or prompts.
+- Shared UI belongs in `src/components`; capability-specific UI and integration
+  code belong in `src/features`.
 - Internal navigation uses Next.js `Link`. External navigation uses native
   anchors with `target="_blank"` and `rel="noreferrer"`; email uses a native
   `mailto:` link.
