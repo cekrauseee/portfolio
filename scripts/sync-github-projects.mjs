@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { existsSync, readFileSync } from "node:fs";
 import { mkdir, rename, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -395,17 +396,29 @@ export async function syncGithubProjects({
 
 async function main() {
   if (process.env.PROJECTS_SYNC_SKIP === "1") {
+    if (!existsSync(DEFAULT_OUTPUT_PATH)) {
+      throw new Error(
+        `PROJECTS_SYNC_SKIP=1 requires an existing snapshot at ${DEFAULT_OUTPUT_PATH}.`,
+      );
+    }
+    try {
+      const snapshot = JSON.parse(readFileSync(DEFAULT_OUTPUT_PATH, "utf8"));
+      if (
+        snapshot?.version !== 1 ||
+        typeof snapshot.generatedAt !== "string" ||
+        typeof snapshot.owner !== "string" ||
+        !Array.isArray(snapshot.projects)
+      ) {
+        throw new Error("invalid snapshot shape");
+      }
+    } catch (error) {
+      throw new Error(
+        `PROJECTS_SYNC_SKIP=1 requires a valid snapshot at ${DEFAULT_OUTPUT_PATH}.`,
+        { cause: error },
+      );
+    }
     console.log(
       "Skipping GitHub project reconciliation because PROJECTS_SYNC_SKIP=1.",
-    );
-    return;
-  }
-  if (
-    process.argv.includes("--if-github") &&
-    process.env.PROJECTS_SOURCE !== "github"
-  ) {
-    console.log(
-      "Skipping GitHub project reconciliation because PROJECTS_SOURCE is not github.",
     );
     return;
   }

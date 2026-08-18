@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import type { Project } from "./project";
 
@@ -144,7 +144,7 @@ export function loadGithubProjects(): readonly Project[] {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(
-      `PROJECTS_SOURCE=github requires a valid snapshot at ${githubProjectsSnapshotPath}. ${message}`,
+      `A valid GitHub project snapshot is required at ${githubProjectsSnapshotPath}. ${message}`,
     );
   }
 
@@ -153,23 +153,9 @@ export function loadGithubProjects(): readonly Project[] {
     snapshot = JSON.parse(contents);
   } catch {
     throw new Error(
-      `PROJECTS_SOURCE=github requires valid JSON at ${githubProjectsSnapshotPath}.`,
+      `The GitHub project snapshot must contain valid JSON at ${githubProjectsSnapshotPath}.`,
     );
   }
 
   return parseGithubProjectsSnapshot(snapshot);
-}
-
-export function tryLoadGithubProjects(): readonly Project[] | null {
-  if (!existsSync(githubProjectsSnapshotPath)) {
-    return null;
-  }
-
-  try {
-    return loadGithubProjects();
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.warn(`Ignoring GitHub project snapshot in auto mode: ${message}`);
-    return null;
-  }
 }

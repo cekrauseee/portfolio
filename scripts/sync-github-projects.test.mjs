@@ -1,11 +1,16 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { spawn } from "node:child_process";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { syncGithubProjects } from "./sync-github-projects.mjs";
 
 const fixedDate = new Date("2026-08-18T12:00:00.000Z");
+const syncScriptPath = fileURLToPath(
+  new URL("./sync-github-projects.mjs", import.meta.url),
+);
 
 function project(slug, overrides = {}) {
   return {
@@ -45,6 +50,47 @@ async function temporaryOutput() {
     outputPath: path.join(directory, "github-projects.json"),
   };
 }
+
+function runSyncWithSkip(cwd) {
+  return new Promise((resolve) => {
+    const child = spawn(process.execPath, [syncScriptPath], {
+      cwd,
+      env: { ...process.env, PROJECTS_SYNC_SKIP: "1" },
+    });
+    let stderr = "";
+    child.stderr.setEncoding("utf8");
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk;
+    });
+    child.on("close", (code) => resolve({ code, stderr }));
+  });
+}
+
+test("sync skip requires an existing snapshot", async () => {
+  const directory = await mkdtemp(
+    path.join(os.tmpdir(), "portfolio-projects-skip-"),
+  );
+  try {
+    const result = await runSyncWithSkip(directory);
+    assert.equal(result.code, 1);
+    assert.match(result.stderr, /requires an existing snapshot/);
+
+    await mkdir(path.join(directory, ".cache"));
+    await writeFile(
+      path.join(directory, ".cache", "github-projects.json"),
+      JSON.stringify({
+        version: 1,
+        owner: "test-owner",
+        generatedAt: fixedDate.toISOString(),
+        projects: [],
+      }),
+    );
+    const skipped = await runSyncWithSkip(directory);
+    assert.equal(skipped.code, 0);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
 
 function repository(name, defaultBranch = "main", overrides = {}) {
   return {

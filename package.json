@@ -4,19 +4,19 @@
   "private": true,
   "license": "MIT",
   "scripts": {
+    "predev": "npm run projects:sync",
     "dev": "next dev",
-    "dev:github": "npm run projects:sync && PROJECTS_SOURCE=github next dev",
-    "prebuild": "node scripts/sync-github-projects.mjs --if-github",
+    "prebuild": "npm run projects:sync",
     "build": "next build",
-    "build:github": "PROJECTS_SOURCE=github npm run build",
     "start": "next start",
+    "projects:sync": "node scripts/sync-github-projects.mjs",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
-    "google-calendar:authorize": "node scripts/authorize-google-calendar.mjs",
-    "projects:sync": "node scripts/sync-github-projects.mjs",
-    "test": "node --test scripts/*.test.mjs"
+    "test": "node --test scripts/*.test.mjs",
+    "calendar:authorize": "node scripts/authorize-google-calendar.mjs"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",

@@ -25,6 +25,10 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Prepare GitHub project fixture
+        run: |
+          mkdir -p .cache
+          cp fixtures/github-projects.json .cache/github-projects.json
       - name: Check formatting
         run: npm run format:check
       - name: Lint
@@ -33,16 +37,10 @@ jobs:
         run: npm test
       - name: Type-check
         run: npm run typecheck
-      - name: Build production application
-        run: npm run build
-      - name: Build GitHub-mode fixture application
+      - name: Build fixture-backed production application
         env:
-          PROJECTS_SOURCE: github
           PROJECTS_SYNC_SKIP: "1"
-        run: |
-          mkdir -p .cache
-          cp fixtures/github-projects.json .cache/github-projects.json
-          npm run build
+        run: npm run build
 
   deploy:
     name: Trigger Vercel production deployment

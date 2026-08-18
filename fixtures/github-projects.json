@@ -9,7 +9,7 @@
       "description": "A deterministic fixture project.",
       "repositoryUrl": "https://github.com/cekrauseee/fixture-project",
       "metaDescription": "A deterministic fixture project for the GitHub build path.",
-      "summary": "A deterministic fixture used to verify GitHub-mode static rendering without network access.",
+      "summary": "A deterministic fixture used to verify snapshot-backed static rendering without network access.",
       "highlights": ["Next.js", "Fixtures"],
       "sections": [
         {
