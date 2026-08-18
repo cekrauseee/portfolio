@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { projects } from "@/content/portfolio";
-import { linkFocusClassName } from "@/components/external-link";
+import { linkFocusClassName } from "@/components/links";
 
 export function ProjectList() {
   return (
@@ -11,7 +11,7 @@ export function ProjectList() {
       {projects.map((project) => (
         <article key={project.slug}>
           <Link
-            className={`${linkFocusClassName} group block bg-black/[0.025] px-6 py-5 no-underline transition-colors hover:bg-black/[0.045] focus-visible:bg-black/[0.045] dark:bg-white/[0.035] dark:hover:bg-white/[0.06] dark:focus-visible:bg-white/[0.06] [@media(max-height:42rem)]:px-5 [@media(max-height:42rem)]:py-4 [@media(max-width:23rem)_and_(max-height:42rem)]:px-4 [@media(max-width:23rem)_and_(max-height:42rem)]:py-3.5`}
+            className={`${linkFocusClassName} group block bg-black/[0.025] px-6 py-5 no-underline hover:bg-black/[0.045] focus-visible:bg-black/[0.045] dark:bg-white/[0.035] dark:hover:bg-white/[0.06] dark:focus-visible:bg-white/[0.06] [@media(max-height:42rem)]:px-5 [@media(max-height:42rem)]:py-4 [@media(max-width:23rem)_and_(max-height:42rem)]:px-4 [@media(max-width:23rem)_and_(max-height:42rem)]:py-3.5`}
             href={`/projects/${project.slug}`}
           >
             <h2 className="text-lg leading-7 font-medium">{project.name}</h2>
@@ -19,7 +19,7 @@ export function ProjectList() {
               {project.description}
             </p>
             <span className="mt-3 block text-sm text-black/70 dark:text-white/75">
-              Read project notes <span aria-hidden="true">→</span>
+              Read project notes
             </span>
           </Link>
         </article>

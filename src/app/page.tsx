@@ -1,7 +1,7 @@
-import { actionClassName, textLinkClassName } from "@/components/external-link";
-import { ProjectList } from "@/components/project-list";
-import { SiteNavigation } from "@/components/site-navigation";
 import Link from "next/link";
+import { actionClassName, textLinkClassName } from "@/components/links";
+import { PageShell } from "@/components/page-shell";
+import { ProjectList } from "@/components/project-list";
 import { site } from "@/config/site";
 import { profile, socialLinks } from "@/content/portfolio";
 
@@ -32,32 +32,34 @@ const jsonLd = {
 
 export default function Home() {
   return (
-    <main className="min-h-dvh min-h-screen min-h-svh pt-[calc(1.5rem+env(safe-area-inset-top))] pr-[calc(1.5rem+env(safe-area-inset-right))] pb-[calc(1.5rem+env(safe-area-inset-bottom))] pl-[calc(1.5rem+env(safe-area-inset-left))] select-none max-[23rem]:pt-[calc(1rem+env(safe-area-inset-top))] max-[23rem]:pr-[calc(1rem+env(safe-area-inset-right))] max-[23rem]:pb-[calc(1rem+env(safe-area-inset-bottom))] max-[23rem]:pl-[calc(1rem+env(safe-area-inset-left))] [@media(min-width:48rem)_and_(min-height:42.01rem)]:pt-[calc(3rem+env(safe-area-inset-top))] [@media(min-width:48rem)_and_(min-height:42.01rem)]:pr-[calc(3rem+env(safe-area-inset-right))] [@media(min-width:48rem)_and_(min-height:42.01rem)]:pb-[calc(3rem+env(safe-area-inset-bottom))] [@media(min-width:48rem)_and_(min-height:42.01rem)]:pl-[calc(3rem+env(safe-area-inset-left))]">
+    <PageShell size="compact" disableTextSelection>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
         }}
       />
-      <div className="flex w-full max-w-[26rem] flex-col gap-8 [@media(max-height:42rem)]:gap-6 [@media(max-width:23rem)_and_(max-height:42rem)]:gap-4">
-        <SiteNavigation />
+      <header className="flex flex-col gap-1">
+        <h1 className="font-medium">{profile.name}</h1>
+        <p>
+          {profile.role} based in {profile.location}.
+        </p>
+        <a className={textLinkClassName} href={`mailto:${profile.email}`}>
+          {profile.email}
+        </a>
+      </header>
 
+      <div className="flex flex-col items-start gap-3">
         <Link className={actionClassName} href="/fit">
-          Assess my fit <span aria-hidden="true">→</span>
+          Assess my fit
         </Link>
 
-        <header className="flex flex-col gap-1">
-          <h1 className="font-medium">{profile.name}</h1>
-          <p>
-            {profile.role} based in {profile.location}.
-          </p>
-          <a className={textLinkClassName} href={`mailto:${profile.email}`}>
-            {profile.email}
-          </a>
-        </header>
-
-        <ProjectList />
+        <Link className={textLinkClassName} href="/schedule">
+          Schedule a conversation
+        </Link>
       </div>
-    </main>
+
+      <ProjectList />
+    </PageShell>
   );
 }

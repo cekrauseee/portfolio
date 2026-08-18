@@ -3,43 +3,42 @@ import Link from "next/link";
 import { mutedTextLinkClassName } from "@/components/links";
 import { PageShell } from "@/components/page-shell";
 import { site } from "@/config/site";
-import { RoleFitForm } from "@/features/role-fit/role-fit-form";
+import { MeetingScheduler } from "@/features/meeting-scheduling/meeting-scheduler";
 
-const path = "/fit";
+const path = "/schedule";
+const title = "Schedule a conversation";
+const description =
+  "Choose a time for a one-hour conversation with Henrique Krause.";
 
 export const metadata: Metadata = {
-  title: "Assess my fit",
-  description:
-    "Compare a role with Henrique Krause's published software engineering experience.",
-  alternates: {
-    canonical: path,
-  },
+  title,
+  description,
+  alternates: { canonical: path },
   openGraph: {
     type: "website",
     url: path,
-    title: "Assess my fit",
-    description:
-      "Compare a role with Henrique Krause's published software engineering experience.",
+    title,
+    description,
     siteName: site.name,
     locale: site.locale,
   },
 };
 
-export default function FitPage() {
+export default function SchedulePage() {
   return (
     <PageShell>
       <article className="max-w-[65ch]">
         <header>
           <h1 className="text-2xl leading-8 font-medium tracking-[-0.02em] text-balance">
-            Assess my fit
+            {title}
           </h1>
           <p className="mt-4 text-base leading-7 text-black/75 dark:text-white/85">
-            Paste a role description to compare it with my experience.
+            {description}
           </p>
         </header>
 
         <div className="mt-10">
-          <RoleFitForm />
+          <MeetingScheduler />
         </div>
 
         <footer className="mt-12 [@media(max-height:42rem)]:mt-9">

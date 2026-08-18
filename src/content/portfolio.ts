@@ -12,35 +12,11 @@ export const socialLinks = [
   { label: "x", href: "https://x.com/cekrauseee" },
 ] as const;
 
-export const projects = [
-  {
-    slug: "avioes",
-    name: "cekrause/avioes",
-    description: "An offline-first PWA for groups to count airplane sightings.",
-    repositoryUrl: "https://github.com/cekrauseee/avioes",
-  },
-  {
-    slug: "shell",
-    name: "cekrause/shell",
-    description:
-      "A terminal-style AI chat built with the OpenAI Responses API.",
-    repositoryUrl: "https://github.com/cekrauseee/shell",
-  },
-  {
-    slug: "harness",
-    name: "cekrause/harness",
-    description: "A file-native continuity and orchestration layer for agents.",
-    repositoryUrl: "https://github.com/cekrauseee/harness",
-  },
-  {
-    slug: "portfolio",
-    name: "cekrause/portfolio",
-    description: "A static portfolio for selected software projects.",
-    repositoryUrl: "https://github.com/cekrauseee/portfolio",
-  },
-] as const;
-
-export type Project = (typeof projects)[number] & {
+export type Project = {
+  readonly slug: string;
+  readonly name: string;
+  readonly description: string;
+  readonly repositoryUrl: string;
   readonly metaDescription: string;
   readonly summary: string;
   readonly highlights: readonly string[];
@@ -50,9 +26,12 @@ export type Project = (typeof projects)[number] & {
   }[];
 };
 
-export const projectDetails: readonly Project[] = [
+export const projects = [
   {
-    ...projects[0],
+    slug: "avioes",
+    name: "cekrause/avioes",
+    description: "An offline-first PWA for groups to count airplane sightings.",
+    repositoryUrl: "https://github.com/cekrauseee/avioes",
     metaDescription:
       "Aviões is an offline-first PWA for groups to count airplane sightings, track streaks, and compare shared scoreboards.",
     summary:
@@ -90,7 +69,11 @@ export const projectDetails: readonly Project[] = [
     ],
   },
   {
-    ...projects[1],
+    slug: "shell",
+    name: "cekrause/shell",
+    description:
+      "A terminal-style AI chat built with the OpenAI Responses API.",
+    repositoryUrl: "https://github.com/cekrauseee/shell",
     metaDescription:
       "Shell is a terminal-style AI chat interface built with Next.js and the OpenAI Responses API.",
     summary:
@@ -128,7 +111,10 @@ export const projectDetails: readonly Project[] = [
     ],
   },
   {
-    ...projects[2],
+    slug: "harness",
+    name: "cekrause/harness",
+    description: "A file-native continuity and orchestration layer for agents.",
+    repositoryUrl: "https://github.com/cekrauseee/harness",
     metaDescription:
       "Harness is a file-native toolkit for agent continuity, project handoffs, and bounded multi-agent orchestration.",
     summary:
@@ -166,9 +152,12 @@ export const projectDetails: readonly Project[] = [
     ],
   },
   {
-    ...projects[3],
+    slug: "portfolio",
+    name: "cekrause/portfolio",
+    description: "A portfolio for selected software projects.",
+    repositoryUrl: "https://github.com/cekrauseee/portfolio",
     metaDescription:
-      "Henrique Krause's static software engineering portfolio, built with Next.js and focused on readable project case studies.",
+      "Henrique Krause's software engineering portfolio, built with Next.js and focused on readable project case studies.",
     summary:
       "This portfolio presents selected software projects in a compact, readable format. Each project has a factual case study, its own indexable page, and a direct link to the source code.",
     highlights: [
@@ -196,14 +185,14 @@ export const projectDetails: readonly Project[] = [
       {
         title: "Engineering choices",
         paragraphs: [
-          "The production build outputs static pages without authentication, a backend, runtime data fetching, or a client-side data layer. This keeps the site fast and the content easy to maintain.",
+          "Portfolio and project pages render statically from local data. The role-fit and scheduling tools use focused Client Components and Node.js Route Handlers only where browser state or external APIs require them.",
           "The responsive layout supports desktop and narrow mobile screens, visible keyboard focus, safe-area insets, and system light and dark color schemes.",
         ],
       },
     ],
   },
-];
+] as const satisfies readonly Project[];
 
 export function getProject(slug: string) {
-  return projectDetails.find((project) => project.slug === slug);
+  return projects.find((project) => project.slug === slug);
 }

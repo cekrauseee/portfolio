@@ -1,0 +1,292 @@
+"use client";
+
+import type { FormEvent } from "react";
+import { useState } from "react";
+import { actionClassName, ExternalLink } from "@/components/links";
+
+type FieldName = "name" | "email" | "date" | "time";
+type Fields = Record<FieldName, string>;
+type Errors = Partial<Record<FieldName, string>>;
+
+const initialFields: Fields = { name: "", email: "", date: "", time: "" };
+const times = Array.from(
+  { length: 24 },
+  (_, hour) => `${hour}`.padStart(2, "0") + ":00",
+);
+
+function localDateString(date: Date) {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function today() {
+  const date = new Date();
+  return localDateString(date);
+}
+
+function responseValue(data: unknown, key: string) {
+  return data &&
+    typeof data === "object" &&
+    key in data &&
+    typeof data[key as keyof typeof data] === "string"
+    ? data[key as keyof typeof data]
+    : undefined;
+}
+
+export function MeetingScheduler() {
+  const [fields, setFields] = useState<Fields>(initialFields);
+  const [errors, setErrors] = useState<Errors>({});
+  const [generalError, setGeneralError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [meetingLink, setMeetingLink] = useState<string>();
+  const [submitting, setSubmitting] = useState(false);
+  const [minDate] = useState(today);
+
+  function updateField(field: FieldName, value: string) {
+    setFields((current) => ({ ...current, [field]: value }));
+    setErrors((current) => ({ ...current, [field]: undefined }));
+    setGeneralError("");
+    setSuccess("");
+    setMeetingLink(undefined);
+  }
+
+  function validate() {
+    const nextErrors: Errors = {};
+    if (!fields.name.trim()) {
+      nextErrors.name = "Enter your name.";
+    }
+    if (!fields.email.trim()) {
+      nextErrors.email = "Enter your email address.";
+    } else if (!/^\S+@\S+\.\S+$/.test(fields.email.trim())) {
+      nextErrors.email = "Enter a valid email address.";
+    }
+    if (!fields.date) {
+      nextErrors.date = "Choose a date.";
+    } else if (fields.date < minDate) {
+      nextErrors.date = "Choose a future date.";
+    }
+    if (!fields.time) {
+      nextErrors.time = "Choose a time.";
+    } else if (new Date(`${fields.date}T${fields.time}:00`) <= new Date()) {
+      nextErrors.time = "Choose a future time.";
+    }
+    return nextErrors;
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const nextErrors = validate();
+    setErrors(nextErrors);
+    setGeneralError("");
+    setSuccess("");
+    setMeetingLink(undefined);
+    if (Object.keys(nextErrors).length) {
+      const first = (Object.keys(initialFields) as FieldName[]).find(
+        (field) => nextErrors[field],
+      );
+      if (first) {
+        document.getElementById(`meeting-${first}`)?.focus();
+      }
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const response = await fetch("/api/meetings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: fields.name.trim(),
+          email: fields.email.trim(),
+          start: `${fields.date}T${fields.time}:00`,
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        }),
+      });
+      const data: unknown = await response.json();
+      if (!response.ok) {
+        if (response.status === 409) {
+          throw new Error(
+            "That time is no longer available. Choose another time.",
+          );
+        }
+        const error = responseValue(data, "error");
+        throw new Error(
+          error ??
+            "Unable to schedule the meeting. Check your details and try again.",
+        );
+      }
+      setSuccess(
+        "Your meeting is scheduled. Check your email for the calendar invitation.",
+      );
+      setMeetingLink(
+        responseValue(data, "meetLink") ??
+          responseValue(data, "calendarLink") ??
+          responseValue(data, "meetingUrl"),
+      );
+    } catch (caught) {
+      setGeneralError(
+        caught instanceof Error
+          ? caught.message
+          : "Unable to schedule the meeting. Check your connection and try again.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const field = (
+    name: FieldName,
+    label: string,
+    control: React.ReactNode,
+    hint?: string,
+  ) => (
+    <div className="flex flex-col gap-2">
+      <label className="font-medium" htmlFor={`meeting-${name}`}>
+        {label}
+      </label>
+      {control}
+      {hint ? (
+        <p
+          className="text-black/60 dark:text-white/65"
+          id={`meeting-${name}-hint`}
+        >
+          {hint}
+        </p>
+      ) : null}
+      {errors[name] ? (
+        <p
+          className="text-black/70 dark:text-white/75"
+          id={`meeting-${name}-error`}
+        >
+          {errors[name]}
+        </p>
+      ) : null}
+    </div>
+  );
+
+  const inputClass =
+    "w-full border border-black/20 bg-transparent px-3 py-3 text-base leading-6 outline-none placeholder:text-black/45 focus:border-black dark:border-white/25 dark:placeholder:text-white/45 dark:focus:border-white";
+  return (
+    <div>
+      <form className="flex flex-col gap-5" onSubmit={handleSubmit} noValidate>
+        {field(
+          "name",
+          "Name",
+          <input
+            autoComplete="name"
+            className={inputClass}
+            id="meeting-name"
+            name="name"
+            onChange={(e) => updateField("name", e.target.value)}
+            value={fields.name}
+            aria-invalid={Boolean(errors.name)}
+            aria-describedby={errors.name ? "meeting-name-error" : undefined}
+          />,
+        )}
+        {field(
+          "email",
+          "Email",
+          <input
+            autoComplete="email"
+            className={inputClass}
+            id="meeting-email"
+            name="email"
+            type="email"
+            onChange={(e) => updateField("email", e.target.value)}
+            value={fields.email}
+            aria-invalid={Boolean(errors.email)}
+            aria-describedby={errors.email ? "meeting-email-error" : undefined}
+          />,
+        )}
+        {field(
+          "date",
+          "Date",
+          <input
+            className={`${inputClass} cursor-pointer`}
+            id="meeting-date"
+            min={minDate}
+            name="date"
+            type="date"
+            onChange={(e) => updateField("date", e.target.value)}
+            value={fields.date}
+            aria-invalid={Boolean(errors.date)}
+            aria-describedby={
+              errors.date ? "meeting-date-error" : "meeting-date-hint"
+            }
+          />,
+          "All dates are available. Times use your local time zone.",
+        )}
+        {field(
+          "time",
+          "Time",
+          <div className="relative">
+            <select
+              className={`${inputClass} cursor-pointer appearance-none pr-10`}
+              id="meeting-time"
+              name="time"
+              onChange={(e) => updateField("time", e.target.value)}
+              value={fields.time}
+              aria-invalid={Boolean(errors.time)}
+              aria-describedby={
+                errors.time ? "meeting-time-error" : "meeting-time-hint"
+              }
+            >
+              <option value="">Select a time</option>
+              {times.map((time) => (
+                <option key={time} value={time}>
+                  {time}
+                </option>
+              ))}
+            </select>
+            <svg
+              aria-hidden="true"
+              className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2"
+              fill="none"
+              viewBox="0 0 16 16"
+            >
+              <path
+                d="m4 6 4 4 4-4"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="1.5"
+              />
+            </svg>
+          </div>,
+          "One hour, starting at the selected time.",
+        )}
+        {generalError ? (
+          <p className="text-black/70 dark:text-white/75" role="alert">
+            {generalError}
+          </p>
+        ) : null}
+        <button
+          className={`${actionClassName} disabled:cursor-not-allowed disabled:bg-black/45 dark:disabled:bg-white/45`}
+          disabled={submitting}
+          type="submit"
+        >
+          {submitting ? "Booking meeting…" : "Book this meeting"}
+        </button>
+      </form>
+      <p aria-live="polite" className="sr-only" role="status">
+        {submitting ? "Booking your meeting." : success}
+      </p>
+      {success ? (
+        <p className="mt-6 text-black/75 dark:text-white/85">
+          {success}
+          {meetingLink ? (
+            <>
+              {" "}
+              <ExternalLink href={meetingLink}>
+                Open the meeting details
+              </ExternalLink>
+              .
+            </>
+          ) : null}
+        </p>
+      ) : null}
+    </div>
+  );
+}
