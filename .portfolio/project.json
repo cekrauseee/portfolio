@@ -1,0 +1,38 @@
+{
+  "description": "A portfolio for selected software projects.",
+  "highlights": [
+    "Static rendering",
+    "Project case studies",
+    "SEO",
+    "Next.js",
+    "Tailwind CSS"
+  ],
+  "metaDescription": "Henrique Krause's software engineering portfolio, built with Next.js and focused on readable project case studies.",
+  "name": "cekrause/portfolio",
+  "repositoryUrl": "https://github.com/cekrauseee/portfolio",
+  "sections": [
+    {
+      "title": "Product",
+      "paragraphs": [
+        "The site keeps the professional profile, contact details, and selected work in one small interface. Project pages explain the product, the work completed, and the engineering decisions behind it.",
+        "Its visual language comes from Shell, but the site behaves like a document instead of simulating a terminal."
+      ]
+    },
+    {
+      "title": "What I built",
+      "paragraphs": [
+        "I built the site with the Next.js App Router, React Server Components, TypeScript, and Tailwind CSS. Portfolio content stays in one local data module instead of a CMS.",
+        "Each case study is generated statically with its own metadata, canonical URL, structured data, and sitemap entry. Open Graph and X card metadata provide consistent link previews."
+      ]
+    },
+    {
+      "title": "Engineering choices",
+      "paragraphs": [
+        "Portfolio and project pages render statically from local data. The role-fit and scheduling tools use focused Client Components and Node.js Route Handlers only where browser state or external APIs require them.",
+        "The responsive layout supports desktop and narrow mobile screens, visible keyboard focus, safe-area insets, and system light and dark color schemes."
+      ]
+    }
+  ],
+  "slug": "portfolio",
+  "summary": "This portfolio presents selected software projects in a compact, readable format. Each project has a factual case study, its own indexable page, and a direct link to the source code."
+}
