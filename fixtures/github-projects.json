@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "owner": "cekrauseee",
+  "generatedAt": "2026-08-18T12:00:00.000Z",
+  "projects": [
+    {
+      "slug": "fixture-project",
+      "name": "cekrauseee/fixture-project",
+      "description": "A deterministic fixture project.",
+      "repositoryUrl": "https://github.com/cekrauseee/fixture-project",
+      "metaDescription": "A deterministic fixture project for the GitHub build path.",
+      "summary": "A deterministic fixture used to verify GitHub-mode static rendering without network access.",
+      "highlights": ["Next.js", "Fixtures"],
+      "sections": [
+        {
+          "title": "Product",
+          "paragraphs": [
+            "This record exists only for deterministic build verification."
+          ]
+        }
+      ]
+    }
+  ]
+}

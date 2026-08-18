@@ -1,3 +1,8 @@
+import { loadGithubProjects, tryLoadGithubProjects } from "./github-projects";
+import type { Project } from "./project";
+
+export type { Project } from "./project";
+
 export const profile = {
   handle: "cekrause",
   name: "Henrique Krause",
@@ -12,21 +17,8 @@ export const socialLinks = [
   { label: "x", href: "https://x.com/cekrauseee" },
 ] as const;
 
-export type Project = {
-  readonly slug: string;
-  readonly name: string;
-  readonly description: string;
-  readonly repositoryUrl: string;
-  readonly metaDescription: string;
-  readonly summary: string;
-  readonly highlights: readonly string[];
-  readonly sections: readonly {
-    readonly title: string;
-    readonly paragraphs: readonly string[];
-  }[];
-};
-
-export const projects = [
+/** Temporary local fallback until source repositories adopt .portfolio/project.json. */
+export const legacyProjects = [
   {
     slug: "avioes",
     name: "cekrause/avioes",
@@ -192,6 +184,21 @@ export const projects = [
     ],
   },
 ] as const satisfies readonly Project[];
+
+const projectSource = process.env.PROJECTS_SOURCE ?? "auto";
+
+if (!["auto", "legacy", "local", "github"].includes(projectSource)) {
+  throw new Error(
+    `Unsupported PROJECTS_SOURCE=${projectSource}. Use auto, legacy, local, or github.`,
+  );
+}
+
+export const projects: readonly Project[] =
+  projectSource === "github"
+    ? loadGithubProjects()
+    : projectSource === "auto"
+      ? (tryLoadGithubProjects() ?? legacyProjects)
+      : legacyProjects;
 
 export function getProject(slug: string) {
   return projects.find((project) => project.slug === slug);

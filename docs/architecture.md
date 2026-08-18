@@ -6,30 +6,37 @@ The project uses the Next.js App Router. `src/app` contains route composition,
 HTTP endpoints, framework metadata, and global styles. Shared presentation lives
 in `src/components`, while interactive capabilities and their integrations are
 grouped under `src/features`. Portfolio content and site configuration remain
-separate under `src/content` and `src/config`.
+separate under `src/content` and `src/config`. Project source selection happens
+at build or development startup, never during a visitor request.
 
-The home page and project case studies render from local TypeScript data with
-React Server Components. Client Components are limited to the role-fit and
-meeting-scheduling forms. Node.js Route Handlers connect those forms to OpenAI,
+The home page and project case studies render from the normalized local or
+build-time snapshot source with React Server Components. Client Components are
+limited to the role-fit and meeting-scheduling forms. Node.js Route Handlers connect those forms to OpenAI,
 Google Calendar, and Resend. Tailwind CSS provides component styling;
 `src/app/globals.css` contains only global tokens and defaults.
 
 ## Components
 
-| Path                                    | Responsibility                                                   |
-| --------------------------------------- | ---------------------------------------------------------------- |
-| `src/app`                               | Pages, Route Handlers, metadata, and global styles               |
-| `src/components`                        | Shared page shell, navigation, project list, and link primitives |
-| `src/features/role-fit`                 | Role-fit form, input parsing, prompt context, and OpenAI request |
-| `src/features/meeting-scheduling`       | Scheduling form, validation, calendar access, and notification   |
-| `src/content/portfolio.ts`              | Profile, social links, and complete project records              |
-| `src/config/site.ts`                    | Site identity and canonical URL configuration                    |
-| `scripts/authorize-google-calendar.mjs` | Local Google Calendar OAuth authorization                        |
+| Path                                    | Responsibility                                                           |
+| --------------------------------------- | ------------------------------------------------------------------------ |
+| `src/app`                               | Pages, Route Handlers, metadata, and global styles                       |
+| `src/components`                        | Shared page shell, navigation, project list, and link primitives         |
+| `src/features/role-fit`                 | Role-fit form, input parsing, prompt context, and OpenAI request         |
+| `src/features/meeting-scheduling`       | Scheduling form, validation, calendar access, and notification           |
+| `src/content/portfolio.ts`              | Profile, social links, normalized project contract, and source selection |
+| `src/content/project.ts`                | Shared `Project` and `ProjectSection` types                              |
+| `src/content/github-projects.ts`        | Validated build-time snapshot loader                                     |
+| `scripts/sync-github-projects.mjs`      | Paginated GitHub reconciliation and atomic snapshot writer               |
+| `src/config/site.ts`                    | Site identity and canonical URL configuration                            |
+| `scripts/authorize-google-calendar.mjs` | Local Google Calendar OAuth authorization                                |
 
 ## Data Flow
 
-`src/content/portfolio.ts` exports one complete record per project. Server
-Components use those records to render `/` and `/projects/[slug]`.
+`src/content/portfolio.ts` exports one complete record per project. In the safe
+`auto` mode it uses a valid `.cache/github-projects.json` snapshot when present
+and otherwise uses the temporary `legacyProjects` records. Explicit `github`
+mode accepts a valid empty snapshot; explicit `legacy`/`local` forces fallback.
+Server Components use the resulting records to render `/` and `/projects/[slug]`.
 `generateStaticParams` pre-renders every case study, and the sitemap derives its
 project URLs from the same array. The role-fit feature builds its assessment
 context from that content instead of maintaining a second candidate profile.

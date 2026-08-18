@@ -1,0 +1,28 @@
+name: Reconcile GitHub project content
+
+on:
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: reconcile-github-projects
+  cancel-in-progress: true
+
+jobs:
+  reconcile:
+    name: Trigger production reconciliation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Vercel deploy hook
+        env:
+          VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$VERCEL_DEPLOY_HOOK_URL" ]; then
+            echo "::error::Missing the VERCEL_DEPLOY_HOOK_URL GitHub Actions secret."
+            exit 1
+          fi
+          curl --fail --show-error --silent --max-time 30 --request POST "$VERCEL_DEPLOY_HOOK_URL"

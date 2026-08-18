@@ -11,6 +11,7 @@ assessment and meeting scheduling.
 - one-hour meeting scheduling with Google Calendar and Google Meet;
 - responsive light and dark layouts with accessible keyboard interactions;
 - canonical metadata, structured data, sitemap, and social previews.
+- optional build-time project records reconciled from public GitHub repositories.
 
 ## Development
 
@@ -28,18 +29,30 @@ assessment requires `OPENAI_API_KEY`; meeting scheduling requires Google Calenda
 OAuth credentials and Resend configuration. See
 [Development](docs/development.md) for setup details.
 
+Project case studies use `PROJECTS_SOURCE=auto` by default: a valid local
+snapshot is used when present, otherwise the temporary legacy records remain in
+place. To opt into the GitHub convention, set `PROJECTS_SOURCE=github` and run
+`npm run projects:sync`; the sync scans every public repository owned by
+`GITHUB_OWNER` (default `cekrauseee`) and reads `.portfolio/project.json` from
+each default branch. `npm run dev:github` combines those steps for local
+development. An explicit `github` build requires a valid snapshot, including a
+valid empty snapshot when all convention files have been removed.
+
 ## Commands
 
 | Command                             | Purpose                              |
 | ----------------------------------- | ------------------------------------ |
 | `npm run dev`                       | Start the development server         |
+| `npm run dev:github`                | Sync GitHub projects and start dev   |
 | `npm run build`                     | Create a production build            |
+| `npm run build:github`              | Sync GitHub projects and build       |
 | `npm run start`                     | Serve the production build           |
 | `npm run google-calendar:authorize` | Authorize the meeting calendar owner |
 | `npm run format`                    | Format supported files               |
 | `npm run format:check`              | Check formatting without writing     |
 | `npm run lint`                      | Run ESLint                           |
 | `npm run typecheck`                 | Check TypeScript types               |
+| `npm test`                          | Run mocked GitHub sync tests         |
 
 ## Continuous delivery
 
@@ -58,7 +71,9 @@ Vercel Deploy Hooks require that integration to remain enabled.
 - `src/app` contains routes, metadata files, and global styles.
 - `src/components` contains reusable UI.
 - `src/features` groups role-fit and meeting-scheduling code by capability.
-- `src/content/portfolio.ts` keeps profile, social, and project content together.
+- `src/content/portfolio.ts` keeps profile, social, the normalized Project contract, and the temporary legacy fallback together.
+- `src/content/github-projects.ts` validates the build-time GitHub snapshot.
+- `scripts/sync-github-projects.mjs` reconciles convention files into the ignored `.cache/github-projects.json` snapshot.
 - `src/config/site.ts` keeps site-wide configuration.
 - `public/` and project configuration remain at the repository root.
 
