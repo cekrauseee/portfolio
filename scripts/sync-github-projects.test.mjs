@@ -66,6 +66,63 @@ function runSyncWithSkip(cwd) {
   });
 }
 
+function runEnvProbe(cwd, exportedToken, expectedToken, mode = "development") {
+  const modulePath = syncScriptPath.replaceAll("\\", "\\\\");
+  const source = `
+    import assert from "node:assert/strict";
+    import { loadGithubProjectSyncEnv, syncGithubProjects } from ${JSON.stringify(`file://${modulePath}`)};
+    loadGithubProjectSyncEnv(process.cwd(), process.env.PROBE_MODE);
+    let authorization;
+    await syncGithubProjects({
+      fetchImpl: async (_url, options) => {
+        authorization = options.headers.Authorization;
+        return { status: 200, ok: true, headers: new Headers(), async json() { return []; } };
+      },
+      outputPath: ${JSON.stringify(path.join(cwd, "snapshot.json"))},
+    });
+    assert.equal(authorization, "Bearer " + ${JSON.stringify(expectedToken)});
+    let errorText = "";
+    try {
+      await syncGithubProjects({
+        fetchImpl: async () => { throw new Error("controlled upstream failure"); },
+        outputPath: ${JSON.stringify(path.join(cwd, "error-snapshot.json"))},
+      });
+    } catch (error) {
+      errorText = error instanceof Error ? error.message : String(error);
+    }
+    assert.doesNotMatch(errorText, new RegExp(${JSON.stringify(expectedToken)}));
+    console.log("env-probe-ok");
+  `;
+  const childEnv = { ...process.env };
+  if (exportedToken) {
+    childEnv.GITHUB_TOKEN = exportedToken;
+  } else {
+    delete childEnv.GITHUB_TOKEN;
+  }
+  childEnv.PROBE_MODE = mode;
+  return new Promise((resolve) => {
+    const child = spawn(
+      process.execPath,
+      ["--input-type=module", "-e", source],
+      {
+        cwd,
+        env: childEnv,
+      },
+    );
+    let stdout = "";
+    let stderr = "";
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk;
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk;
+    });
+    child.on("close", (code) => resolve({ code, stdout, stderr }));
+  });
+}
+
 test("sync skip requires an existing snapshot", async () => {
   const directory = await mkdtemp(
     path.join(os.tmpdir(), "portfolio-projects-skip-"),
@@ -87,6 +144,52 @@ test("sync skip requires an existing snapshot", async () => {
     );
     const skipped = await runSyncWithSkip(directory);
     assert.equal(skipped.code, 0);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("selects env files by sync mode and keeps exported tokens authoritative", async () => {
+  const directory = await mkdtemp(
+    path.join(os.tmpdir(), "portfolio-projects-env-"),
+  );
+  try {
+    await writeFile(
+      path.join(directory, ".env.local"),
+      "GITHUB_OWNER=test-owner\nGITHUB_TOKEN=production-file-token\n",
+    );
+    await writeFile(
+      path.join(directory, ".env.development.local"),
+      "GITHUB_TOKEN=development-file-token\n",
+    );
+    const fromDevelopmentFile = await runEnvProbe(
+      directory,
+      "",
+      "development-file-token",
+    );
+    assert.equal(fromDevelopmentFile.code, 0, fromDevelopmentFile.stderr);
+    assert.equal(fromDevelopmentFile.stdout.trim(), "env-probe-ok");
+
+    const fromProductionFile = await runEnvProbe(
+      directory,
+      "",
+      "production-file-token",
+      "production",
+    );
+    assert.equal(fromProductionFile.code, 0, fromProductionFile.stderr);
+    assert.equal(fromProductionFile.stdout.trim(), "env-probe-ok");
+
+    const exported = await runEnvProbe(
+      directory,
+      "exported-token",
+      "exported-token",
+    );
+    assert.equal(exported.code, 0, exported.stderr);
+    assert.equal(exported.stdout.trim(), "env-probe-ok");
+    assert.doesNotMatch(
+      exported.stdout + exported.stderr,
+      /exported-token|file-token/,
+    );
   } finally {
     await rm(directory, { recursive: true, force: true });
   }

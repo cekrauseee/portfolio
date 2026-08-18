@@ -3,6 +3,9 @@ import { existsSync, readFileSync } from "node:fs";
 import { mkdir, rename, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import nextEnv from "@next/env";
+
+const { loadEnvConfig } = nextEnv;
 
 export const DEFAULT_GITHUB_OWNER = "cekrauseee";
 export const DEFAULT_GITHUB_API = "https://api.github.com";
@@ -13,6 +16,17 @@ export const DEFAULT_OUTPUT_PATH = path.join(
   "github-projects.json",
 );
 export const PROJECT_FILE_PATH = ".portfolio/project.json";
+
+/** Load environment files using the same precedence as Next.js. */
+export function loadGithubProjectSyncEnv(
+  projectDirectory = process.cwd(),
+  mode = "development",
+) {
+  if (mode !== "development" && mode !== "production") {
+    throw new Error(`Unsupported project sync mode: ${mode}.`);
+  }
+  loadEnvConfig(projectDirectory, mode === "development", console, true);
+}
 
 const PROJECT_KEYS = [
   "description",
@@ -395,6 +409,14 @@ export async function syncGithubProjects({
 }
 
 async function main() {
+  const modeArgument = process.argv.find((argument) =>
+    argument.startsWith("--mode="),
+  );
+  loadGithubProjectSyncEnv(
+    process.cwd(),
+    modeArgument ? modeArgument.slice("--mode=".length) : "development",
+  );
+
   if (process.env.PROJECTS_SYNC_SKIP === "1") {
     if (!existsSync(DEFAULT_OUTPUT_PATH)) {
       throw new Error(

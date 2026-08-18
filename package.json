@@ -4,9 +4,9 @@
   "private": true,
   "license": "MIT",
   "scripts": {
-    "predev": "npm run projects:sync",
+    "predev": "npm run projects:sync -- --mode=development",
     "dev": "next dev",
-    "prebuild": "npm run projects:sync",
+    "prebuild": "npm run projects:sync -- --mode=production",
     "build": "next build",
     "start": "next start",
     "projects:sync": "node scripts/sync-github-projects.mjs",
@@ -19,6 +19,7 @@
     "calendar:authorize": "node scripts/authorize-google-calendar.mjs"
   },
   "dependencies": {
+    "@next/env": "16.3.1",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
     "googleapis": "^175.0.0",

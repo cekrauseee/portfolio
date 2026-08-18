@@ -48,8 +48,11 @@ is plug-and-play after `npm install`. The snapshot remains inspectable at
 `.cache/github-projects.json`. Run `npm run projects:sync` and restart the
 server when you want to refresh project content explicitly.
 
-`GITHUB_TOKEN` is optional for public repositories and can be set to increase
-the GitHub API rate limit. The sync fully replaces the snapshot, so deleted
+`GITHUB_TOKEN` is optional for public repositories and can be set in
+`.env.local` to increase the GitHub API rate limit. The standalone sync command
+loads the same `.env` files and precedence as Next.js; manual syncs use
+development mode, while the build hook uses production mode. An already
+exported value remains authoritative. The sync fully replaces the snapshot, so deleted
 repositories or convention files disappear on the next successful run. It
 writes through a temporary file and atomic rename; a failed reconciliation
 leaves the previous snapshot intact.
