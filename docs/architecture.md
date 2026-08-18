@@ -36,6 +36,21 @@ unique canonical metadata. The sitemap derives case-study URLs from the same
 content source. The production build emits static pages; the browser only
 handles native links, responsive CSS, and color scheme selection.
 
+## Meeting scheduling
+
+`POST /api/meetings` is a Node.js Route Handler. It accepts `name`, `email`,
+`start`, and `timeZone`, where `start` is a local ISO wall-clock value aligned
+to a whole hour (for example, `2026-08-20T14:00`) and `timeZone` is an IANA time
+zone. The handler validates the input and future time, converts it to UTC for a
+Google Calendar `freeBusy` query, and rejects an overlap with `409`.
+
+For an available slot it creates a private one-hour event on the configured
+calendar with the guest attendee, `sendUpdates=all`, and a unique Google Meet
+conference request. Guests cannot invite others, modify the event, or see other
+guests. Google sends the calendar invitation to the guest; Resend sends a plain
+text notification to the owner. There is intentionally no database,
+idempotency, rate-limiting, or locking layer.
+
 ## Invariants
 
 - The home page remains a Server Component and does not require hydration.

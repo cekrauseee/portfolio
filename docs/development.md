@@ -16,6 +16,12 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+To enable meeting scheduling, copy `.env.example` to `.env.local` and provide
+the Google OAuth refresh credentials, calendar ID, owner email, Resend API key,
+and verified Resend sender. The endpoint is `POST /api/meetings` with JSON
+`{ "name", "email", "start", "timeZone" }`; `start` must be a future local
+whole-hour value such as `2026-08-20T14:00`.
+
 ## Commands
 
 | Command                | Purpose                                          |

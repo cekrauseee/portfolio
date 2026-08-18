@@ -19,7 +19,7 @@ export function ProjectList() {
               {project.description}
             </p>
             <span className="mt-3 block text-sm text-black/70 dark:text-white/75">
-              Read project notes <span aria-hidden="true">→</span>
+              Read project notes
             </span>
           </Link>
         </article>

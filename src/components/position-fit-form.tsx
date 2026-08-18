@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { actionClassName } from "@/components/external-link";
 
 const MAX_DESCRIPTION_LENGTH = 16_000;
@@ -204,6 +205,14 @@ export function PositionFitForm() {
             {visibleAnswer}
           </p>
         </section>
+      ) : null}
+
+      {status === "done" ? (
+        <div className="mt-8">
+          <Link className={actionClassName} href="/schedule">
+            Schedule a conversation
+          </Link>
+        </div>
       ) : null}
     </div>
   );

@@ -42,10 +42,6 @@ export default function Home() {
       <div className="flex w-full max-w-[26rem] flex-col gap-8 [@media(max-height:42rem)]:gap-6 [@media(max-width:23rem)_and_(max-height:42rem)]:gap-4">
         <SiteNavigation />
 
-        <Link className={actionClassName} href="/fit">
-          Assess my fit <span aria-hidden="true">→</span>
-        </Link>
-
         <header className="flex flex-col gap-1">
           <h1 className="font-medium">{profile.name}</h1>
           <p>
@@ -55,6 +51,16 @@ export default function Home() {
             {profile.email}
           </a>
         </header>
+
+        <div className="flex flex-col items-start gap-3">
+          <Link className={actionClassName} href="/fit">
+            Assess my fit
+          </Link>
+
+          <Link className={textLinkClassName} href="/schedule">
+            Schedule a conversation
+          </Link>
+        </div>
 
         <ProjectList />
       </div>
