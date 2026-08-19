@@ -4,6 +4,7 @@ import { PageShell } from "@/components/page-shell";
 import { ProjectList } from "@/components/project-list";
 import { site } from "@/config/site";
 import { profile, socialLinks } from "@/content/portfolio";
+import { assessMyFitFlag } from "@/flags";
 
 const jsonLd = {
   "@context": "https://schema.org",
@@ -30,7 +31,9 @@ const jsonLd = {
   },
 };
 
-export default function Home() {
+export default async function Home() {
+  const isAssessMyFitEnabled = await assessMyFitFlag();
+
   return (
     <PageShell size="compact" disableTextSelection>
       <script
@@ -50,9 +53,11 @@ export default function Home() {
       </header>
 
       <div className="flex flex-col items-start gap-3">
-        <Link className={actionClassName} href="/fit">
-          Assess my fit
-        </Link>
+        {isAssessMyFitEnabled ? (
+          <Link className={actionClassName} href="/fit">
+            Assess my fit
+          </Link>
+        ) : null}
 
         <Link className={textLinkClassName} href="/schedule">
           Schedule a conversation

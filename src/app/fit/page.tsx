@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { mutedTextLinkClassName } from "@/components/links";
 import { PageShell } from "@/components/page-shell";
 import { site } from "@/config/site";
 import { RoleFitForm } from "@/features/role-fit/role-fit-form";
+import { assessMyFitFlag } from "@/flags";
 
 const path = "/fit";
 
@@ -25,7 +27,13 @@ export const metadata: Metadata = {
   },
 };
 
-export default function FitPage() {
+export default async function FitPage() {
+  const isAssessMyFitEnabled = await assessMyFitFlag();
+
+  if (!isAssessMyFitEnabled) {
+    notFound();
+  }
+
   return (
     <PageShell>
       <article className="max-w-[65ch]">

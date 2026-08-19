@@ -3,10 +3,17 @@ import {
   MAX_ROLE_DESCRIPTION_LENGTH,
   parseRoleDescription,
 } from "@/features/role-fit/assess-role-fit";
+import { assessMyFitFlag } from "@/flags";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  const isAssessMyFitEnabled = await assessMyFitFlag();
+
+  if (!isAssessMyFitEnabled) {
+    return Response.json({ error: "This feature is unavailable." }, { status: 404 });
+  }
+
   let body: unknown;
 
   try {

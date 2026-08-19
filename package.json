@@ -19,8 +19,10 @@
     "calendar:authorize": "node scripts/authorize-google-calendar.mjs"
   },
   "dependencies": {
+    "@flags-sdk/vercel": "^1.4.6",
     "@next/env": "16.3.1",
     "@vercel/analytics": "^2.0.1",
+    "@vercel/flags": "^3.1.1",
     "@vercel/speed-insights": "^2.0.0",
     "googleapis": "^175.0.0",
     "next": "16.3.1",
