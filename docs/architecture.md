@@ -56,6 +56,9 @@ OpenAI response storage.
 The handler returns `400` for invalid input, `503` when `OPENAI_API_KEY` is not
 configured, and `502` when the upstream assessment fails. It does not persist
 the role description or assessment in application storage.
+BotID protects this POST path. Strict streamed JSON limits apply, and shared
+Upstash Redis keys use only HMAC hashes of an opaque session plus trusted Vercel
+client IP; production fails closed when protection configuration is missing.
 
 ## Meeting scheduling
 
@@ -69,8 +72,13 @@ For an available slot it creates a private one-hour event on the configured
 calendar with the guest attendee, `sendUpdates=all`, and a unique Google Meet
 conference request. Guests cannot invite others, modify the event, or see other
 guests. Google sends the calendar invitation to the guest; Resend sends a plain
-text notification to the owner. There is intentionally no database,
-idempotency, rate-limiting, or locking layer.
+text notification to the owner. There is intentionally no application database;
+Redis stores only short-lived HMAC-derived counters, locks, and dedupe state.
+The client supplies an idempotency key; the server hashes it and uses a
+UTC-slot lock plus identity lock before freeBusy. Deterministic event and
+conference IDs allow duplicate inserts to be replayed without resending the
+owner notification. Rate-limit responses include `Retry-After` and are
+rendered inline by the forms.
 
 ## Invariants
 

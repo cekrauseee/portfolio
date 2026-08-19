@@ -40,7 +40,10 @@ export function parseRoleDescription(body: unknown) {
   return description;
 }
 
-export async function assessRoleFit(description: string) {
+export async function assessRoleFit(
+  description: string,
+  safetyIdentifier?: string,
+) {
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const response = await openai.responses.create({
     model: "gpt-5.6-luna",
@@ -49,6 +52,7 @@ export async function assessRoleFit(description: string) {
     max_output_tokens: 700,
     reasoning: { effort: "low" },
     store: false,
+    safety_identifier: safetyIdentifier,
   });
   const answer = response.output_text.trim();
 

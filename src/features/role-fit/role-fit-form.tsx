@@ -4,6 +4,7 @@ import type { FormEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { actionClassName } from "@/components/links";
+import { retryMessage } from "@/lib/retry-message";
 
 const MAX_DESCRIPTION_LENGTH = 16_000;
 const MAX_DESCRIPTION_LABEL = "16,000";
@@ -108,6 +109,9 @@ export function RoleFitForm() {
       const data: unknown = await response.json();
 
       if (!response.ok) {
+        if (response.status === 429) {
+          throw new Error(retryMessage(response));
+        }
         if (
           data &&
           typeof data === "object" &&

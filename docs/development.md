@@ -19,6 +19,16 @@ Open [http://localhost:3000](http://localhost:3000).
 To enable role-fit assessment, set `OPENAI_API_KEY` in `.env.local`. The
 portfolio and project pages do not require this variable.
 
+For production, set `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, and a
+long random `ANON_SESSION_SECRET`. BotID protects the two API POST paths;
+development deterministically bypasses the hosted check and uses a bounded
+local fallback only when Redis is not configured. Production fails closed with
+503 when required protection configuration is unavailable. Deploy in this
+order: configure Redis and secrets, enable BotID, deploy and verify blocked and
+allowed requests, then configure Vercel WAF rules and an OpenAI project hard
+spend limit/alerts before opening public traffic. Those external controls are
+deployment prerequisites and are not configured by this codebase.
+
 ### GitHub project content
 
 Project content always comes from the validated

@@ -3,6 +3,7 @@
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { actionClassName, ExternalLink } from "@/components/links";
+import { retryMessage } from "@/lib/retry-message";
 
 type FieldName = "name" | "email" | "date" | "time";
 type Fields = Record<FieldName, string>;
@@ -96,7 +97,10 @@ export function MeetingScheduler() {
     try {
       const response = await fetch("/api/meetings", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": crypto.randomUUID(),
+        },
         body: JSON.stringify({
           name: fields.name.trim(),
           email: fields.email.trim(),
@@ -110,6 +114,9 @@ export function MeetingScheduler() {
           throw new Error(
             "That time is no longer available. Choose another time.",
           );
+        }
+        if (response.status === 429) {
+          throw new Error(retryMessage(response));
         }
         const error = responseValue(data, "error");
         throw new Error(

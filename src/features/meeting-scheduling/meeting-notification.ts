@@ -1,13 +1,27 @@
 import { Resend } from "resend";
 
-export async function sendMeetingNotification(input: {
+type MeetingNotification = (input: {
   name: string;
   email: string;
   start: Date;
   timeZone: string;
   meetLink?: string;
   calendarLink?: string;
-}) {
+}) => Promise<void>;
+let notificationOverride: MeetingNotification | undefined;
+
+/** Replace Resend delivery with a deterministic notifier in tests. */
+export function setMeetingNotificationForTests(notifier?: MeetingNotification) {
+  notificationOverride = notifier;
+}
+
+export async function sendMeetingNotification(
+  input: Parameters<MeetingNotification>[0],
+) {
+  if (notificationOverride) {
+    await notificationOverride(input);
+    return;
+  }
   const apiKey = process.env.RESEND_API_KEY?.trim();
   const to = process.env.MEETING_OWNER_EMAIL?.trim();
   const from = process.env.RESEND_FROM_EMAIL?.trim();

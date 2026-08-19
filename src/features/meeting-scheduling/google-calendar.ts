@@ -1,9 +1,31 @@
 import type { calendar_v3 } from "googleapis";
 import { google } from "googleapis";
+import { createHash } from "node:crypto";
 
 type CalendarConfig = {
   calendarId: string;
 };
+type CalendarClient = ReturnType<typeof google.calendar>;
+let calendarClientOverride: CalendarClient | undefined;
+
+type MeetingEventInput = {
+  email: string;
+  start: Date;
+  end: Date;
+  config?: CalendarConfig;
+};
+
+export type MeetingEventLookup =
+  | { status: "not-found"; eventId: string }
+  | { status: "mismatch"; eventId: string }
+  | { status: "match"; eventId: string; data: calendar_v3.Schema$Event };
+
+export class MeetingEventMismatchError extends Error {}
+
+/** Replace Google Calendar with a deterministic client in tests. */
+export function setCalendarClientForTests(client?: CalendarClient) {
+  calendarClientOverride = client;
+}
 
 function requiredEnv(name: string) {
   const value = process.env[name]?.trim();
@@ -14,6 +36,9 @@ function requiredEnv(name: string) {
 }
 
 function calendarClient() {
+  if (calendarClientOverride) {
+    return calendarClientOverride;
+  }
   const auth = new google.auth.OAuth2(
     requiredEnv("GOOGLE_CLIENT_ID"),
     requiredEnv("GOOGLE_CLIENT_SECRET"),
@@ -24,6 +49,52 @@ function calendarClient() {
 
 export function getCalendarConfig(): CalendarConfig {
   return { calendarId: process.env.GOOGLE_CALENDAR_ID?.trim() || "primary" };
+}
+
+export function meetingEventId(start: Date, config = getCalendarConfig()) {
+  return createHash("sha256")
+    .update(`${config.calendarId}:${start.toISOString()}`)
+    .digest("hex")
+    .slice(0, 32);
+}
+
+/**
+ * Look up the event that owns a deterministic meeting slot. A Google 404 is
+ * deliberately treated as an ordinary miss; all other upstream failures are
+ * allowed to reach the route's generic upstream-error handling.
+ */
+export async function findMeetingEvent(
+  input: MeetingEventInput,
+): Promise<MeetingEventLookup> {
+  const config = input.config ?? getCalendarConfig();
+  const eventId = meetingEventId(input.start, config);
+  let response: { data: calendar_v3.Schema$Event };
+  try {
+    response = await calendarClient().events.get({
+      calendarId: config.calendarId,
+      eventId,
+    });
+  } catch (error) {
+    if (isGoogleNotFound(error)) {
+      return { status: "not-found", eventId };
+    }
+    throw error;
+  }
+  if (!matchesMeetingEvent(response.data, input, eventId)) {
+    return { status: "mismatch", eventId };
+  }
+  return { status: "match", eventId, data: response.data };
+}
+
+export async function findMeetingEventWithRetry(input: MeetingEventInput) {
+  let result = await findMeetingEvent(input);
+  if (result.status === "not-found") {
+    // Calendar writes can become visible to freeBusy before events.get. Give
+    // the event index one short opportunity to catch up after a conflict.
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    result = await findMeetingEvent(input);
+  }
+  return result;
 }
 
 export async function hasCalendarConflict(
@@ -64,6 +135,7 @@ export async function createMeetingEvent(input: {
   config?: CalendarConfig;
 }) {
   const config = input.config ?? getCalendarConfig();
+  const deterministicId = meetingEventId(input.start, config);
   const meetingOwnerName = ownerName();
   const event: calendar_v3.Schema$Event = {
     summary: `${meetingOwnerName} and ${input.name}`,
@@ -85,18 +157,34 @@ export async function createMeetingEvent(input: {
     attendees: [{ email: input.email }],
     conferenceData: {
       createRequest: {
-        requestId: crypto.randomUUID(),
+        requestId: `meeting-${deterministicId}`,
         conferenceSolutionKey: { type: "hangoutsMeet" },
       },
     },
   };
   const calendar = calendarClient();
-  const response = await calendar.events.insert({
-    calendarId: config.calendarId,
-    requestBody: event,
-    conferenceDataVersion: 1,
-    sendUpdates: "all",
-  });
+  let response: { data: calendar_v3.Schema$Event };
+  let replayed = false;
+  try {
+    response = await calendar.events.insert({
+      calendarId: config.calendarId,
+      requestBody: { ...event, id: deterministicId },
+      conferenceDataVersion: 1,
+      sendUpdates: "all",
+    });
+  } catch (error) {
+    if (!isGoogleConflict(error)) {
+      throw error;
+    }
+    const existing = await findMeetingEventWithRetry(input);
+    if (existing.status === "not-found" || existing.status === "mismatch") {
+      throw new MeetingEventMismatchError(
+        "Google returned a conflicting event for this meeting.",
+      );
+    }
+    response = { data: existing.data };
+    replayed = true;
+  }
   if (!response.data.id) {
     throw new Error("Google did not return an event id.");
   }
@@ -110,6 +198,7 @@ export async function createMeetingEvent(input: {
         id: currentEvent.id,
         meetLink,
         calendarLink: currentEvent.htmlLink,
+        replayed,
       };
     }
     if (attempt < 4) {
@@ -120,7 +209,10 @@ export async function createMeetingEvent(input: {
           eventId: response.data.id,
         });
         currentEvent = polled.data;
-      } catch {
+      } catch (error) {
+        if (!isGoogleNotFound(error)) {
+          throw error;
+        }
         break;
       }
     }
@@ -131,7 +223,68 @@ export async function createMeetingEvent(input: {
       (entry) => entry.entryPointType === "video",
     )?.uri,
     calendarLink: currentEvent.htmlLink,
+    replayed,
   };
+}
+
+function matchesMeetingEvent(
+  event: calendar_v3.Schema$Event,
+  input: MeetingEventInput,
+  eventId: string,
+) {
+  const eventStart = event.start?.dateTime
+    ? Date.parse(event.start.dateTime)
+    : NaN;
+  const eventEnd = event.end?.dateTime ? Date.parse(event.end.dateTime) : NaN;
+  const attendee = normalizeEmail(input.email);
+  return (
+    event.id === eventId &&
+    eventStart === input.start.getTime() &&
+    eventEnd === input.end.getTime() &&
+    (event.attendees ?? []).some(
+      (candidate) => normalizeEmail(candidate.email) === attendee,
+    )
+  );
+}
+
+function normalizeEmail(email: string | null | undefined) {
+  return email?.trim().toLowerCase() ?? "";
+}
+
+function isGoogleNotFound(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+  const value = error as {
+    code?: number | string;
+    status?: number | string;
+    statusCode?: number | string;
+    response?: { status?: number | string };
+  };
+  return [
+    value.code,
+    value.status,
+    value.statusCode,
+    value.response?.status,
+  ].some((candidate) => Number(candidate) === 404);
+}
+
+function isGoogleConflict(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+  const value = error as {
+    code?: number | string;
+    status?: number | string;
+    statusCode?: number | string;
+    response?: { status?: number | string };
+  };
+  return [
+    value.code,
+    value.status,
+    value.statusCode,
+    value.response?.status,
+  ].some((candidate) => Number(candidate) === 409);
 }
 
 function ownerName() {

@@ -1,7 +1,10 @@
 import {
   createMeetingEvent,
+  findMeetingEvent,
+  findMeetingEventWithRetry,
   getCalendarConfig,
   hasCalendarConflict,
+  MeetingEventMismatchError,
 } from "@/features/meeting-scheduling/google-calendar";
 import { sendMeetingNotification } from "@/features/meeting-scheduling/meeting-notification";
 
@@ -67,15 +70,47 @@ export async function scheduleMeeting(request: MeetingRequest) {
   const startDate = localToUtc(request.start, request.timeZone);
   const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
   const config = getCalendarConfig();
-  if (await hasCalendarConflict(startDate, endDate, config)) {
+  const eventInput = { ...request, start: startDate, end: endDate, config };
+  const existing = await findMeetingEvent(eventInput);
+  if (existing.status === "mismatch") {
     throw new MeetingConflictError("That time is no longer available.");
   }
-  const event = await createMeetingEvent({
-    ...request,
-    start: startDate,
-    end: endDate,
-    config,
-  });
+  if (existing.status === "match") {
+    return {
+      id: existing.data.id,
+      meetLink: existing.data.conferenceData?.entryPoints?.find(
+        (entry) => entry.entryPointType === "video",
+      )?.uri,
+      calendarLink: existing.data.htmlLink,
+      replayed: true,
+    };
+  }
+  if (await hasCalendarConflict(startDate, endDate, config)) {
+    const recovered = await findMeetingEventWithRetry(eventInput);
+    if (recovered.status === "match") {
+      return {
+        id: recovered.data.id,
+        meetLink: recovered.data.conferenceData?.entryPoints?.find(
+          (entry) => entry.entryPointType === "video",
+        )?.uri,
+        calendarLink: recovered.data.htmlLink,
+        replayed: true,
+      };
+    }
+    throw new MeetingConflictError("That time is no longer available.");
+  }
+  let event;
+  try {
+    event = await createMeetingEvent(eventInput);
+  } catch (error) {
+    if (error instanceof MeetingEventMismatchError) {
+      throw new MeetingConflictError("That time is no longer available.");
+    }
+    throw error;
+  }
+  if (event.replayed) {
+    return event;
+  }
   try {
     await sendMeetingNotification({
       ...request,
@@ -87,6 +122,10 @@ export async function scheduleMeeting(request: MeetingRequest) {
     console.error("Meeting owner notification failed", error);
   }
   return event;
+}
+
+export function meetingUtcSlot(request: MeetingRequest) {
+  return localToUtc(request.start, request.timeZone).toISOString();
 }
 
 function isTimeZone(timeZone: string) {
