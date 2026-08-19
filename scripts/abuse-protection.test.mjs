@@ -14,6 +14,14 @@ function request(body, headers = {}) {
   });
 }
 
+function restoreEnvironment(name, value) {
+  if (value === undefined) {
+    delete process.env[name];
+  } else {
+    process.env[name] = value;
+  }
+}
+
 test("readJson enforces content type, malformed JSON, and byte limits", async () => {
   assert.equal(
     (
@@ -61,6 +69,30 @@ test("readJson enforces content type, malformed JSON, and byte limits", async ()
     "fit",
   );
   assert.equal(parsed.body.description, "é".repeat(4));
+});
+
+test("Redis credentials support Vercel KV names and direct Upstash aliases", () => {
+  assert.deepEqual(
+    protection.resolveRedisCredentials({
+      KV_REST_API_URL: " https://vercel-redis.test ",
+      KV_REST_API_TOKEN: " vercel-token ",
+    }),
+    { url: "https://vercel-redis.test", token: "vercel-token" },
+  );
+  assert.deepEqual(
+    protection.resolveRedisCredentials({
+      UPSTASH_REDIS_REST_URL: "https://upstash.test",
+      UPSTASH_REDIS_REST_TOKEN: "upstash-token",
+    }),
+    { url: "https://upstash.test", token: "upstash-token" },
+  );
+  assert.equal(
+    protection.resolveRedisCredentials({
+      KV_REST_API_URL: "https://incomplete.test",
+      UPSTASH_REDIS_REST_TOKEN: "mismatched-token",
+    }),
+    undefined,
+  );
 });
 
 test("protection issues a signed cookie and stable privacy-safe identity", async () => {
@@ -120,15 +152,28 @@ test("lock release cannot delete a newer owner", async () => {
 
 test("production without Redis fails closed", async () => {
   const old = process.env.NODE_ENV;
+  const oldKvUrl = process.env.KV_REST_API_URL;
+  const oldKvToken = process.env.KV_REST_API_TOKEN;
+  const oldUpstashUrl = process.env.UPSTASH_REDIS_REST_URL;
+  const oldUpstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
   process.env.NODE_ENV = "production";
+  delete process.env.KV_REST_API_URL;
+  delete process.env.KV_REST_API_TOKEN;
   delete process.env.UPSTASH_REDIS_REST_URL;
   delete process.env.UPSTASH_REDIS_REST_TOKEN;
-  const result = await protection.protect(
-    "fit",
-    request("{}", { "x-vercel-forwarded-for": "192.0.2.1" }),
-  );
-  assert.equal(result.status, 503);
-  process.env.NODE_ENV = old;
+  try {
+    const result = await protection.protect(
+      "fit",
+      request("{}", { "x-vercel-forwarded-for": "192.0.2.1" }),
+    );
+    assert.equal(result.status, 503);
+  } finally {
+    process.env.NODE_ENV = old;
+    restoreEnvironment("KV_REST_API_URL", oldKvUrl);
+    restoreEnvironment("KV_REST_API_TOKEN", oldKvToken);
+    restoreEnvironment("UPSTASH_REDIS_REST_URL", oldUpstashUrl);
+    restoreEnvironment("UPSTASH_REDIS_REST_TOKEN", oldUpstashToken);
+  }
 });
 
 test("development without ANON_SESSION_SECRET uses a stable local fallback", async () => {

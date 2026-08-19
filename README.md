@@ -29,9 +29,10 @@ assessment requires `OPENAI_API_KEY`; meeting scheduling requires Google Calenda
 OAuth credentials and Resend configuration. See
 [Development](docs/development.md) for setup details.
 
-Production deployments must also configure BotID, Upstash Redis, and
-`ANON_SESSION_SECRET`. Configure Vercel WAF rules and an OpenAI project hard
-spend limit with alerts outside this repository before enabling public traffic.
+Production deployments must also configure BotID, Upstash Redis through the
+Vercel Marketplace, and `ANON_SESSION_SECRET`. Configure Vercel WAF rules and an
+OpenAI project hard spend limit with alerts outside this repository before
+enabling public traffic.
 
 Project case studies come from the validated `.cache/github-projects.json`
 snapshot. `npm run dev` and `npm run build` refresh it automatically by scanning

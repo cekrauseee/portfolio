@@ -24,6 +24,26 @@ let redisInstance: Redis | undefined;
 let redisOverride: RedisAdapter | undefined;
 let localSessionSecret: string | undefined;
 
+type RedisEnvironment = Record<string, string | undefined>;
+
+export function resolveRedisCredentials(
+  environment: RedisEnvironment = process.env,
+) {
+  const vercelUrl = environment.KV_REST_API_URL?.trim();
+  const vercelToken = environment.KV_REST_API_TOKEN?.trim();
+  if (vercelUrl && vercelToken) {
+    return { url: vercelUrl, token: vercelToken };
+  }
+
+  const upstashUrl = environment.UPSTASH_REDIS_REST_URL?.trim();
+  const upstashToken = environment.UPSTASH_REDIS_REST_TOKEN?.trim();
+  if (upstashUrl && upstashToken) {
+    return { url: upstashUrl, token: upstashToken };
+  }
+
+  return undefined;
+}
+
 /** Replace the Redis client for deterministic integration tests. */
 export function setRedisAdapterForTests(adapter?: RedisAdapter) {
   redisOverride = adapter;
@@ -34,16 +54,11 @@ function redis() {
   if (redisOverride) {
     return redisOverride;
   }
-  if (
-    !process.env.UPSTASH_REDIS_REST_URL ||
-    !process.env.UPSTASH_REDIS_REST_TOKEN
-  ) {
+  const credentials = resolveRedisCredentials();
+  if (!credentials) {
     return undefined;
   }
-  return (redisInstance ??= new Redis({
-    url: process.env.UPSTASH_REDIS_REST_URL,
-    token: process.env.UPSTASH_REDIS_REST_TOKEN,
-  }));
+  return (redisInstance ??= new Redis(credentials));
 }
 
 function sessionSecret() {

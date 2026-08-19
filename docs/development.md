@@ -19,15 +19,19 @@ Open [http://localhost:3000](http://localhost:3000).
 To enable role-fit assessment, set `OPENAI_API_KEY` in `.env.local`. The
 portfolio and project pages do not require this variable.
 
-For production, set `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, and a
-long random `ANON_SESSION_SECRET`. BotID protects the two API POST paths;
-development deterministically bypasses the hosted check and uses a bounded
-local fallback only when Redis is not configured. Production fails closed with
-503 when required protection configuration is unavailable. Deploy in this
-order: configure Redis and secrets, enable BotID, deploy and verify blocked and
-allowed requests, then configure Vercel WAF rules and an OpenAI project hard
-spend limit/alerts before opening public traffic. Those external controls are
-deployment prerequisites and are not configured by this codebase.
+For production, connect Upstash Redis through the Vercel Marketplace so it
+injects `KV_REST_API_URL` and the write-capable `KV_REST_API_TOKEN`, then set a
+long random `ANON_SESSION_SECRET`. The read-only token is not sufficient because
+rate limits, locks, and dedupe records write to Redis. Direct Upstash setups may
+instead provide `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`; the
+application supports both complete credential pairs. BotID protects the two API
+POST paths; development deterministically bypasses the hosted check and uses a
+bounded local fallback only when Redis is not configured. Production fails
+closed with 503 when required protection configuration is unavailable. Deploy
+in this order: configure Redis and secrets, enable BotID, deploy and verify
+blocked and allowed requests, then configure Vercel WAF rules and an OpenAI
+project hard spend limit/alerts before opening public traffic. Those external
+controls are deployment prerequisites and are not configured by this codebase.
 
 ### GitHub project content
 
