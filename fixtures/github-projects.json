@@ -1,13 +1,13 @@
 {
   "version": 1,
-  "owner": "cekrauseee",
+  "owner": "fixture-owner",
   "generatedAt": "2026-08-18T12:00:00.000Z",
   "projects": [
     {
       "slug": "fixture-project",
-      "name": "cekrauseee/fixture-project",
+      "name": "fixture-owner/fixture-project",
       "description": "A deterministic fixture project.",
-      "repositoryUrl": "https://github.com/cekrauseee/fixture-project",
+      "repositoryUrl": "https://github.com/fixture-owner/fixture-project",
       "metaDescription": "A deterministic fixture project for the GitHub build path.",
       "summary": "A deterministic fixture used to verify snapshot-backed static rendering without network access.",
       "highlights": ["Next.js", "Fixtures"],

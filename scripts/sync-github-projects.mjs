@@ -71,6 +71,7 @@ function validateProject(value, context) {
   }
 
   if (
+    typeof value.slug !== "string" ||
     !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value.slug) ||
     !nonEmptyString(value.name) ||
     !nonEmptyString(value.description) ||

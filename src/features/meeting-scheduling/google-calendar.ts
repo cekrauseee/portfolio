@@ -1,9 +1,20 @@
 import type { calendar_v3 } from "googleapis";
 import { google } from "googleapis";
 import { createHash } from "node:crypto";
+import { site } from "@/config/site";
+
+export const CALENDAR_REQUEST_TIMEOUT_MS = 20_000;
+
+type CalendarEnvironment = Record<string, string | undefined>;
 
 type CalendarConfig = {
   calendarId: string;
+};
+
+type CalendarRuntimeConfiguration = CalendarConfig & {
+  clientId: string;
+  clientSecret: string;
+  refreshToken: string;
 };
 
 type CalendarClient = ReturnType<typeof google.calendar>;
@@ -32,6 +43,13 @@ export type MeetingEventLookup =
   | { status: "mismatch"; eventId: string }
   | { status: "match"; eventId: string; data: calendar_v3.Schema$Event };
 
+export class CalendarConfigurationError extends Error {
+  constructor(message = "Google Calendar is not configured correctly.") {
+    super(message);
+    this.name = "CalendarConfigurationError";
+  }
+}
+
 export class MeetingEventMismatchError extends Error {}
 
 const EVENT_METADATA = {
@@ -46,28 +64,51 @@ const EVENT_METADATA_KEYS = {
   request: "portfolioRequest",
 } as const;
 
+const requestOptions = { timeout: CALENDAR_REQUEST_TIMEOUT_MS } as const;
+
 /** Replace Google Calendar with a deterministic client in tests. */
 export function setCalendarClientForTests(client?: CalendarClient) {
   calendarClientOverride = client;
 }
 
-function requiredEnv(name: string) {
-  const value = process.env[name]?.trim();
-  if (!value) {
-    throw new Error(`Missing ${name}.`);
+export function validateCalendarConfiguration(
+  environment: CalendarEnvironment = process.env,
+): CalendarRuntimeConfiguration {
+  const clientId = environment.GOOGLE_CLIENT_ID?.trim();
+  const clientSecret = environment.GOOGLE_CLIENT_SECRET?.trim();
+  const refreshToken = environment.GOOGLE_REFRESH_TOKEN?.trim();
+  const missing = [
+    ["GOOGLE_CLIENT_ID", clientId],
+    ["GOOGLE_CLIENT_SECRET", clientSecret],
+    ["GOOGLE_REFRESH_TOKEN", refreshToken],
+  ]
+    .filter(([, value]) => !value)
+    .map(([name]) => name);
+
+  if (missing.length > 0) {
+    throw new CalendarConfigurationError(
+      `Missing Google Calendar configuration: ${missing.join(", ")}.`,
+    );
   }
-  return value;
+
+  return {
+    clientId: clientId!,
+    clientSecret: clientSecret!,
+    refreshToken: refreshToken!,
+    calendarId: environment.GOOGLE_CALENDAR_ID?.trim() || "primary",
+  };
 }
 
 function calendarClient() {
   if (calendarClientOverride) {
     return calendarClientOverride;
   }
+  const configuration = validateCalendarConfiguration();
   const auth = new google.auth.OAuth2(
-    requiredEnv("GOOGLE_CLIENT_ID"),
-    requiredEnv("GOOGLE_CLIENT_SECRET"),
+    configuration.clientId,
+    configuration.clientSecret,
   );
-  auth.setCredentials({ refresh_token: requiredEnv("GOOGLE_REFRESH_TOKEN") });
+  auth.setCredentials({ refresh_token: configuration.refreshToken });
   return google.calendar({ version: "v3", auth });
 }
 
@@ -103,10 +144,13 @@ export async function findMeetingEvent(
   const eventId = meetingEventId(input.start, config);
   let response: { data: calendar_v3.Schema$Event };
   try {
-    response = await calendarClient().events.get({
-      calendarId: config.calendarId,
-      eventId,
-    });
+    response = await calendarClient().events.get(
+      {
+        calendarId: config.calendarId,
+        eventId,
+      },
+      requestOptions,
+    );
   } catch (error) {
     if (isGoogleNotFound(error)) {
       return { status: "not-found", eventId };
@@ -139,13 +183,16 @@ export async function hasCalendarConflict(
   end: Date,
   config = getCalendarConfig(),
 ) {
-  const response = await calendarClient().freebusy.query({
-    requestBody: {
-      timeMin: start.toISOString(),
-      timeMax: end.toISOString(),
-      items: [{ id: config.calendarId }],
+  const response = await calendarClient().freebusy.query(
+    {
+      requestBody: {
+        timeMin: start.toISOString(),
+        timeMax: end.toISOString(),
+        items: [{ id: config.calendarId }],
+      },
     },
-  });
+    requestOptions,
+  );
   const busy = response.data.calendars?.[config.calendarId]?.busy ?? [];
   const calendarErrors = response.data.calendars?.[config.calendarId]?.errors;
   if (calendarErrors?.length) {
@@ -174,13 +221,12 @@ export async function createMeetingEvent(input: {
 }) {
   const config = input.config ?? getCalendarConfig();
   const deterministicId = meetingEventId(input.start, config);
-  const meetingOwnerName = ownerName();
   const event: calendar_v3.Schema$Event = {
-    summary: `${meetingOwnerName} and ${input.name}`,
+    summary: `${site.name} and ${input.name}`,
     description: [
       `Hi ${input.name},`,
       "",
-      `Thanks for scheduling a conversation with ${meetingOwnerName}.`,
+      `Thanks for scheduling a conversation with ${site.name}.`,
       "",
       "The conversation is scheduled for one hour.",
       "",
@@ -208,12 +254,15 @@ export async function createMeetingEvent(input: {
   let response: { data: calendar_v3.Schema$Event };
   let replayed = false;
   try {
-    response = await calendar.events.insert({
-      calendarId: config.calendarId,
-      requestBody: { ...event, id: deterministicId },
-      conferenceDataVersion: 1,
-      sendUpdates: "all",
-    });
+    response = await calendar.events.insert(
+      {
+        calendarId: config.calendarId,
+        requestBody: { ...event, id: deterministicId },
+        conferenceDataVersion: 1,
+        sendUpdates: "all",
+      },
+      requestOptions,
+    );
   } catch (error) {
     if (!isGoogleConflict(error)) {
       throw error;
@@ -226,16 +275,19 @@ export async function createMeetingEvent(input: {
     } else if (existing.status === "cancelled") {
       // A cancelled deterministic event is never replayed. Restore its organizer
       // copy as a fresh booking and overwrite the operation metadata.
-      response = await calendar.events.update({
-        calendarId: config.calendarId,
-        eventId: deterministicId,
-        requestBody: {
-          ...event,
-          status: "confirmed",
+      response = await calendar.events.update(
+        {
+          calendarId: config.calendarId,
+          eventId: deterministicId,
+          requestBody: {
+            ...event,
+            status: "confirmed",
+          },
+          conferenceDataVersion: 1,
+          sendUpdates: "all",
         },
-        conferenceDataVersion: 1,
-        sendUpdates: "all",
-      });
+        requestOptions,
+      );
     } else {
       throw new MeetingEventMismatchError(
         "Google returned a conflicting event for this meeting.",
@@ -263,10 +315,13 @@ export async function createMeetingEvent(input: {
     if (attempt < 4) {
       await new Promise((resolve) => setTimeout(resolve, 500));
       try {
-        const polled = await calendar.events.get({
-          calendarId: config.calendarId,
-          eventId: response.data.id,
-        });
+        const polled = await calendar.events.get(
+          {
+            calendarId: config.calendarId,
+            eventId: response.data.id,
+          },
+          requestOptions,
+        );
         currentEvent = polled.data;
       } catch (error) {
         if (!isGoogleNotFound(error)) {
@@ -353,8 +408,4 @@ function isGoogleConflict(error: unknown) {
     value.statusCode,
     value.response?.status,
   ].some((candidate) => Number(candidate) === 409);
-}
-
-function ownerName() {
-  return process.env.MEETING_OWNER_NAME?.trim() || "Henrique Krause";
 }

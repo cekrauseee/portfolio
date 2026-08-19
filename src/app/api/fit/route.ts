@@ -2,6 +2,7 @@ import {
   assessRoleFit,
   MAX_ROLE_DESCRIPTION_LENGTH,
   parseRoleDescription,
+  ROLE_FIT_REQUEST_TIMEOUT_MS,
 } from "@/features/role-fit/assess-role-fit";
 import {
   acquire,
@@ -15,6 +16,9 @@ import {
 } from "@/lib/abuse-protection";
 
 export const runtime = "nodejs";
+
+const LOCK_TTL_SECONDS =
+  Math.ceil(ROLE_FIT_REQUEST_TIMEOUT_MS / 1_000) + 30;
 
 type FitDependencies = {
   protect: typeof protect;
@@ -76,7 +80,7 @@ export function createFitPost(overrides: Partial<FitDependencies> = {}) {
       );
     }
 
-    if (!process.env.OPENAI_API_KEY) {
+    if (!process.env.OPENAI_API_KEY?.trim()) {
       return withSession(
         json({ error: "The fit assessment is not configured yet." }, 503),
         protection.sessionCookie,
@@ -85,7 +89,7 @@ export function createFitPost(overrides: Partial<FitDependencies> = {}) {
 
     const lockKey = `fit:${protection.identity}`;
     try {
-      const lockOwner = await dependencies.acquire(lockKey, 90);
+      const lockOwner = await dependencies.acquire(lockKey, LOCK_TTL_SECONDS);
       if (!lockOwner) {
         return withSession(
           json(
@@ -110,7 +114,13 @@ export function createFitPost(overrides: Partial<FitDependencies> = {}) {
           }),
           protection.sessionCookie,
         );
-      } catch {
+      } catch (error) {
+        console.error(
+          JSON.stringify({
+            event: "fit_upstream_failure",
+            kind: error instanceof Error ? error.name : "unknown",
+          }),
+        );
         result = withSession(
           json({ error: "Unable to assess fit right now." }, 502),
           protection.sessionCookie,
@@ -122,6 +132,12 @@ export function createFitPost(overrides: Partial<FitDependencies> = {}) {
       if (error instanceof ProtectionUnavailableError) {
         return withSession(unavailable(), protection.sessionCookie);
       }
+      console.error(
+        JSON.stringify({
+          event: "fit_handler_failure",
+          kind: error instanceof Error ? error.name : "unknown",
+        }),
+      );
       return withSession(
         json({ error: "Unable to assess fit right now." }, 502),
         protection.sessionCookie,

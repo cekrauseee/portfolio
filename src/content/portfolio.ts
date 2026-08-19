@@ -1,3 +1,4 @@
+import { site } from "@/config/site";
 import { loadGithubProjects } from "./github-projects";
 import type { Project } from "./project";
 
@@ -5,7 +6,7 @@ export type { Project } from "./project";
 
 export const profile = {
   handle: "cekrause",
-  name: "Henrique Krause",
+  name: site.name,
   role: "Software engineer",
   location: "Lisbon",
   email: "henrique@cekrause.eu",

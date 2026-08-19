@@ -1,15 +1,27 @@
 import {
+  CALENDAR_REQUEST_TIMEOUT_MS,
+  CalendarConfigurationError,
   createMeetingEvent,
   findMeetingEvent,
   findMeetingEventWithRetry,
-  getCalendarConfig,
   hasCalendarConflict,
   type MeetingOperation,
   MeetingEventMismatchError,
+  validateCalendarConfiguration,
 } from "@/features/meeting-scheduling/google-calendar";
-import { sendMeetingNotification } from "@/features/meeting-scheduling/meeting-notification";
+import {
+  MEETING_NOTIFICATION_TIMEOUT_MS,
+  MeetingNotificationConfigurationError,
+  resolveMeetingNotificationConfiguration,
+  sendMeetingNotification,
+} from "@/features/meeting-scheduling/meeting-notification";
 
 export type { MeetingOperation };
+
+export const MEETING_OPERATION_TIMEOUT_MS =
+  CALENDAR_REQUEST_TIMEOUT_MS * 10 +
+  MEETING_NOTIFICATION_TIMEOUT_MS +
+  20_000;
 
 export type MeetingRequest = {
   name: string;
@@ -20,6 +32,12 @@ export type MeetingRequest = {
 
 export class MeetingInputError extends Error {}
 export class MeetingConflictError extends Error {}
+export class MeetingConfigurationError extends Error {
+  constructor() {
+    super("Meeting scheduling is not configured.");
+    this.name = "MeetingConfigurationError";
+  }
+}
 
 export function validateMeetingRequest(body: unknown): MeetingRequest {
   if (!body || typeof body !== "object") {
@@ -57,8 +75,7 @@ export function validateMeetingRequest(body: unknown): MeetingRequest {
     throw new MeetingInputError("Provide a valid start time.");
   }
   const utcStart = localToUtc(start, timeZone);
-  const now = Date.now();
-  if (utcStart.getTime() <= now) {
+  if (utcStart.getTime() <= Date.now()) {
     throw new MeetingInputError("Choose a future start time.");
   }
   return {
@@ -75,9 +92,24 @@ export async function scheduleMeeting(
 ) {
   validateMeetingOperation(operation);
 
+  let calendarConfiguration;
+  let notificationConfiguration;
+  try {
+    calendarConfiguration = validateCalendarConfiguration();
+    notificationConfiguration = resolveMeetingNotificationConfiguration();
+  } catch (error) {
+    if (
+      error instanceof CalendarConfigurationError ||
+      error instanceof MeetingNotificationConfigurationError
+    ) {
+      throw new MeetingConfigurationError();
+    }
+    throw error;
+  }
+
   const startDate = localToUtc(request.start, request.timeZone);
   const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
-  const config = getCalendarConfig();
+  const config = { calendarId: calendarConfiguration.calendarId };
   const eventInput = {
     ...request,
     start: startDate,
@@ -134,12 +166,18 @@ export async function scheduleMeeting(
   }
 
   try {
-    await sendMeetingNotification({
-      ...request,
-      start: startDate,
-      meetLink: event.meetLink ?? undefined,
-      calendarLink: event.calendarLink ?? undefined,
-    });
+    await sendMeetingNotification(
+      {
+        ...request,
+        start: startDate,
+        meetLink: event.meetLink ?? undefined,
+        calendarLink: event.calendarLink ?? undefined,
+      },
+      {
+        idempotencyKey: `meeting-owner/${operation.idempotencyDigest}`,
+        configuration: notificationConfiguration,
+      },
+    );
   } catch (error) {
     console.error(
       JSON.stringify({

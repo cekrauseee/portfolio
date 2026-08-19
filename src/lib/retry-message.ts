@@ -1,3 +1,10 @@
+export function shouldUseRetryMessage(response: Response) {
+  return (
+    response.status === 429 ||
+    (response.status === 503 && response.headers.has("Retry-After"))
+  );
+}
+
 export function retryMessage(response: Response) {
   const retryAfter = response.headers.get("Retry-After")?.trim();
   if (!retryAfter || !/^\d+$/.test(retryAfter)) {

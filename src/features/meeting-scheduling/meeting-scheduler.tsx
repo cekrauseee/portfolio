@@ -3,7 +3,10 @@
 import type { FormEvent } from "react";
 import { useRef, useState } from "react";
 import { actionClassName, ExternalLink } from "@/components/links";
-import { retryMessage } from "@/lib/retry-message";
+import {
+  retryMessage,
+  shouldUseRetryMessage,
+} from "@/lib/retry-message";
 
 type FieldName = "name" | "email" | "date" | "time";
 type Fields = Record<FieldName, string>;
@@ -35,8 +38,7 @@ function localDateString(date: Date) {
 }
 
 function today() {
-  const date = new Date();
-  return localDateString(date);
+  return localDateString(new Date());
 }
 
 function responseValue(data: unknown, key: string) {
@@ -213,15 +215,15 @@ export function MeetingScheduler() {
         if (response.status === 409) {
           clearIdempotency();
           throw new Error(
-            "That time is no longer available. Choose another time.",
+            responseValue(data, "error") ??
+              "That time is no longer available. Choose another time.",
           );
         }
-        if (response.status === 429 || response.status === 503) {
+        if (shouldUseRetryMessage(response)) {
           throw new Error(retryMessage(response));
         }
-        const error = responseValue(data, "error");
         throw new Error(
-          error ??
+          responseValue(data, "error") ??
             "Unable to schedule the meeting. Check your details and try again.",
         );
       }
@@ -231,9 +233,7 @@ export function MeetingScheduler() {
         "Your meeting is scheduled. Check your email for the calendar invitation.",
       );
       setMeetingLink(
-        responseValue(data, "meetLink") ??
-          responseValue(data, "calendarLink") ??
-          responseValue(data, "meetingUrl"),
+        responseValue(data, "meetLink") ?? responseValue(data, "calendarLink"),
       );
     } catch (caught) {
       setGeneralError(
@@ -289,7 +289,7 @@ export function MeetingScheduler() {
             className={inputClass}
             id="meeting-name"
             name="name"
-            onChange={(e) => updateField("name", e.target.value)}
+            onChange={(event) => updateField("name", event.target.value)}
             value={fields.name}
             aria-invalid={Boolean(errors.name)}
             aria-describedby={errors.name ? "meeting-name-error" : undefined}
@@ -304,7 +304,7 @@ export function MeetingScheduler() {
             id="meeting-email"
             name="email"
             type="email"
-            onChange={(e) => updateField("email", e.target.value)}
+            onChange={(event) => updateField("email", event.target.value)}
             value={fields.email}
             aria-invalid={Boolean(errors.email)}
             aria-describedby={errors.email ? "meeting-email-error" : undefined}
@@ -319,7 +319,7 @@ export function MeetingScheduler() {
             min={minDate}
             name="date"
             type="date"
-            onChange={(e) => updateField("date", e.target.value)}
+            onChange={(event) => updateField("date", event.target.value)}
             value={fields.date}
             aria-invalid={Boolean(errors.date)}
             aria-describedby={
@@ -336,7 +336,7 @@ export function MeetingScheduler() {
               className={`${inputClass} cursor-pointer appearance-none pr-10`}
               id="meeting-time"
               name="time"
-              onChange={(e) => updateField("time", e.target.value)}
+              onChange={(event) => updateField("time", event.target.value)}
               value={fields.time}
               aria-invalid={Boolean(errors.time)}
               aria-describedby={

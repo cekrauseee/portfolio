@@ -16,7 +16,14 @@ jobs:
     name: Quality checks
     runs-on: ubuntu-latest
     env:
-      GITHUB_OWNER: ${{ github.repository_owner }}
+      GITHUB_OWNER: fixture-owner
+      KV_REST_API_URL: https://redis.example.test
+      KV_REST_API_TOKEN: ci-redis-token
+      ANON_SESSION_SECRET: ci-anonymous-session-secret-with-more-than-32-characters
+      OPENAI_API_KEY: ci-openai-key
+      GOOGLE_CLIENT_ID: ci-google-client-id
+      GOOGLE_CLIENT_SECRET: ci-google-client-secret
+      GOOGLE_REFRESH_TOKEN: ci-google-refresh-token
     services:
       redis:
         image: redis:8.10.0-alpine
@@ -33,7 +40,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
       - name: Install dependencies
         run: npm ci
@@ -51,6 +58,8 @@ jobs:
         env:
           REDIS_URL: redis://127.0.0.1:6379
         run: npm run test:redis
+      - name: Validate production environment
+        run: npm run env:validate
       - name: Validate Docker Compose
         run: docker compose config --quiet
       - name: Type-check

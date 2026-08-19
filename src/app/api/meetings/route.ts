@@ -1,6 +1,8 @@
 import {
+  MeetingConfigurationError,
   MeetingConflictError,
   MeetingInputError,
+  MEETING_OPERATION_TIMEOUT_MS,
   meetingUtcSlot,
   scheduleMeeting,
   validateMeetingRequest,
@@ -21,7 +23,8 @@ import {
 
 export const runtime = "nodejs";
 
-const LOCK_TTL_SECONDS = 300;
+const LOCK_TTL_SECONDS =
+  Math.ceil(MEETING_OPERATION_TIMEOUT_MS / 1_000) + 30;
 
 type MeetingsDependencies = {
   protect: typeof protect;
@@ -279,6 +282,12 @@ export function createMeetingsPost(
       if (error instanceof MeetingInputError) {
         return withSession(
           Response.json({ error: error.message }, { status: 400 }),
+          protection.sessionCookie,
+        );
+      }
+      if (error instanceof MeetingConfigurationError) {
+        return withSession(
+          Response.json({ error: error.message }, { status: 503 }),
           protection.sessionCookie,
         );
       }

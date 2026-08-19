@@ -4,10 +4,14 @@ import type { FormEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { actionClassName } from "@/components/links";
-import { retryMessage } from "@/lib/retry-message";
+import { MAX_ROLE_DESCRIPTION_LENGTH } from "@/features/role-fit/constants";
+import {
+  retryMessage,
+  shouldUseRetryMessage,
+} from "@/lib/retry-message";
 
-const MAX_DESCRIPTION_LENGTH = 16_000;
-const MAX_DESCRIPTION_LABEL = "16,000";
+const MAX_DESCRIPTION_LABEL =
+  MAX_ROLE_DESCRIPTION_LENGTH.toLocaleString("en-US");
 const WORD_INTERVAL_MS = 24;
 
 type Status = "idle" | "loading" | "revealing" | "done" | "error";
@@ -109,7 +113,7 @@ export function RoleFitForm() {
       const data: unknown = await response.json();
 
       if (!response.ok) {
-        if (response.status === 429 || response.status === 503) {
+        if (shouldUseRetryMessage(response)) {
           throw new Error(retryMessage(response));
         }
         if (
@@ -161,7 +165,7 @@ export function RoleFitForm() {
             className="min-h-52 w-full resize-y border border-black/20 bg-transparent px-3 py-3 text-base leading-6 outline-none placeholder:text-black/45 focus:border-black dark:border-white/25 dark:placeholder:text-white/45 dark:focus:border-white"
             disabled={isBusy}
             id="role-description"
-            maxLength={MAX_DESCRIPTION_LENGTH}
+            maxLength={MAX_ROLE_DESCRIPTION_LENGTH}
             name="role-description"
             onChange={(event) => {
               setDescription(event.target.value);

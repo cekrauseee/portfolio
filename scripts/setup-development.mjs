@@ -14,9 +14,11 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseEnv } from "node:util";
 
-const projectDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const envPath = resolve(projectDir, ".env.local");
+const projectDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const envPath = resolve(projectDirectory, ".env.local");
 const localRedisUrl = "redis://127.0.0.1:6379";
+const minimumNodeVersion = [22, 23, 2];
+const minimumSessionSecretLength = 32;
 
 if (process.argv.includes("--help")) {
   console.log(`Prepare local portfolio development.
@@ -24,19 +26,22 @@ if (process.argv.includes("--help")) {
 Usage:
   npm run setup
 
-Requires GITHUB_OWNER in .env.local or the exported environment, installs
-dependencies, starts Docker Redis, writes missing local protection variables,
-and verifies the Redis adapter.`);
+Requires Node.js 22.23.2, Docker with Compose, and GITHUB_OWNER in .env.local.
+Installs the exact lockfile, starts local Redis, writes missing local protection
+values, and verifies the Redis adapter.`);
   process.exit(0);
 }
 
-requireEnvValue("GITHUB_OWNER");
-run("npm", ["install"]);
+requireSupportedNode();
+requireLocalOwner();
+run("npm", ["ci"]);
 requireDocker();
-ensureEnvValue("REDIS_URL", () => localRedisUrl);
-ensureEnvValue("ANON_SESSION_SECRET", () =>
+ensureLocalEnvValue("REDIS_URL", () => localRedisUrl);
+ensureLocalEnvValue("ANON_SESSION_SECRET", () =>
   randomBytes(48).toString("base64url"),
 );
+validateLocalProtectionConfiguration();
+chmodSync(envPath, 0o600);
 run("docker", ["compose", "up", "-d", "--wait", "redis"]);
 run("npm", ["run", "test:redis"]);
 
@@ -45,7 +50,7 @@ console.log("Run npm run dev and open http://localhost:3000.");
 
 function run(command, args) {
   const result = spawnSync(command, args, {
-    cwd: projectDir,
+    cwd: projectDirectory,
     env: process.env,
     stdio: "inherit",
   });
@@ -57,9 +62,32 @@ function run(command, args) {
   }
 }
 
+function requireSupportedNode() {
+  const current = process.versions.node.split(".").map(Number);
+  const supported =
+    current[0] === minimumNodeVersion[0] &&
+    compareVersions(current, minimumNodeVersion) >= 0;
+  if (!supported) {
+    console.error(
+      `Node.js ${minimumNodeVersion.join(".")} or newer within the Node.js 22 release line is required. Current version: ${process.versions.node}.`,
+    );
+    process.exit(1);
+  }
+}
+
+function compareVersions(left, right) {
+  for (let index = 0; index < Math.max(left.length, right.length); index += 1) {
+    const difference = (left[index] ?? 0) - (right[index] ?? 0);
+    if (difference !== 0) {
+      return Math.sign(difference);
+    }
+  }
+  return 0;
+}
+
 function requireDocker() {
   const result = spawnSync("docker", ["info"], {
-    cwd: projectDir,
+    cwd: projectDirectory,
     stdio: "ignore",
   });
   if (result.status !== 0) {
@@ -75,23 +103,27 @@ function readLocalEnv() {
   return existsSync(envPath) ? readFileSync(envPath, "utf8") : "";
 }
 
-function configuredValue(name, current = readLocalEnv()) {
-  return process.env[name]?.trim() || parseEnv(current)[name]?.trim();
+function localEnvValue(name, current = readLocalEnv()) {
+  return parseEnv(current)[name]?.trim();
 }
 
-function requireEnvValue(name) {
-  if (configuredValue(name)) {
-    return;
+function requireLocalOwner() {
+  const owner = localEnvValue("GITHUB_OWNER");
+  if (!owner) {
+    console.error(
+      "GITHUB_OWNER is required in .env.local. Copy .env.example to .env.local and set it before running setup.",
+    );
+    process.exit(1);
   }
-  console.error(
-    `${name} is required. Copy .env.example to .env.local and set it before running setup.`,
-  );
-  process.exit(1);
+  if (!/^[A-Za-z0-9_.-]+$/.test(owner)) {
+    console.error("GITHUB_OWNER contains unsupported characters.");
+    process.exit(1);
+  }
 }
 
-function ensureEnvValue(name, createValue) {
+function ensureLocalEnvValue(name, createValue) {
   const current = readLocalEnv();
-  if (configuredValue(name, current)) {
+  if (localEnvValue(name, current)) {
     return;
   }
 
@@ -103,5 +135,23 @@ function ensureEnvValue(name, createValue) {
   const temporaryPath = `${envPath}.${process.pid}.tmp`;
   writeFileSync(temporaryPath, next, { encoding: "utf8", mode: 0o600 });
   renameSync(temporaryPath, envPath);
-  chmodSync(envPath, 0o600);
+}
+
+function validateLocalProtectionConfiguration() {
+  const redisUrl = localEnvValue("REDIS_URL");
+  try {
+    const protocol = new URL(redisUrl).protocol;
+    if (protocol !== "redis:" && protocol !== "rediss:") {
+      throw new Error("unsupported protocol");
+    }
+  } catch {
+    throw new Error("REDIS_URL in .env.local must be a valid redis:// URL.");
+  }
+
+  const secret = localEnvValue("ANON_SESSION_SECRET");
+  if (!secret || secret.length < minimumSessionSecretLength) {
+    throw new Error(
+      `ANON_SESSION_SECRET in .env.local must contain at least ${minimumSessionSecretLength} characters.`,
+    );
+  }
 }

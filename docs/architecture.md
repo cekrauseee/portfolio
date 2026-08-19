@@ -2,125 +2,113 @@
 
 ## Overview
 
-The project uses the Next.js App Router. `src/app` contains route composition,
-HTTP endpoints, framework metadata, and global styles. Shared presentation lives
-in `src/components`, while interactive capabilities and integrations are grouped
-under `src/features`. Portfolio content and site configuration remain separate
-under `src/content` and `src/config`. Project synchronization happens at build or
-development startup, never during a visitor request.
+The project uses the Next.js App Router. Pages and HTTP endpoints live under
+`src/app`; shared presentation lives under `src/components`; capability-specific
+code lives under `src/features`. Site identity is canonical in
+`src/config/site.ts`, while `src/content/portfolio.ts` adds profile details,
+social links, and the validated project snapshot.
 
-The home page and project case studies render from a validated build-time
-snapshot with React Server Components. Client Components are limited to the
-role-fit and meeting-scheduling forms. Node.js Route Handlers connect those forms
-to OpenAI, Google Calendar, and Resend. Tailwind CSS provides component styling;
-`src/app/globals.css` contains only global tokens and defaults.
+The home page and project case studies are React Server Components. Only the
+role-fit and meeting forms cross a client boundary. Project synchronization runs
+at development startup or build time and never during visitor requests.
 
-## Components
+## Build-time project content
 
-| Path                                    | Responsibility                                                   |
-| --------------------------------------- | ---------------------------------------------------------------- |
-| `src/app`                               | Pages, Route Handlers, metadata, and global styles               |
-| `src/components`                        | Shared page shell, navigation, project list, and link primitives |
-| `src/features/role-fit`                 | Role-fit form, input parsing, prompt context, and OpenAI request |
-| `src/features/meeting-scheduling`       | Scheduling form, validation, calendar access, and notification   |
-| `src/content/portfolio.ts`              | Profile, social links, and normalized project contract           |
-| `src/content/project.ts`                | Shared `Project` and `ProjectSection` types                      |
-| `src/content/github-projects.ts`        | Validated build-time snapshot loader                             |
-| `src/lib/abuse-protection.ts`           | Bot checks, identities, rate limits, locks, and Redis selection  |
-| `scripts/sync-github-projects.mjs`      | Paginated GitHub reconciliation and atomic snapshot writer       |
-| `src/config/site.ts`                    | Site identity and canonical URL configuration                    |
-| `scripts/authorize-google-calendar.mjs` | Local Google Calendar OAuth authorization                        |
+Public repositories owned by the explicit `GITHUB_OWNER` opt in with
+`.portfolio/project.json`. The sync paginates GitHub, rejects private repositories,
+validates each exact project record, deduplicates immutable repository identities
+and slugs, sorts deterministically, and atomically replaces
+`.cache/github-projects.json`.
 
-## Data flow
-
-`src/content/portfolio.ts` exports validated project records loaded from
-`.cache/github-projects.json`. A valid empty snapshot is accepted, so removing
-every convention file removes all project routes on the next build. Server
-Components render `/` and `/projects/[slug]`; `generateStaticParams` pre-renders
-every case study, and the sitemap derives URLs from the same array. The role-fit
-feature builds its assessment context from those records instead of maintaining
-a second candidate profile.
-
-The `/fit` and `/schedule` forms send JSON to Node.js Route Handlers. Validation
-occurs again on the server before any external API request. Browser state remains
-inside the two feature forms; portfolio pages do not require hydration.
+The snapshot loader revalidates the complete file and binds it to the configured
+owner. Writer and reader both require a string slug matching the same safe
+pattern. Tests create their snapshot from a neutral committed fixture, removing
+hidden dependence on prior local commands.
 
 ## Shared protection
 
 BotID runs before both sensitive POST operations. A canonical signed anonymous
-cookie and the trusted Vercel client IP are HMACed into privacy-safe identifiers.
-Separate per-session and higher aggregate per-IP buckets limit both ten-minute
-bursts and daily usage. Redis increments are atomic Lua operations with repaired
-TTLs, while locks use owner tokens and compare-and-delete release scripts.
+cookie and trusted Vercel client IP are HMACed into privacy-safe identities.
+Separate per-session and higher aggregate per-IP buckets limit ten-minute bursts
+and daily usage.
 
-Local development uses the Redis service at `REDIS_URL`; production ignores that
-variable and accepts only `KV_REST_API_URL` plus `KV_REST_API_TOKEN` from the
-Vercel Marketplace. Missing credentials, failed storage, missing production
-session secrets, and BotID failures return `503` before OpenAI or Calendar is
-called. The ordinary runtime has no in-memory fallback.
+Redis increments are atomic Lua operations with repaired TTLs. Locks use random
+owner tokens and compare-and-delete releases. Production accepts only the
+Vercel Marketplace `KV_REST_API_URL` and `KV_REST_API_TOKEN`; local development
+uses the loopback `REDIS_URL`. There is no in-memory runtime fallback.
 
-Request bodies are streamed into bounded buffers. The role-fit allowance is
-large enough for its documented 16,000-character input even when characters use
-multi-byte UTF-8 encoding. Rate-limit and outage responses include `Retry-After`
-and both forms render that guidance.
+Missing or failed protection dependencies return `503` before OpenAI or Calendar
+is called. Temporary protection responses carry `Retry-After`; configuration
+errors do not, allowing the UI to distinguish retryable outages from deployment
+misconfiguration.
 
 ## Role-fit assessment
 
-`POST /api/fit` accepts a `description` string of up to 16,000 characters. The
-feature uses the same project records as the portfolio, treats the submitted job
-description as untrusted content, requests a concise plain-text assessment in
-the same language, disables OpenAI response storage, and sends only the HMACed
-anonymous identity as the OpenAI safety identifier.
+The role-fit client and server import one shared 16,000-character limit. The
+server treats the job description as untrusted input and builds candidate context
+from the same project records rendered by the site. OpenAI response storage is
+disabled and only the HMACed identity is sent as a safety identifier.
 
-The endpoint serializes one assessment per identity with a Redis lock. It returns
-`400` for invalid input, `429` for limits or concurrent work, `503` for missing
-configuration or protection storage, and `502` for an upstream assessment
-failure. It does not persist the submitted description or result.
+The OpenAI client has an explicit deadline and disables automatic SDK retries.
+The per-identity Redis lock is derived from that deadline with an additional
+margin, preventing a lock from expiring while the bounded operation is still
+running.
 
 ## Meeting scheduling
 
-`POST /api/meetings` accepts `name`, `email`, `start`, and `timeZone`, where
-`start` is a future local ISO wall-clock value aligned to a whole hour and
-`timeZone` is an IANA zone. It also requires an `Idempotency-Key`. The server
-normalizes the input, converts the slot to UTC, HMACs both the idempotency key and
-canonical request, and acquires operation, anonymous-identity, and UTC-slot locks
-before scheduling.
+The browser fingerprints the normalized meeting payload and stores one UUID
+idempotency key in memory and `sessionStorage`. Network failures, rate limits,
+and temporary outages reuse that key even across a reload. Success, a real
+conflict, or a changed payload rotates it.
 
-The browser retains one idempotency key for the canonical payload in
-`sessionStorage` and memory. Retryable network, rate-limit, and temporary-outage
-failures therefore repeat the same operation even across a reload. A successful
-booking, a real slot conflict, or a changed payload rotates the key.
+The server HMACs the idempotency key and canonical request, then acquires locks
+for the operation, anonymous identity, and UTC slot. Lock TTL is derived from a
+conservative upper bound for all bounded Calendar requests, conference polling,
+and optional notification work.
 
-For an available slot, Google Calendar receives a deterministic event ID and
-conference request ID. The event also carries private application, schema,
-idempotency-digest, and request-digest properties. Existing event links are
-returned only when ID, time, attendee, and all private metadata match. A
-same-slot request with another key or payload receives a generic conflict rather
-than the existing Meet or Calendar link. Cancelled deterministic events are not
-replayed; the organizer copy is restored with fresh event contents and metadata.
+Google Calendar receives a deterministic event ID, deterministic conference
+request ID, and private application, schema, operation, and request metadata.
+Existing links are returned only when ID, time, attendee, and all private metadata
+match. Another operation targeting the slot receives a generic conflict. A
+cancelled deterministic organizer event is restored with fresh contents instead
+of replaying stale conference data.
 
-Google sends the private one-hour invitation to the guest with
-`sendUpdates=all`; guests cannot invite others, modify the event, or see other
-guests. Resend sends a plain-text notification to the owner only after a newly
-created or restored event. Redis stores only short-lived HMAC-derived counters,
-locks, and versioned dedupe results. Deterministic Calendar recovery covers the
-ambiguous-success case where event creation succeeds but dedupe persistence or
-the HTTP response fails.
+Every Google API request has an explicit timeout. The Calendar invitation is the
+authoritative booking result and is sent with `sendUpdates=all`; guests cannot
+invite others, modify the event, or see other guests.
+
+## Optional owner notification
+
+Resend provides an optional extra owner email. Its three configuration variables
+form one all-or-none group. When disabled, scheduling has no notification branch
+or warning. When enabled, delivery is best effort, bounded by a deadline, and
+uses a deterministic provider idempotency key. An ambiguous timeout may leave the
+provider call in flight, but a retry cannot duplicate the message.
+
+The public owner name comes from `src/config/site.ts` for metadata, Calendar text,
+notification text, and the role-fit profile. No owner-name environment fallback
+exists.
+
+## Production configuration
+
+The `prebuild` lifecycle validates all critical production environment variables,
+secret strength, URLs, and optional groups before project synchronization or
+compilation. Runtime guards remain fail closed, but ordinary deployment mistakes
+are rejected during the build.
+
+Node.js is pinned through `.nvmrc`, `package.json`, `.npmrc`, CI, and matching
+Node type definitions. Local setup uses `npm ci`, so dependency installation is
+reproducible from the committed lockfile.
 
 ## Invariants
 
-- The home page remains a Server Component and does not require hydration.
-- Content changes belong in `src/content/portfolio.ts`, not duplicated across
-  components or prompts.
-- Shared UI belongs in `src/components`; capability-specific UI and integration
-  code belong in `src/features`.
-- Protected operations fail closed without their shared Redis storage.
-- Calendar replay requires the original operation metadata and never authorizes
-  access based only on a slot or attendee email.
-- Internal navigation uses Next.js `Link`. External navigation uses native
-  anchors with `target="_blank"` and `rel="noreferrer"`; email uses a native
-  `mailto:` link.
-- Cards remain fully clickable and keyboard focus remains visible.
-- Mobile layout respects safe-area insets and avoids horizontal overflow.
-- Component styling uses Tailwind utilities; global CSS stays limited to
-  application-wide tokens and defaults.
+- Visitor requests never call GitHub.
+- Protected operations never continue without shared Redis storage.
+- Calendar replay never authorizes access based only on a slot or attendee email.
+- External work has deadlines shorter than the locks that serialize it.
+- Resend configuration is either complete or absent.
+- The Calendar event remains successful even when the optional extra email fails.
+- Site identity has one canonical public-name source.
+- Client-side JavaScript is limited to features that require browser state.
+- Internal navigation uses Next.js `Link`; external navigation uses safe native anchors.
+- Mobile layout preserves keyboard focus, safe-area insets, and no horizontal overflow.
