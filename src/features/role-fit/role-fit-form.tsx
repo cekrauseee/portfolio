@@ -109,7 +109,7 @@ export function RoleFitForm() {
       const data: unknown = await response.json();
 
       if (!response.ok) {
-        if (response.status === 429) {
+        if (response.status === 429 || response.status === 503) {
           throw new Error(retryMessage(response));
         }
         if (

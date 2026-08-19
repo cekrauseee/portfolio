@@ -1,9 +1,21 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 
+const fixture = JSON.parse(
+  readFileSync(
+    new URL("../fixtures/github-projects.json", import.meta.url),
+    "utf8",
+  ),
+);
 process.env.NODE_ENV = "test";
 process.env.ANON_SESSION_SECRET = "test-only-secret";
+process.env.GITHUB_OWNER ||= fixture.owner;
 const protection = await import("../src/lib/abuse-protection.ts");
+const { createInMemoryRedisAdapter } = await import("./in-memory-redis.mjs");
+const resetInMemoryRedis = () =>
+  protection.setRedisAdapterForTests(createInMemoryRedisAdapter());
+resetInMemoryRedis();
 const { createFitPost } = await import("../src/app/api/fit/route.ts");
 
 function request(body, headers = {}) {
@@ -45,6 +57,14 @@ test("readJson enforces content type, malformed JSON, and byte limits", async ()
     ).response.status,
     413,
   );
+
+  const largeDescription = "界".repeat(16_000);
+  const largeParsed = await protection.readJson(
+    request(JSON.stringify({ description: largeDescription })),
+    "fit",
+  );
+  assert.equal(largeParsed.body.description, largeDescription);
+
   const encoder = new TextEncoder();
   const chunks = [
     encoder.encode('{"description":"'),
@@ -71,7 +91,7 @@ test("readJson enforces content type, malformed JSON, and byte limits", async ()
   assert.equal(parsed.body.description, "é".repeat(4));
 });
 
-test("Redis credentials support Vercel KV names and direct Upstash aliases", () => {
+test("Redis credentials only accept the Vercel Marketplace names", () => {
   assert.deepEqual(
     protection.resolveRedisCredentials({
       KV_REST_API_URL: " https://vercel-redis.test ",
@@ -79,17 +99,16 @@ test("Redis credentials support Vercel KV names and direct Upstash aliases", () 
     }),
     { url: "https://vercel-redis.test", token: "vercel-token" },
   );
-  assert.deepEqual(
-    protection.resolveRedisCredentials({
-      UPSTASH_REDIS_REST_URL: "https://upstash.test",
-      UPSTASH_REDIS_REST_TOKEN: "upstash-token",
-    }),
-    { url: "https://upstash.test", token: "upstash-token" },
-  );
   assert.equal(
     protection.resolveRedisCredentials({
       KV_REST_API_URL: "https://incomplete.test",
-      UPSTASH_REDIS_REST_TOKEN: "mismatched-token",
+    }),
+    undefined,
+  );
+  assert.equal(
+    protection.resolveRedisCredentials({
+      OTHER_REDIS_URL: "https://unsupported.test",
+      OTHER_REDIS_TOKEN: "unsupported-token",
     }),
     undefined,
   );
@@ -127,7 +146,7 @@ test("local Redis is preferred outside production and ignored in production", ()
   );
 });
 
-test("protection issues a signed cookie and stable privacy-safe identity", async () => {
+test("protection issues a canonical signed cookie and stable privacy-safe identity", async () => {
   const first = await protection.protect(
     "fit",
     request("{}", { "x-forwarded-for": "198.51.100.7" }),
@@ -135,6 +154,7 @@ test("protection issues a signed cookie and stable privacy-safe identity", async
   assert.equal(first instanceof Response, false);
   const cookie = first.sessionCookie;
   assert.match(cookie, /^[\w-]+\.[0-9]+\.[\w-]+$/);
+
   const second = await protection.protect(
     "fit",
     request("{}", {
@@ -144,6 +164,7 @@ test("protection issues a signed cookie and stable privacy-safe identity", async
   );
   assert.equal(second.identity, first.identity);
   assert.equal(second.identity.includes("198.51.100.7"), false);
+
   const tampered = `${cookie.slice(0, -1)}x`;
   const rotated = await protection.protect(
     "fit",
@@ -153,12 +174,24 @@ test("protection issues a signed cookie and stable privacy-safe identity", async
     }),
   );
   assert.notEqual(rotated.sessionCookie, tampered);
+
+  const suffixed = `${cookie}.unsigned-suffix`;
+  const canonicalized = await protection.protect(
+    "fit",
+    request("{}", {
+      cookie: `anon_session=${suffixed}`,
+      "x-forwarded-for": "198.51.100.7",
+    }),
+  );
+  assert.notEqual(canonicalized.identity, first.identity);
+  assert.ok(canonicalized.sessionCookie);
+  assert.notEqual(canonicalized.sessionCookie, suffixed);
 });
 
-test("rotating cookies cannot evade the independent IP bucket", async () => {
-  let result;
-  for (let i = 0; i < 6; i++) {
-    result = await protection.protect(
+test("rotating cookies cannot evade the higher independent IP bucket", async () => {
+  let allowed;
+  for (let i = 0; i < protection.LIMITS.fit.ip.window; i += 1) {
+    allowed = await protection.protect(
       "fit",
       request("{}", {
         cookie: `anon_session=invalid-${i}`,
@@ -166,8 +199,17 @@ test("rotating cookies cannot evade the independent IP bucket", async () => {
       }),
     );
   }
-  assert.equal(result.status, 429);
-  assert.match(result.headers.get("retry-after"), /^\d+$/);
+  assert.equal(allowed instanceof Response, false);
+
+  const blocked = await protection.protect(
+    "fit",
+    request("{}", {
+      cookie: "anon_session=invalid-blocked",
+      "x-forwarded-for": "203.0.113.9",
+    }),
+  );
+  assert.equal(blocked.status, 429);
+  assert.match(blocked.headers.get("retry-after"), /^\d+$/);
 });
 
 test("lock release cannot delete a newer owner", async () => {
@@ -186,13 +228,10 @@ test("production without Redis fails closed", async () => {
   const old = process.env.NODE_ENV;
   const oldKvUrl = process.env.KV_REST_API_URL;
   const oldKvToken = process.env.KV_REST_API_TOKEN;
-  const oldUpstashUrl = process.env.UPSTASH_REDIS_REST_URL;
-  const oldUpstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
   process.env.NODE_ENV = "production";
   delete process.env.KV_REST_API_URL;
   delete process.env.KV_REST_API_TOKEN;
-  delete process.env.UPSTASH_REDIS_REST_URL;
-  delete process.env.UPSTASH_REDIS_REST_TOKEN;
+  protection.setRedisAdapterForTests();
   try {
     const result = await protection.protect(
       "fit",
@@ -203,39 +242,24 @@ test("production without Redis fails closed", async () => {
     process.env.NODE_ENV = old;
     restoreEnvironment("KV_REST_API_URL", oldKvUrl);
     restoreEnvironment("KV_REST_API_TOKEN", oldKvToken);
-    restoreEnvironment("UPSTASH_REDIS_REST_URL", oldUpstashUrl);
-    restoreEnvironment("UPSTASH_REDIS_REST_TOKEN", oldUpstashToken);
+    resetInMemoryRedis();
   }
 });
 
-test("development without ANON_SESSION_SECRET uses a stable local fallback", async () => {
+test("development without ANON_SESSION_SECRET fails closed", async () => {
   const oldNodeEnv = process.env.NODE_ENV;
   const oldSecret = process.env.ANON_SESSION_SECRET;
   process.env.NODE_ENV = "development";
   delete process.env.ANON_SESSION_SECRET;
   try {
-    const first = await protection.protect(
+    const result = await protection.protect(
       "fit",
       request("{}", { "x-forwarded-for": "198.51.100.21" }),
     );
-    assert.equal(first instanceof Response, false);
-    assert.ok(first.sessionCookie);
-    const second = await protection.protect(
-      "fit",
-      request("{}", {
-        cookie: `anon_session=${first.sessionCookie}`,
-        "x-forwarded-for": "198.51.100.21",
-      }),
-    );
-    assert.equal(second instanceof Response, false);
-    assert.equal(second.identity, first.identity);
+    assert.equal(result.status, 503);
   } finally {
     process.env.NODE_ENV = oldNodeEnv;
-    if (oldSecret === undefined) {
-      delete process.env.ANON_SESSION_SECRET;
-    } else {
-      process.env.ANON_SESSION_SECRET = oldSecret;
-    }
+    restoreEnvironment("ANON_SESSION_SECRET", oldSecret);
   }
 });
 
@@ -262,8 +286,8 @@ test("production without ANON_SESSION_SECRET fails closed", async () => {
 
 test("production Redis rate limits use one atomic eval and repair a missing TTL", async () => {
   const oldNodeEnv = process.env.NODE_ENV;
-  const oldUrl = process.env.UPSTASH_REDIS_REST_URL;
-  const oldToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+  const oldUrl = process.env.KV_REST_API_URL;
+  const oldToken = process.env.KV_REST_API_TOKEN;
   const counts = new Map();
   const ttls = new Map();
   const scripts = [];
@@ -290,8 +314,8 @@ test("production Redis rate limits use one atomic eval and repair a missing TTL"
   // Keep BotId in its deterministic development bypass while exercising the
   // configured Redis branch (the production branch is covered below).
   process.env.NODE_ENV = "test";
-  process.env.UPSTASH_REDIS_REST_URL = "https://redis.test";
-  process.env.UPSTASH_REDIS_REST_TOKEN = "token";
+  process.env.KV_REST_API_URL = "https://redis.test";
+  process.env.KV_REST_API_TOKEN = "token";
   protection.setRedisAdapterForTests(fakeRedis);
   try {
     const result = await protection.protect(
@@ -315,27 +339,19 @@ test("production Redis rate limits use one atomic eval and repair a missing TTL"
   } finally {
     protection.setRedisAdapterForTests();
     process.env.NODE_ENV = oldNodeEnv;
-    if (oldUrl === undefined) {
-      delete process.env.UPSTASH_REDIS_REST_URL;
-    } else {
-      process.env.UPSTASH_REDIS_REST_URL = oldUrl;
-    }
-    if (oldToken === undefined) {
-      delete process.env.UPSTASH_REDIS_REST_TOKEN;
-    } else {
-      process.env.UPSTASH_REDIS_REST_TOKEN = oldToken;
-    }
+    restoreEnvironment("KV_REST_API_URL", oldUrl);
+    restoreEnvironment("KV_REST_API_TOKEN", oldToken);
   }
 });
 
 test("production Redis errors fail closed with a session and never call upstream", async () => {
   const oldNodeEnv = process.env.NODE_ENV;
-  const oldUrl = process.env.UPSTASH_REDIS_REST_URL;
-  const oldToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+  const oldUrl = process.env.KV_REST_API_URL;
+  const oldToken = process.env.KV_REST_API_TOKEN;
   let upstreamCalls = 0;
   process.env.NODE_ENV = "production";
-  process.env.UPSTASH_REDIS_REST_URL = "https://redis.test";
-  process.env.UPSTASH_REDIS_REST_TOKEN = "token";
+  process.env.KV_REST_API_URL = "https://redis.test";
+  process.env.KV_REST_API_TOKEN = "token";
   protection.setRedisAdapterForTests({
     async set() {
       return "OK";
@@ -368,15 +384,7 @@ test("production Redis errors fail closed with a session and never call upstream
   } finally {
     protection.setRedisAdapterForTests();
     process.env.NODE_ENV = oldNodeEnv;
-    if (oldUrl === undefined) {
-      delete process.env.UPSTASH_REDIS_REST_URL;
-    } else {
-      process.env.UPSTASH_REDIS_REST_URL = oldUrl;
-    }
-    if (oldToken === undefined) {
-      delete process.env.UPSTASH_REDIS_REST_TOKEN;
-    } else {
-      process.env.UPSTASH_REDIS_REST_TOKEN = oldToken;
-    }
+    restoreEnvironment("KV_REST_API_URL", oldUrl);
+    restoreEnvironment("KV_REST_API_TOKEN", oldToken);
   }
 });

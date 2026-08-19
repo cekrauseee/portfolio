@@ -2,96 +2,95 @@
 
 ## Prerequisites
 
-- Node.js 20.19 or newer
+- Node.js 22 or newer
 - npm
 - Docker with Compose
 
 ## Setup
 
-Install dependencies, start the local Redis service, and prepare `.env.local`:
+Create the local environment file, configure the GitHub account whose public
+projects should be scanned, then prepare dependencies and Redis:
 
 ```bash
+cp .env.example .env.local
+# Set GITHUB_OWNER in .env.local.
 npm run setup
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
 
-`npm run setup` preserves existing `.env.local` values, adds a local `REDIS_URL`
-and generated `ANON_SESSION_SECRET` only when they are missing, starts Redis from
-`compose.yaml`, waits for its health check, and verifies the application adapter.
-Use `npm run services:down` to stop and remove the local service. Run
-`npm run services:up` to start it again without repeating the full setup.
+`npm run setup` preserves existing `.env.local` values, adds the local
+`REDIS_URL` and a generated `ANON_SESSION_SECRET` only when missing, starts Redis
+from `compose.yaml`, waits for its health check, and verifies the application
+adapter. Use `npm run services:down` to stop and remove the local service and
+`npm run services:up` to start it again.
 
-To enable role-fit assessment, set `OPENAI_API_KEY` in `.env.local`. The
-portfolio and project pages do not require this variable.
+To enable role-fit assessment, set `OPENAI_API_KEY` in `.env.local`. To enable
+meeting scheduling, provide the Google Calendar, owner notification, and Resend
+variables described below.
 
-For production, connect Upstash Redis through the Vercel Marketplace so it
-injects `KV_REST_API_URL` and the write-capable `KV_REST_API_TOKEN`, then set a
-long random `ANON_SESSION_SECRET`. The read-only token is not sufficient because
-rate limits, locks, and dedupe records write to Redis. Direct Upstash setups may
-instead provide `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`; the
-application supports both complete credential pairs. BotID protects the two API
-POST paths; development deterministically bypasses the hosted check and uses the
-Docker Redis service through `REDIS_URL`. It keeps a bounded in-memory fallback
-only when Redis is not configured. Production ignores `REDIS_URL` and fails
-closed with 503 when required protection configuration is unavailable. Deploy
-in this order: configure Redis and secrets, enable BotID, deploy and verify
-blocked and allowed requests, then configure Vercel WAF rules and an OpenAI
-project hard spend limit/alerts before opening public traffic. Those external
-controls are deployment prerequisites and are not configured by this codebase.
+### Protection configuration
+
+The public `POST /api/fit` and `POST /api/meetings` routes require a working
+Redis adapter. Development and test-like local runs use `REDIS_URL`; production
+ignores that variable and requires the Vercel Marketplace credentials
+`KV_REST_API_URL` and the write-capable `KV_REST_API_TOKEN`. There is no implicit
+in-memory runtime fallback: missing or failed protection storage returns `503`
+before an external operation is called.
+
+Set a long random `ANON_SESSION_SECRET` in production. `npm run setup` generates
+a local value. BotID protects both POST routes; its hosted check is bypassed only
+by its documented development behavior. Rate-limit, lock, and dedupe keys contain
+HMAC-derived identifiers rather than raw session, IP, role-description, or
+meeting values.
+
+Deploy in this order: configure Redis and secrets, enable BotID, deploy and test
+allowed and blocked requests, then configure Vercel WAF rules and an OpenAI
+project hard-spend limit with alerts before public traffic. Those external
+controls are deployment prerequisites and are not configured by this repository.
 
 ### GitHub project content
 
 Project content always comes from the validated
-`.cache/github-projects.json` snapshot. The site never requests GitHub for
-visitor traffic and refuses a missing or invalid snapshot. A valid empty
-snapshot is allowed so removing every convention file removes all project routes
-on the next build.
+`.cache/github-projects.json` snapshot. The site never requests GitHub during a
+visitor request and refuses a missing or invalid snapshot. A valid empty snapshot
+is allowed, so removing every convention file removes all project routes on the
+next build.
 
-Every public repository owned by `GITHUB_OWNER` (default `cekrauseee`) is
-eligible, including forks and archived repositories; private repositories are
-always excluded. A repository participates only when its default branch contains
-`.portfolio/project.json`. The file must
-contain exactly the normalized Project fields: `slug`, `name`, `description`,
-`repositoryUrl`, `metaDescription`, `summary`, `highlights`, and `sections`.
-Slugs use lowercase letters, numbers, and single hyphens, and must be unique.
-Malformed files, unsafe or duplicate slugs, and GitHub errors fail the sync.
-Missing files return 404 and are skipped.
+`GITHUB_OWNER` is required and has no repository-specific fallback. Every public
+repository owned by that configured account is eligible, including forks and
+archived repositories; private repositories are always excluded. A repository
+participates only when its default branch contains `.portfolio/project.json`.
+The file must contain exactly the normalized Project fields: `slug`, `name`,
+`description`, `repositoryUrl`, `metaDescription`, `summary`, `highlights`, and
+`sections`. Slugs use lowercase letters, numbers, and single hyphens and must be
+unique. Malformed files, unsafe or duplicate slugs, and GitHub errors fail the
+sync. Missing files return 404 and are skipped.
 
-Run the local development server with:
-
-```bash
-npm run dev
-```
-
-`predev` runs `npm run projects:sync` before starting Next.js, so a fresh clone
-is plug-and-play after `npm install`. The snapshot remains inspectable at
-`.cache/github-projects.json`. Run `npm run projects:sync` and restart the
-server when you want to refresh project content explicitly.
+`predev` runs `npm run projects:sync` before starting Next.js, and `prebuild`
+runs the production reconciliation before a build. The snapshot remains
+inspectable at `.cache/github-projects.json`. Run `npm run projects:sync` and
+restart the server when you want to refresh it explicitly.
 
 `GITHUB_TOKEN` is optional for public repositories and can be set in
-`.env.local` to increase the GitHub API rate limit. The standalone sync command
-loads the same `.env` files and precedence as Next.js; manual syncs use
-development mode, while the build hook uses production mode. An already
-exported value remains authoritative. The sync fully replaces the snapshot, so deleted
-repositories or convention files disappear on the next successful run. It
-writes through a temporary file and atomic rename; a failed reconciliation
+`.env.local` to increase the GitHub API rate limit. The standalone command loads
+the same environment-file precedence as Next.js; an exported value remains
+authoritative. A successful sync atomically replaces the complete snapshot, so
+deleted repositories or convention files disappear. A failed reconciliation
 leaves the previous snapshot intact.
 
 The scheduled and manual `.github/workflows/reconcile-projects.yml` workflow
-only calls the existing `VERCEL_DEPLOY_HOOK_URL`. Configure the Vercel build
-command as the standard `npm run build`, and set `GITHUB_OWNER` plus (optionally)
-`GITHUB_TOKEN` in Vercel. The `prebuild` hook then performs the one authoritative
-fresh public-only sync for that production build. No secrets are changed by the
-workflow.
-
-To enable meeting scheduling, copy `.env.example` to `.env.local` and provide
-the Google OAuth client credentials, owner email, Resend API key, and verified
-Resend sender. `GOOGLE_CALENDAR_ID` is optional and defaults to the authenticated
-account's primary calendar.
+only calls `VERCEL_DEPLOY_HOOK_URL`. Configure Vercel's build command as
+`npm run build` and set `GITHUB_OWNER` plus, optionally, `GITHUB_TOKEN`. The
+`prebuild` hook performs the authoritative fresh public-only sync.
 
 ### Google Calendar authorization
+
+Copy `.env.example` to `.env.local` and provide the Google OAuth client
+credentials, owner email, Resend API key, and verified Resend sender.
+`GOOGLE_CALENDAR_ID` is optional and defaults to the authenticated account's
+primary calendar.
 
 In Google Cloud, enable the Google Calendar API, configure the OAuth consent
 screen, and create an OAuth 2.0 client. Request these scopes:
@@ -116,13 +115,19 @@ npm run calendar:authorize
 ```
 
 The command opens Google consent in the browser and saves
-`GOOGLE_REFRESH_TOKEN` to the ignored `.env.local` file without printing it.
-Use an OAuth app with publishing status `In production`; external apps left in
+`GOOGLE_REFRESH_TOKEN` to the ignored `.env.local` file without printing it. Use
+an OAuth app with publishing status `In production`; external apps left in
 `Testing` issue Calendar refresh tokens that expire after seven days.
 
 The scheduling endpoint is `POST /api/meetings` with JSON
 `{ "name", "email", "start", "timeZone" }`; `start` must be a future local
-whole-hour value such as `2026-08-20T14:00`.
+whole-hour value such as `2026-08-20T14:00`. It also requires an
+`Idempotency-Key` header. The browser keeps one key for the canonical payload
+through retryable failures and replaces it after success, a real conflict, or a
+payload change. Calendar events carry private application, schema, request, and
+idempotency digests; only an exact metadata match can return an existing event's
+links. Cancelled deterministic events are restored as fresh bookings rather than
+replayed.
 
 ## Commands
 
@@ -165,34 +170,37 @@ whole-hour value such as `2026-08-20T14:00`.
 
 ## Testing
 
-The repository includes tests for GitHub reconciliation, abuse protection,
-scheduling idempotency, and Redis adapters. Before publishing a change, run:
+Before publishing a change, run:
 
 ```bash
 npm run format:check
 npm run lint
 npm test
 npm run typecheck
+npm run test:redis
 npm run build
+docker compose config --quiet
 ```
 
 The first four checks are also available as the local aggregate
-`npm run check`.
+`npm run check`. `npm run test:redis` requires the local service started by
+`npm run setup` or `npm run services:up`.
 
-CI runs these checks and builds the committed GitHub fixture without contacting
-GitHub by setting `PROJECTS_SYNC_SKIP=1` only after copying an existing fixture
-snapshot. The scheduled/manual
-reconciliation workflow is separate and only triggers the Vercel deploy hook.
+CI runs the same quality checks, provisions a Redis service container, exercises
+the real local adapter, validates Compose, and builds the committed GitHub
+fixture without contacting GitHub by setting `PROJECTS_SYNC_SKIP=1` after
+copying the fixture snapshot. The reconciliation workflow is separate and only
+triggers the Vercel deploy hook.
 
 ## CI/CD
 
-GitHub Actions runs the same checks on every push and pull request. After all
-checks pass for a push to `main`, the workflow calls the Vercel Deploy Hook in
-the `VERCEL_DEPLOY_HOOK_URL` repository secret. Disable Vercel's Git-based
-automatic deployments so this hook is the only production deployment trigger.
+GitHub Actions runs the checks on every push and pull request. After all checks
+pass for a push to `main`, the workflow calls the Vercel Deploy Hook in the
+`VERCEL_DEPLOY_HOOK_URL` repository secret. Disable Vercel's Git-based automatic
+deployments so this hook is the only production deployment trigger.
 `vercel.json` enforces this with `git.deploymentEnabled: false`. Keep the Git
-repository connected and do not use `github.enabled: false`,
-because Vercel Deploy Hooks need that integration enabled.
+repository connected and do not use `github.enabled: false`, because Vercel
+Deploy Hooks need that integration enabled.
 
 For layout changes, also inspect the page at desktop width and at mobile widths
 down to 320 CSS pixels. Confirm that links remain keyboard accessible, project
@@ -202,8 +210,8 @@ cards retain their full hit area, and the page has no horizontal overflow.
 
 - Keep components as React Server Components unless browser state or event
   handling requires a client boundary.
-- Use Tailwind utilities for component styling. Keep `src/app/globals.css` limited
-  to Tailwind setup and truly global tokens or defaults.
+- Use Tailwind utilities for component styling. Keep `src/app/globals.css`
+  limited to Tailwind setup and truly global tokens or defaults.
 - Update portfolio content in `src/content/portfolio.ts`.
 - Use Next.js `Link` for navigation and preserve visible focus states.
 - Write English Conventional Commit messages.

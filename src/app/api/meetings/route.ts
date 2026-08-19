@@ -1,8 +1,8 @@
 import {
   MeetingConflictError,
   MeetingInputError,
-  scheduleMeeting,
   meetingUtcSlot,
+  scheduleMeeting,
   validateMeetingRequest,
 } from "@/features/meeting-scheduling/schedule-meeting";
 import {
@@ -14,12 +14,14 @@ import {
   readDedupe,
   readJson,
   release,
-  withSession,
   unavailable,
+  withSession,
   writeDedupe,
 } from "@/lib/abuse-protection";
 
 export const runtime = "nodejs";
+
+const LOCK_TTL_SECONDS = 300;
 
 type MeetingsDependencies = {
   protect: typeof protect;
@@ -32,6 +34,13 @@ type MeetingsDependencies = {
   release: typeof release;
   readDedupe: typeof readDedupe;
   writeDedupe: typeof writeDedupe;
+};
+
+type MeetingDedupeRecord = {
+  version: 1;
+  requestDigest: string;
+  meetLink?: string;
+  calendarLink?: string;
 };
 
 const defaultDependencies: MeetingsDependencies = {
@@ -74,20 +83,67 @@ function logDedupePersistenceFailure(error: unknown) {
   );
 }
 
+function isMeetingDedupeRecord(value: unknown): value is MeetingDedupeRecord {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const record = value as Record<string, unknown>;
+  return (
+    record.version === 1 &&
+    typeof record.requestDigest === "string" &&
+    /^[a-f0-9]{64}$/.test(record.requestDigest) &&
+    optionalHttpsUrl(record.meetLink) &&
+    optionalHttpsUrl(record.calendarLink)
+  );
+}
+
+function optionalHttpsUrl(value: unknown) {
+  if (value === undefined) {
+    return true;
+  }
+  if (typeof value !== "string") {
+    return false;
+  }
+  try {
+    return new URL(value).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function replayResponse(
+  replay: MeetingDedupeRecord,
+  sessionCookie: string | undefined,
+) {
+  return withSession(
+    Response.json(
+      {
+        ok: true,
+        meetLink: replay.meetLink,
+        calendarLink: replay.calendarLink,
+      },
+      { status: 201 },
+    ),
+    sessionCookie,
+  );
+}
+
 export function createMeetingsPost(
   overrides: Partial<MeetingsDependencies> = {},
 ) {
   const dependencies = { ...defaultDependencies, ...overrides };
+
   return async function POST(request: Request) {
     const protection = await dependencies.protect("meetings", request);
     if (protection instanceof Response) {
       return protection;
     }
+
     const parsed = await dependencies.readJson(request, "meetings");
     if (parsed.response) {
       return withSession(parsed.response, protection.sessionCookie);
     }
-    const body = parsed.body;
+
     const idempotency = request.headers.get("idempotency-key")?.trim();
     if (!idempotency || idempotency.length > 200) {
       return withSession(
@@ -95,19 +151,25 @@ export function createMeetingsPost(
         protection.sessionCookie,
       );
     }
+
     try {
-      const validated = dependencies.validateMeetingRequest(body);
-      const idemHash = dependencies.digest(idempotency);
-      const canonicalDigest = dependencies.digest(
+      const validated = dependencies.validateMeetingRequest(parsed.body);
+      const slot = dependencies.meetingUtcSlot(validated);
+      const idempotencyDigest = dependencies.digest(idempotency);
+      const requestDigest = dependencies.digest(
         JSON.stringify({
           name: validated.name,
           email: validated.email,
-          slot: dependencies.meetingUtcSlot(validated),
+          slot,
           timeZone: validated.timeZone,
         }),
       );
-      const idempotencyKey = `meeting-idempotency:${idemHash}`;
-      const idempotencyOwner = await dependencies.acquire(idempotencyKey, 180);
+      const operation = { idempotencyDigest, requestDigest };
+      const idempotencyKey = `meeting-idempotency:${idempotencyDigest}`;
+      const idempotencyOwner = await dependencies.acquire(
+        idempotencyKey,
+        LOCK_TTL_SECONDS,
+      );
       if (!idempotencyOwner) {
         return withSession(
           json(
@@ -121,38 +183,30 @@ export function createMeetingsPost(
           protection.sessionCookie,
         );
       }
+
       try {
-        const replay = await dependencies.readDedupe<{
-          slot: string;
-          requestDigest: string;
-          meetLink?: string;
-          calendarLink?: string;
-        }>(`meeting:${idemHash}`);
-        if (replay && replay.requestDigest !== canonicalDigest) {
-          return withSession(
-            json({ error: "That idempotency key was already used." }, 409),
-            protection.sessionCookie,
-          );
+        const replay = await dependencies.readDedupe<unknown>(
+          `meeting:${idempotencyDigest}`,
+        );
+        if (replay !== null) {
+          if (!isMeetingDedupeRecord(replay)) {
+            throw new ProtectionUnavailableError();
+          }
+          if (replay.requestDigest !== requestDigest) {
+            return withSession(
+              json({ error: "That idempotency key was already used." }, 409),
+              protection.sessionCookie,
+            );
+          }
+          return replayResponse(replay, protection.sessionCookie);
         }
-        if (
-          replay &&
-          replay.slot === `${validated.start}:${validated.timeZone}`
-        ) {
-          return withSession(
-            Response.json(
-              {
-                ok: true,
-                meetLink: replay.meetLink,
-                calendarLink: replay.calendarLink,
-              },
-              { status: 201 },
-            ),
-            protection.sessionCookie,
-          );
-        }
+
         const activeKey = `meeting-active:${protection.identity}`;
-        const slotKey = `meeting-slot:${dependencies.digest(dependencies.meetingUtcSlot(validated))}`;
-        const activeOwner = await dependencies.acquire(activeKey, 180);
+        const slotKey = `meeting-slot:${dependencies.digest(slot)}`;
+        const activeOwner = await dependencies.acquire(
+          activeKey,
+          LOCK_TTL_SECONDS,
+        );
         if (!activeOwner) {
           return withSession(
             json(
@@ -166,28 +220,37 @@ export function createMeetingsPost(
             protection.sessionCookie,
           );
         }
+
         try {
-          const slotOwner = await dependencies.acquire(slotKey, 180);
+          const slotOwner = await dependencies.acquire(
+            slotKey,
+            LOCK_TTL_SECONDS,
+          );
           if (!slotOwner) {
             return withSession(
               json({ error: "That time is no longer available." }, 409),
               protection.sessionCookie,
             );
           }
+
           try {
-            const meeting = await dependencies.scheduleMeeting(validated);
+            const meeting = await dependencies.scheduleMeeting(
+              validated,
+              operation,
+            );
             try {
-              await dependencies.writeDedupe(`meeting:${idemHash}`, {
-                slot: `${validated.start}:${validated.timeZone}`,
-                requestDigest: canonicalDigest,
+              await dependencies.writeDedupe(`meeting:${idempotencyDigest}`, {
+                version: 1,
+                requestDigest,
                 meetLink: meeting.meetLink,
                 calendarLink: meeting.calendarLink,
-              });
+              } satisfies MeetingDedupeRecord);
             } catch (error) {
-              // Calendar event creation already succeeded. Deterministic event
-              // IDs make a later retry replay the event without notification.
+              // Calendar creation already succeeded. Its private operation
+              // metadata lets the same idempotency key recover the event safely.
               logDedupePersistenceFailure(error);
             }
+
             return withSession(
               Response.json(
                 {

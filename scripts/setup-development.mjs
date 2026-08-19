@@ -24,15 +24,17 @@ if (process.argv.includes("--help")) {
 Usage:
   npm run setup
 
-Installs dependencies, starts the Docker Redis service, writes missing local
-development variables to .env.local, and verifies the Redis adapter.`);
+Requires GITHUB_OWNER in .env.local or the exported environment, installs
+dependencies, starts Docker Redis, writes missing local protection variables,
+and verifies the Redis adapter.`);
   process.exit(0);
 }
 
+requireEnvValue("GITHUB_OWNER");
 run("npm", ["install"]);
 requireDocker();
-ensureEnvValue("REDIS_URL", process.env.REDIS_URL, () => localRedisUrl);
-ensureEnvValue("ANON_SESSION_SECRET", process.env.ANON_SESSION_SECRET, () =>
+ensureEnvValue("REDIS_URL", () => localRedisUrl);
+ensureEnvValue("ANON_SESSION_SECRET", () =>
   randomBytes(48).toString("base64url"),
 );
 run("docker", ["compose", "up", "-d", "--wait", "redis"]);
@@ -66,14 +68,30 @@ function requireDocker() {
   }
 }
 
-function ensureEnvValue(name, exportedValue, createValue) {
+function readLocalEnv() {
   if (existsSync(envPath) && lstatSync(envPath).isSymbolicLink()) {
-    throw new Error("Refusing to write .env.local through a symlink.");
+    throw new Error("Refusing to read or write .env.local through a symlink.");
   }
+  return existsSync(envPath) ? readFileSync(envPath, "utf8") : "";
+}
 
-  const current = existsSync(envPath) ? readFileSync(envPath, "utf8") : "";
-  const configured = exportedValue?.trim() || parseEnv(current)[name]?.trim();
-  if (configured) {
+function configuredValue(name, current = readLocalEnv()) {
+  return process.env[name]?.trim() || parseEnv(current)[name]?.trim();
+}
+
+function requireEnvValue(name) {
+  if (configuredValue(name)) {
+    return;
+  }
+  console.error(
+    `${name} is required. Copy .env.example to .env.local and set it before running setup.`,
+  );
+  process.exit(1);
+}
+
+function ensureEnvValue(name, createValue) {
+  const current = readLocalEnv();
+  if (configuredValue(name, current)) {
     return;
   }
 

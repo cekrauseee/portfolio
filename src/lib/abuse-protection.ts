@@ -4,11 +4,24 @@ import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { createLocalRedisAdapter, type RedisAdapter } from "@/lib/local-redis";
 
 export const LIMITS = {
-  fit: { window: 5, day: 20, windowSeconds: 600 },
-  meetings: { window: 3, day: 10, windowSeconds: 600 },
+  fit: {
+    session: { window: 5, day: 20 },
+    ip: { window: 25, day: 100 },
+    windowSeconds: 600,
+  },
+  meetings: {
+    session: { window: 3, day: 10 },
+    ip: { window: 15, day: 50 },
+    windowSeconds: 600,
+  },
 } as const;
-export const BODY_LIMITS = { fit: 32 * 1024, meetings: 8 * 1024 } as const;
+
+// A 16,000-character role description can exceed 64 KiB once encoded as JSON.
+export const BODY_LIMITS = { fit: 128 * 1024, meetings: 8 * 1024 } as const;
+
 type Operation = keyof typeof LIMITS;
+type LimitScope = "session" | "ip";
+type RedisEnvironment = Record<string, string | undefined>;
 
 export class ProtectionUnavailableError extends Error {
   constructor() {
@@ -17,30 +30,15 @@ export class ProtectionUnavailableError extends Error {
   }
 }
 
-const memory = new Map<string, { count: number; expires: number }>();
-const locks = new Map<string, { owner: string; expires: number }>();
 let redisInstance: RedisAdapter | undefined;
 let redisOverride: RedisAdapter | undefined;
-let localSessionSecret: string | undefined;
-
-type RedisEnvironment = Record<string, string | undefined>;
 
 export function resolveRedisCredentials(
   environment: RedisEnvironment = process.env,
 ) {
-  const vercelUrl = environment.KV_REST_API_URL?.trim();
-  const vercelToken = environment.KV_REST_API_TOKEN?.trim();
-  if (vercelUrl && vercelToken) {
-    return { url: vercelUrl, token: vercelToken };
-  }
-
-  const upstashUrl = environment.UPSTASH_REDIS_REST_URL?.trim();
-  const upstashToken = environment.UPSTASH_REDIS_REST_TOKEN?.trim();
-  if (upstashUrl && upstashToken) {
-    return { url: upstashUrl, token: upstashToken };
-  }
-
-  return undefined;
+  const url = environment.KV_REST_API_URL?.trim();
+  const token = environment.KV_REST_API_TOKEN?.trim();
+  return url && token ? { url, token } : undefined;
 }
 
 export function resolveRedisConfiguration(
@@ -69,6 +67,7 @@ function redis() {
   if (!configuration) {
     return undefined;
   }
+
   return (redisInstance ??=
     configuration.kind === "local"
       ? createLocalRedisAdapter(configuration.url)
@@ -76,14 +75,7 @@ function redis() {
 }
 
 function sessionSecret() {
-  const configured = process.env.ANON_SESSION_SECRET?.trim();
-  if (configured) {
-    return configured;
-  }
-  if (process.env.NODE_ENV === "production") {
-    return undefined;
-  }
-  return (localSessionSecret ??= randomBytes(32).toString("base64url"));
+  return process.env.ANON_SESSION_SECRET?.trim() || undefined;
 }
 
 function digest(value: string) {
@@ -95,25 +87,41 @@ function digest(value: string) {
 }
 
 const SESSION_TTL = 30 * 24 * 60 * 60;
+
 function issueSession(secret: string) {
   const payload = `${randomBytes(24).toString("base64url")}.${Math.floor(Date.now() / 1000) + SESSION_TTL}`;
   return `${payload}.${createHmac("sha256", secret)
     .update(payload)
     .digest("base64url")}`;
 }
+
 function validSession(value: string | undefined, secret: string) {
   if (!value) {
     return false;
   }
-  const [random, expiry, signature] = value.split(".");
+
+  const parts = value.split(".");
+  if (parts.length !== 3) {
+    return false;
+  }
+
+  const [random, expiry, signature] = parts;
   if (
-    !random ||
-    !expiry ||
-    !signature ||
-    Number(expiry) <= Math.floor(Date.now() / 1000)
+    !/^[A-Za-z0-9_-]{32}$/.test(random) ||
+    !/^\d{10,12}$/.test(expiry) ||
+    !/^[A-Za-z0-9_-]{43}$/.test(signature)
   ) {
     return false;
   }
+
+  const expiresAt = Number(expiry);
+  if (
+    !Number.isSafeInteger(expiresAt) ||
+    expiresAt <= Math.floor(Date.now() / 1000)
+  ) {
+    return false;
+  }
+
   const payload = `${random}.${expiry}`;
   const expected = createHmac("sha256", secret)
     .update(payload)
@@ -121,6 +129,7 @@ function validSession(value: string | undefined, secret: string) {
   if (signature.length !== expected.length) {
     return false;
   }
+
   return timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
 }
 
@@ -144,7 +153,6 @@ function clientIp(request: Request) {
 export type Protection = {
   identity: string;
   sessionCookie?: string;
-  retryAfter?: number;
 };
 
 const RATE_LIMIT_SCRIPT = `
@@ -178,26 +186,52 @@ async function incrementRateLimit(
   return { count: Number(result[0]), ttl: Math.max(1, Number(result[1])) };
 }
 
+async function consumeRateLimits(
+  store: RedisAdapter,
+  operation: Operation,
+  scope: LimitScope,
+  identity: string,
+) {
+  const operationLimits = LIMITS[operation];
+  const limits = operationLimits[scope];
+  let retryAfter = 0;
+
+  for (const [suffix, seconds, limit] of [
+    ["10m", operationLimits.windowSeconds, limits.window],
+    ["day", 86400, limits.day],
+  ] as const) {
+    const key = `abuse:${operation}:${scope}:${identity}:${suffix}`;
+    const { count, ttl } = await incrementRateLimit(store, key, seconds);
+    if (count > limit) {
+      retryAfter = Math.max(retryAfter, ttl);
+    }
+  }
+
+  return retryAfter;
+}
+
 export async function protect(
   operation: Operation,
   request: Request,
 ): Promise<Protection | Response> {
   const secret = sessionSecret();
   const suppliedSession = cookieValue(request);
+  const suppliedSessionIsValid = Boolean(
+    secret && validSession(suppliedSession, secret),
+  );
   const session = secret
-    ? validSession(suppliedSession, secret)
+    ? suppliedSessionIsValid
       ? suppliedSession!
       : issueSession(secret)
     : undefined;
+
   const finalize = (response: Response) => {
-    if (
-      session &&
-      (!suppliedSession || !validSession(suppliedSession, secret!))
-    ) {
+    if (session && !suppliedSessionIsValid) {
       withSession(response, session);
     }
     return response;
   };
+
   let bot;
   try {
     bot = await checkBotId({ developmentOptions: { bypass: "ALLOWED" } });
@@ -207,66 +241,35 @@ export async function protect(
   if (bot.isBot) {
     return finalize(json({ error: "Request denied." }, 403));
   }
+
   const ip = clientIp(request);
   if (!ip || !session) {
     return finalize(unavailable());
   }
-  const identity = digest(`${session}:${ip}`);
+
   const store = redis();
-  if (!store && process.env.NODE_ENV === "production") {
+  if (!store) {
     return finalize(unavailable());
   }
-  const now = Date.now();
-  const limits = LIMITS[operation];
-  let retryAfter = 0;
+
+  const identity = digest(`${session}:${ip}`);
   try {
-    for (const [suffix, seconds, limit] of [
-      ["10m", limits.windowSeconds, limits.window],
-      ["day", 86400, limits.day],
-    ] as const) {
-      const key = `abuse:${operation}:${identity}:${suffix}`;
-      let count: number;
-      let ttl: number;
-      if (store) {
-        ({ count, ttl } = await incrementRateLimit(store, key, seconds));
-      } else {
-        const current = memory.get(key);
-        const entry =
-          !current || current.expires <= now
-            ? { count: 1, expires: now + seconds * 1000 }
-            : { count: current.count + 1, expires: current.expires };
-        memory.set(key, entry);
-        count = entry.count;
-        ttl = Math.ceil((entry.expires - now) / 1000);
-      }
-      if (count > limit) {
-        retryAfter = Math.max(retryAfter, store ? ttl : ttl);
-      }
-    }
-    // Keep an independent trusted-IP bucket so rotating cookies cannot evade limits.
-    const ipIdentity = digest(ip);
-    for (const [suffix, seconds, limit] of [
-      ["10m", limits.windowSeconds, limits.window],
-      ["day", 86400, limits.day],
-    ] as const) {
-      const key = `abuse:${operation}:ip:${ipIdentity}:${suffix}`;
-      let count: number;
-      let ttl: number;
-      if (store) {
-        ({ count, ttl } = await incrementRateLimit(store, key, seconds));
-      } else {
-        const current = memory.get(key);
-        const entry =
-          !current || current.expires <= now
-            ? { count: 1, expires: now + seconds * 1000 }
-            : { count: current.count + 1, expires: current.expires };
-        memory.set(key, entry);
-        count = entry.count;
-        ttl = Math.ceil((entry.expires - now) / 1000);
-      }
-      if (count > limit) {
-        retryAfter = Math.max(retryAfter, ttl);
-      }
+    const sessionRetry = await consumeRateLimits(
+      store,
+      operation,
+      "session",
+      identity,
+    );
+    const ipRetry = await consumeRateLimits(store, operation, "ip", digest(ip));
+    const retryAfter = Math.max(sessionRetry, ipRetry);
+    if (retryAfter) {
+      return finalize(
+        json(
+          { error: "Too many requests. Please try again later." },
+          429,
+          retryAfter,
+        ),
+      );
     }
   } catch (error) {
     console.error(
@@ -278,23 +281,13 @@ export async function protect(
     );
     return finalize(unavailable());
   }
-  if (retryAfter) {
-    const response = json(
-      { error: "Too many requests. Please try again later." },
-      429,
-      retryAfter,
-    );
-    if (!validSession(suppliedSession, secret!)) {
-      withSession(response, session);
-    }
-    return response;
-  }
+
   console.info(
     JSON.stringify({ event: "abuse_decision", operation, outcome: "allowed" }),
   );
   return {
     identity,
-    sessionCookie: validSession(suppliedSession, secret!) ? undefined : session,
+    sessionCookie: suppliedSessionIsValid ? undefined : session,
   };
 }
 
@@ -303,71 +296,57 @@ export async function acquire(
   ttlSeconds: number,
 ): Promise<string | false> {
   const store = redis();
-  if (!store && process.env.NODE_ENV === "production") {
+  if (!store) {
     throw new ProtectionUnavailableError();
   }
-  if (store) {
-    try {
-      const owner = randomBytes(18).toString("base64url");
-      return (await store.set(`lock:${key}`, owner, {
-        nx: true,
-        ex: ttlSeconds,
-      })) === "OK"
-        ? owner
-        : false;
-    } catch {
-      throw new ProtectionUnavailableError();
-    }
+
+  try {
+    const owner = randomBytes(18).toString("base64url");
+    return (await store.set(`lock:${key}`, owner, {
+      nx: true,
+      ex: ttlSeconds,
+    })) === "OK"
+      ? owner
+      : false;
+  } catch {
+    throw new ProtectionUnavailableError();
   }
-  const now = Date.now();
-  const current = locks.get(key);
-  if (current && current.expires > now) {
-    return false;
-  }
-  const owner = randomBytes(18).toString("base64url");
-  locks.set(key, { owner, expires: now + ttlSeconds * 1000 });
-  return owner;
 }
 
 export async function release(key: string, owner: string | false) {
   if (!owner) {
     return;
   }
+
   const store = redis();
-  if (store) {
-    try {
-      await store.eval(
-        "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end",
-        [`lock:${key}`],
-        [owner],
-      );
-    } catch {
-      throw new ProtectionUnavailableError();
-    }
-    return;
-  }
-  if (process.env.NODE_ENV === "production") {
+  if (!store) {
     throw new ProtectionUnavailableError();
   }
-  if (locks.get(key)?.owner === owner) {
-    locks.delete(key);
+
+  try {
+    await store.eval(
+      "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end",
+      [`lock:${key}`],
+      [owner],
+    );
+  } catch {
+    throw new ProtectionUnavailableError();
   }
 }
 
 export async function readDedupe<T>(key: string): Promise<T | null> {
   const store = redis();
   if (!store) {
-    if (process.env.NODE_ENV === "production") {
-      throw new ProtectionUnavailableError();
-    }
-    return null;
+    throw new ProtectionUnavailableError();
   }
+
   try {
     return (await store.get<T>(`dedupe:${key}`)) ?? null;
   } catch {
     throw new ProtectionUnavailableError();
   }
 }
+
 export async function writeDedupe(
   key: string,
   value: unknown,
@@ -375,11 +354,9 @@ export async function writeDedupe(
 ) {
   const store = redis();
   if (!store) {
-    if (process.env.NODE_ENV === "production") {
-      throw new ProtectionUnavailableError();
-    }
-    return;
+    throw new ProtectionUnavailableError();
   }
+
   try {
     await store.set(`dedupe:${key}`, value, { ex: ttlSeconds });
   } catch {
@@ -398,6 +375,7 @@ export async function readJson(request: Request, operation: Operation) {
       response: json({ error: "Content-Type must be application/json." }, 400),
     };
   }
+
   const limit = BODY_LIMITS[operation];
   const declared = request.headers.get("content-length");
   if (
@@ -410,6 +388,7 @@ export async function readJson(request: Request, operation: Operation) {
   if (!request.body) {
     return { response: json({ error: "Send request details as JSON." }, 400) };
   }
+
   const reader = request.body.getReader();
   const chunks: Uint8Array[] = [];
   let total = 0;
@@ -428,6 +407,7 @@ export async function readJson(request: Request, operation: Operation) {
   } finally {
     reader.releaseLock();
   }
+
   try {
     return {
       body: JSON.parse(
@@ -448,6 +428,7 @@ function concat(chunks: Uint8Array[], total: number) {
   }
   return result;
 }
+
 export function json(body: unknown, status: number, retryAfter?: number) {
   const headers = new Headers({ "Content-Type": "application/json" });
   if (retryAfter) {
@@ -455,6 +436,7 @@ export function json(body: unknown, status: number, retryAfter?: number) {
   }
   return Response.json(body, { status, headers });
 }
+
 export function withSession(response: Response, sessionCookie?: string) {
   if (sessionCookie) {
     response.headers.append(
@@ -464,6 +446,7 @@ export function withSession(response: Response, sessionCookie?: string) {
   }
   return response;
 }
+
 export function unavailable() {
   return json(
     {
@@ -474,4 +457,5 @@ export function unavailable() {
     30,
   );
 }
+
 export { digest };

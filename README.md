@@ -9,43 +9,46 @@ assessment and meeting scheduling.
 - statically rendered, indexable project case studies;
 - role-fit assessments grounded in the published portfolio content;
 - one-hour meeting scheduling with Google Calendar and Google Meet;
+- bot detection, shared rate limits, concurrency locks, and replay-safe public actions;
 - responsive light and dark layouts with accessible keyboard interactions;
-- canonical metadata, structured data, sitemap, and social previews.
+- canonical metadata, structured data, sitemap, and social previews;
 - optional build-time project records reconciled from public GitHub repositories.
 
 ## Development
 
-Prepare dependencies and the local Docker Redis service, then start the server:
+Copy the example environment file, set the GitHub account to scan, prepare the
+local Docker Redis service, and start the server:
 
 ```bash
+cp .env.example .env.local
+# Set GITHUB_OWNER in .env.local.
 npm run setup
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
 
-The portfolio and case studies work without external services. Role-fit
-assessment requires `OPENAI_API_KEY`; meeting scheduling requires Google Calendar
-OAuth credentials and Resend configuration. See
-[Development](docs/development.md) for setup details.
+The static portfolio does not require hosted services. Role-fit assessment
+requires `OPENAI_API_KEY`; meeting scheduling requires Google Calendar OAuth and
+Resend configuration. Protected API actions require Redis. Local development
+uses `REDIS_URL` with the Docker Compose service created by `npm run setup`.
 
-Production deployments must also configure BotID, Upstash Redis through the
-Vercel Marketplace, and `ANON_SESSION_SECRET`. Configure Vercel WAF rules and an
-OpenAI project hard spend limit with alerts outside this repository before
-enabling public traffic.
+Production deployments must connect Upstash through the Vercel Marketplace,
+which injects `KV_REST_API_URL` and `KV_REST_API_TOKEN`, and must configure a
+strong `ANON_SESSION_SECRET`. Configure BotID, Vercel WAF rules, and an OpenAI
+project hard-spend limit with alerts before enabling public traffic. See
+[Development](docs/development.md) for the complete setup.
 
 Project case studies come from the validated `.cache/github-projects.json`
-snapshot. `npm run dev` and `npm run build` refresh it automatically by scanning
-public repositories owned by `GITHUB_OWNER` (default `cekrauseee`) and reading
-`.portfolio/project.json` from each default branch. Use `npm run projects:sync`
-when you want to refresh or inspect the snapshot explicitly.
-
-See [Development](docs/development.md) for the complete command catalog,
-integration setup, testing, and CI details.
+snapshot. `npm run dev` and `npm run build` refresh it by scanning public
+repositories owned by the explicitly configured `GITHUB_OWNER` and reading
+`.portfolio/project.json` from each default branch. Use
+`npm run projects:sync` to refresh or inspect the snapshot directly.
 
 ## Continuous delivery
 
-GitHub Actions runs formatting, lint, TypeScript, and production-build checks on
+GitHub Actions runs formatting, lint, unit and integration tests, a real Redis
+adapter check, TypeScript, Docker Compose validation, and a production build on
 every push and pull request. A passing push to `main` then triggers the Vercel
 Deploy Hook stored in the `VERCEL_DEPLOY_HOOK_URL` GitHub Actions secret.
 

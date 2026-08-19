@@ -7,7 +7,6 @@ import nextEnv from "@next/env";
 
 const { loadEnvConfig } = nextEnv;
 
-export const DEFAULT_GITHUB_OWNER = "cekrauseee";
 export const DEFAULT_GITHUB_API = "https://api.github.com";
 export const DEFAULT_REQUEST_TIMEOUT_MS = 10_000;
 export const DEFAULT_OUTPUT_PATH = path.join(
@@ -252,7 +251,7 @@ function validateRepository(repo) {
 
 export async function syncGithubProjects({
   fetchImpl = globalThis.fetch,
-  owner = process.env.GITHUB_OWNER || DEFAULT_GITHUB_OWNER,
+  owner = process.env.GITHUB_OWNER,
   token = process.env.GITHUB_TOKEN || "",
   apiBase = DEFAULT_GITHUB_API,
   outputPath = DEFAULT_OUTPUT_PATH,
@@ -263,6 +262,9 @@ export async function syncGithubProjects({
 } = {}) {
   if (typeof fetchImpl !== "function") {
     throw new Error("This Node.js version does not provide fetch.");
+  }
+  if (!nonEmptyString(owner)) {
+    throw new Error("GITHUB_OWNER is required when running project sync.");
   }
   if (!/^[A-Za-z0-9_.-]+$/.test(owner)) {
     throw new Error(`Unsafe GitHub owner: ${owner}`);

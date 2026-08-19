@@ -5,22 +5,46 @@ import { createHash } from "node:crypto";
 type CalendarConfig = {
   calendarId: string;
 };
+
 type CalendarClient = ReturnType<typeof google.calendar>;
 let calendarClientOverride: CalendarClient | undefined;
+
+export type MeetingOperation = {
+  idempotencyDigest: string;
+  requestDigest: string;
+};
 
 type MeetingEventInput = {
   email: string;
   start: Date;
   end: Date;
+  operation: MeetingOperation;
   config?: CalendarConfig;
 };
 
 export type MeetingEventLookup =
   | { status: "not-found"; eventId: string }
+  | {
+      status: "cancelled";
+      eventId: string;
+      data: calendar_v3.Schema$Event;
+    }
   | { status: "mismatch"; eventId: string }
   | { status: "match"; eventId: string; data: calendar_v3.Schema$Event };
 
 export class MeetingEventMismatchError extends Error {}
+
+const EVENT_METADATA = {
+  application: "portfolio-meeting",
+  schema: "1",
+} as const;
+
+const EVENT_METADATA_KEYS = {
+  application: "portfolioApplication",
+  schema: "portfolioSchema",
+  idempotency: "portfolioIdempotency",
+  request: "portfolioRequest",
+} as const;
 
 /** Replace Google Calendar with a deterministic client in tests. */
 export function setCalendarClientForTests(client?: CalendarClient) {
@@ -58,6 +82,15 @@ export function meetingEventId(start: Date, config = getCalendarConfig()) {
     .slice(0, 32);
 }
 
+export function meetingEventMetadata(operation: MeetingOperation) {
+  return {
+    [EVENT_METADATA_KEYS.application]: EVENT_METADATA.application,
+    [EVENT_METADATA_KEYS.schema]: EVENT_METADATA.schema,
+    [EVENT_METADATA_KEYS.idempotency]: operation.idempotencyDigest,
+    [EVENT_METADATA_KEYS.request]: operation.requestDigest,
+  };
+}
+
 /**
  * Look up the event that owns a deterministic meeting slot. A Google 404 is
  * deliberately treated as an ordinary miss; all other upstream failures are
@@ -79,6 +112,10 @@ export async function findMeetingEvent(
       return { status: "not-found", eventId };
     }
     throw error;
+  }
+
+  if (response.data.status === "cancelled") {
+    return { status: "cancelled", eventId, data: response.data };
   }
   if (!matchesMeetingEvent(response.data, input, eventId)) {
     return { status: "mismatch", eventId };
@@ -132,6 +169,7 @@ export async function createMeetingEvent(input: {
   start: Date;
   end: Date;
   timeZone: string;
+  operation: MeetingOperation;
   config?: CalendarConfig;
 }) {
   const config = input.config ?? getCalendarConfig();
@@ -155,13 +193,17 @@ export async function createMeetingEvent(input: {
     guestsCanModify: false,
     guestsCanSeeOtherGuests: false,
     attendees: [{ email: input.email }],
+    extendedProperties: {
+      private: meetingEventMetadata(input.operation),
+    },
     conferenceData: {
       createRequest: {
-        requestId: `meeting-${deterministicId}`,
+        requestId: `meeting-${deterministicId}-${input.operation.idempotencyDigest.slice(0, 16)}`,
         conferenceSolutionKey: { type: "hangoutsMeet" },
       },
     },
   };
+
   const calendar = calendarClient();
   let response: { data: calendar_v3.Schema$Event };
   let replayed = false;
@@ -176,18 +218,35 @@ export async function createMeetingEvent(input: {
     if (!isGoogleConflict(error)) {
       throw error;
     }
+
     const existing = await findMeetingEventWithRetry(input);
-    if (existing.status === "not-found" || existing.status === "mismatch") {
+    if (existing.status === "match") {
+      response = { data: existing.data };
+      replayed = true;
+    } else if (existing.status === "cancelled") {
+      // A cancelled deterministic event is never replayed. Restore its organizer
+      // copy as a fresh booking and overwrite the operation metadata.
+      response = await calendar.events.update({
+        calendarId: config.calendarId,
+        eventId: deterministicId,
+        requestBody: {
+          ...event,
+          status: "confirmed",
+        },
+        conferenceDataVersion: 1,
+        sendUpdates: "all",
+      });
+    } else {
       throw new MeetingEventMismatchError(
         "Google returned a conflicting event for this meeting.",
       );
     }
-    response = { data: existing.data };
-    replayed = true;
   }
+
   if (!response.data.id) {
     throw new Error("Google did not return an event id.");
   }
+
   let currentEvent = response.data;
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const meetLink = currentEvent.conferenceData?.entryPoints?.find(
@@ -197,7 +256,7 @@ export async function createMeetingEvent(input: {
       return {
         id: currentEvent.id,
         meetLink,
-        calendarLink: currentEvent.htmlLink,
+        calendarLink: currentEvent.htmlLink ?? undefined,
         replayed,
       };
     }
@@ -217,12 +276,14 @@ export async function createMeetingEvent(input: {
       }
     }
   }
+
   return {
     id: currentEvent.id,
-    meetLink: currentEvent.conferenceData?.entryPoints?.find(
-      (entry) => entry.entryPointType === "video",
-    )?.uri,
-    calendarLink: currentEvent.htmlLink,
+    meetLink:
+      currentEvent.conferenceData?.entryPoints?.find(
+        (entry) => entry.entryPointType === "video",
+      )?.uri ?? undefined,
+    calendarLink: currentEvent.htmlLink ?? undefined,
     replayed,
   };
 }
@@ -237,12 +298,19 @@ function matchesMeetingEvent(
     : NaN;
   const eventEnd = event.end?.dateTime ? Date.parse(event.end.dateTime) : NaN;
   const attendee = normalizeEmail(input.email);
+  const metadata = event.extendedProperties?.private;
+  const expectedMetadata = meetingEventMetadata(input.operation);
+
   return (
+    event.status !== "cancelled" &&
     event.id === eventId &&
     eventStart === input.start.getTime() &&
     eventEnd === input.end.getTime() &&
     (event.attendees ?? []).some(
       (candidate) => normalizeEmail(candidate.email) === attendee,
+    ) &&
+    Object.entries(expectedMetadata).every(
+      ([key, value]) => metadata?.[key] === value,
     )
   );
 }
