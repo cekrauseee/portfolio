@@ -23,8 +23,7 @@ import {
 
 export const runtime = "nodejs";
 
-const LOCK_TTL_SECONDS =
-  Math.ceil(MEETING_OPERATION_TIMEOUT_MS / 1_000) + 30;
+const LOCK_TTL_SECONDS = Math.ceil(MEETING_OPERATION_TIMEOUT_MS / 1_000) + 30;
 
 type MeetingsDependencies = {
   protect: typeof protect;

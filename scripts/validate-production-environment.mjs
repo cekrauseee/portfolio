@@ -43,10 +43,7 @@ export function validateProductionEnvironment(environment = process.env) {
   }
 
   const sessionSecret = environment.ANON_SESSION_SECRET?.trim();
-  if (
-    sessionSecret &&
-    sessionSecret.length < MIN_ANON_SESSION_SECRET_LENGTH
-  ) {
+  if (sessionSecret && sessionSecret.length < MIN_ANON_SESSION_SECRET_LENGTH) {
     errors.push(
       `ANON_SESSION_SECRET must contain at least ${MIN_ANON_SESSION_SECRET_LENGTH} characters.`,
     );

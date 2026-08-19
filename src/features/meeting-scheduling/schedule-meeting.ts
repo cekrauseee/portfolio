@@ -19,9 +19,7 @@ import {
 export type { MeetingOperation };
 
 export const MEETING_OPERATION_TIMEOUT_MS =
-  CALENDAR_REQUEST_TIMEOUT_MS * 10 +
-  MEETING_NOTIFICATION_TIMEOUT_MS +
-  20_000;
+  CALENDAR_REQUEST_TIMEOUT_MS * 10 + MEETING_NOTIFICATION_TIMEOUT_MS + 20_000;
 
 export type MeetingRequest = {
   name: string;

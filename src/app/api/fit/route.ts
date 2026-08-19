@@ -17,8 +17,7 @@ import {
 
 export const runtime = "nodejs";
 
-const LOCK_TTL_SECONDS =
-  Math.ceil(ROLE_FIT_REQUEST_TIMEOUT_MS / 1_000) + 30;
+const LOCK_TTL_SECONDS = Math.ceil(ROLE_FIT_REQUEST_TIMEOUT_MS / 1_000) + 30;
 
 type FitDependencies = {
   protect: typeof protect;

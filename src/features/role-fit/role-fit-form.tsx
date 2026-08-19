@@ -5,10 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { actionClassName } from "@/components/links";
 import { MAX_ROLE_DESCRIPTION_LENGTH } from "@/features/role-fit/constants";
-import {
-  retryMessage,
-  shouldUseRetryMessage,
-} from "@/lib/retry-message";
+import { retryMessage, shouldUseRetryMessage } from "@/lib/retry-message";
 
 const MAX_DESCRIPTION_LABEL =
   MAX_ROLE_DESCRIPTION_LENGTH.toLocaleString("en-US");

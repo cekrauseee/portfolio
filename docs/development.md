@@ -135,24 +135,24 @@ Production deployment order:
 
 ## Commands
 
-| Command | Purpose |
-| --- | --- |
-| `npm run setup` | Install the lockfile and prepare local Redis |
-| `npm run dev` | Reconcile project content and start Next.js |
-| `npm run build` | Validate production config, reconcile projects, and build |
-| `npm run start` | Serve a completed production build |
-| `npm run projects:sync` | Refresh the GitHub project snapshot |
-| `npm run env:validate` | Validate production environment groups |
-| `npm run services:up` | Start local Redis |
-| `npm run services:down` | Stop and remove local Redis |
-| `npm run calendar:authorize` | Obtain and store the Google refresh token |
-| `npm run format` | Format supported files |
-| `npm run format:check` | Check formatting |
-| `npm run lint` | Run ESLint |
-| `npm run typecheck` | Generate Next.js types and run TypeScript |
-| `npm test` | Prepare the neutral fixture and run deterministic tests |
-| `npm run test:redis` | Exercise the configured local Redis adapter |
-| `npm run check` | Run formatting, lint, type checking, and tests |
+| Command                      | Purpose                                                   |
+| ---------------------------- | --------------------------------------------------------- |
+| `npm run setup`              | Install the lockfile and prepare local Redis              |
+| `npm run dev`                | Reconcile project content and start Next.js               |
+| `npm run build`              | Validate production config, reconcile projects, and build |
+| `npm run start`              | Serve a completed production build                        |
+| `npm run projects:sync`      | Refresh the GitHub project snapshot                       |
+| `npm run env:validate`       | Validate production environment groups                    |
+| `npm run services:up`        | Start local Redis                                         |
+| `npm run services:down`      | Stop and remove local Redis                               |
+| `npm run calendar:authorize` | Obtain and store the Google refresh token                 |
+| `npm run format`             | Format supported files                                    |
+| `npm run format:check`       | Check formatting                                          |
+| `npm run lint`               | Run ESLint                                                |
+| `npm run typecheck`          | Generate Next.js types and run TypeScript                 |
+| `npm test`                   | Prepare the neutral fixture and run deterministic tests   |
+| `npm run test:redis`         | Exercise the configured local Redis adapter               |
+| `npm run check`              | Run formatting, lint, type checking, and tests            |
 
 `npm test` creates its own `.cache/github-projects.json` from the committed
 neutral fixture, so it works in a fresh clone and does not depend on a previous

@@ -55,9 +55,9 @@ test("project writer and reader both reject non-string slugs", async () => {
           }
           return Response.json({
             encoding: "base64",
-            content: Buffer.from(
-              JSON.stringify(projectWithSlug(123)),
-            ).toString("base64"),
+            content: Buffer.from(JSON.stringify(projectWithSlug(123))).toString(
+              "base64",
+            ),
           });
         },
       }),

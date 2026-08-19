@@ -133,12 +133,18 @@ test("Resend is optional but must be configured as a complete group", () => {
 });
 
 test("Retry-After UI handling distinguishes temporary outages from missing configuration", () => {
-  assert.equal(shouldUseRetryMessage(new Response(null, { status: 429 })), true);
+  assert.equal(
+    shouldUseRetryMessage(new Response(null, { status: 429 })),
+    true,
+  );
   assert.equal(
     shouldUseRetryMessage(
       new Response(null, { status: 503, headers: { "Retry-After": "30" } }),
     ),
     true,
   );
-  assert.equal(shouldUseRetryMessage(new Response(null, { status: 503 })), false);
+  assert.equal(
+    shouldUseRetryMessage(new Response(null, { status: 503 })),
+    false,
+  );
 });

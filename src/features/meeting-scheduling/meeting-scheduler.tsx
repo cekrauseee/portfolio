@@ -3,10 +3,7 @@
 import type { FormEvent } from "react";
 import { useRef, useState } from "react";
 import { actionClassName, ExternalLink } from "@/components/links";
-import {
-  retryMessage,
-  shouldUseRetryMessage,
-} from "@/lib/retry-message";
+import { retryMessage, shouldUseRetryMessage } from "@/lib/retry-message";
 
 type FieldName = "name" | "email" | "date" | "time";
 type Fields = Record<FieldName, string>;
