@@ -8,6 +8,7 @@
     "One-hour Google Calendar and Meet scheduling",
     "Bot detection and rate limits for public actions",
     "Idempotent calendar scheduling and notifications",
+    "Docker-backed local development setup",
     "SEO metadata and structured data"
   ],
   "metaDescription": "Henrique Krause's software engineering portfolio with static case studies, role-fit assessment, and one-hour Google Calendar and Google Meet scheduling.",
@@ -34,6 +35,7 @@
       "paragraphs": [
         "Client Components are limited to interactive forms, while Node.js Route Handlers validate input before external requests.",
         "BotID, signed anonymous sessions, strict body limits, and Redis-backed rate limits protect the public fit and scheduling actions. Scheduling uses Redis-backed locks and deterministic event IDs to serialize slots and replay retries without duplicate notifications.",
+        "Local development uses a Docker Compose Redis service through the same application adapter, while production uses Upstash REST credentials from the Vercel Marketplace.",
         "The responsive layout supports desktop and narrow mobile screens, visible keyboard focus, safe-area insets, and system light and dark color schemes."
       ]
     }

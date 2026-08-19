@@ -4,17 +4,24 @@
 
 - Node.js 20.19 or newer
 - npm
+- Docker with Compose
 
 ## Setup
 
-Install dependencies and start the development server:
+Install dependencies, start the local Redis service, and prepare `.env.local`:
 
 ```bash
-npm install
+npm run setup
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+`npm run setup` preserves existing `.env.local` values, adds a local `REDIS_URL`
+and generated `ANON_SESSION_SECRET` only when they are missing, starts Redis from
+`compose.yaml`, waits for its health check, and verifies the application adapter.
+Use `npm run services:down` to stop and remove the local service. Run
+`npm run services:up` to start it again without repeating the full setup.
 
 To enable role-fit assessment, set `OPENAI_API_KEY` in `.env.local`. The
 portfolio and project pages do not require this variable.
@@ -25,8 +32,9 @@ long random `ANON_SESSION_SECRET`. The read-only token is not sufficient because
 rate limits, locks, and dedupe records write to Redis. Direct Upstash setups may
 instead provide `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`; the
 application supports both complete credential pairs. BotID protects the two API
-POST paths; development deterministically bypasses the hosted check and uses a
-bounded local fallback only when Redis is not configured. Production fails
+POST paths; development deterministically bypasses the hosted check and uses the
+Docker Redis service through `REDIS_URL`. It keeps a bounded in-memory fallback
+only when Redis is not configured. Production ignores `REDIS_URL` and fails
 closed with 503 when required protection configuration is unavailable. Deploy
 in this order: configure Redis and secrets, enable BotID, deploy and verify
 blocked and allowed requests, then configure Vercel WAF rules and an OpenAI
@@ -120,13 +128,16 @@ whole-hour value such as `2026-08-20T14:00`.
 
 ### Core
 
-| Command            | Purpose                                                |
-| ------------------ | ------------------------------------------------------ |
-| `npm run dev`      | Start the development server                           |
-| `npm run predev`   | Refresh the GitHub project snapshot before development |
-| `npm run prebuild` | Refresh the GitHub project snapshot before a build     |
-| `npm run build`    | Create the production build                            |
-| `npm run start`    | Serve a completed production build                     |
+| Command                 | Purpose                                                |
+| ----------------------- | ------------------------------------------------------ |
+| `npm run setup`         | Install dependencies and prepare local Redis           |
+| `npm run dev`           | Start the development server                           |
+| `npm run predev`        | Refresh the GitHub project snapshot before development |
+| `npm run prebuild`      | Refresh the GitHub project snapshot before a build     |
+| `npm run build`         | Create the production build                            |
+| `npm run start`         | Serve a completed production build                     |
+| `npm run services:up`   | Start the local Redis service                          |
+| `npm run services:down` | Stop and remove the local Redis service                |
 
 ### Project content
 
@@ -143,7 +154,8 @@ whole-hour value such as `2026-08-20T14:00`.
 | `npm run format:check` | Check formatting without writing                 |
 | `npm run lint`         | Run ESLint with the Next.js and TypeScript rules |
 | `npm run typecheck`    | Run TypeScript without emitting files            |
-| `npm test`             | Run mocked GitHub sync tests                     |
+| `npm test`             | Run unit and mocked integration tests            |
+| `npm run test:redis`   | Verify the running local Redis adapter           |
 
 ### Integrations
 
@@ -153,8 +165,8 @@ whole-hour value such as `2026-08-20T14:00`.
 
 ## Testing
 
-The repository includes dependency-light mocked GitHub reconciliation tests.
-Before publishing a change, run:
+The repository includes tests for GitHub reconciliation, abuse protection,
+scheduling idempotency, and Redis adapters. Before publishing a change, run:
 
 ```bash
 npm run format:check

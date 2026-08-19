@@ -26,6 +26,7 @@ Google Calendar, and Resend. Tailwind CSS provides component styling;
 | `src/content/portfolio.ts`              | Profile, social links, and normalized project contract           |
 | `src/content/project.ts`                | Shared `Project` and `ProjectSection` types                      |
 | `src/content/github-projects.ts`        | Validated build-time snapshot loader                             |
+| `src/lib/abuse-protection.ts`           | Bot checks, identities, rate limits, locks, and Redis selection  |
 | `scripts/sync-github-projects.mjs`      | Paginated GitHub reconciliation and atomic snapshot writer       |
 | `src/config/site.ts`                    | Site identity and canonical URL configuration                    |
 | `scripts/authorize-google-calendar.mjs` | Local Google Calendar OAuth authorization                        |
@@ -59,6 +60,9 @@ the role description or assessment in application storage.
 BotID protects this POST path. Strict streamed JSON limits apply, and shared
 Upstash Redis keys use only HMAC hashes of an opaque session plus trusted Vercel
 client IP; production fails closed when protection configuration is missing.
+Development uses the same Redis operations through a local `REDIS_URL` adapter;
+production ignores that variable and requires Vercel or direct Upstash REST
+credentials.
 
 ## Meeting scheduling
 

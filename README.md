@@ -15,10 +15,10 @@ assessment and meeting scheduling.
 
 ## Development
 
-Install dependencies and start the local server:
+Prepare dependencies and the local Docker Redis service, then start the server:
 
 ```bash
-npm install
+npm run setup
 npm run dev
 ```
 

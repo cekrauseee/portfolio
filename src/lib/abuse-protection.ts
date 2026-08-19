@@ -1,6 +1,7 @@
 import { Redis } from "@upstash/redis";
 import { checkBotId } from "botid/server";
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { createLocalRedisAdapter, type RedisAdapter } from "@/lib/local-redis";
 
 export const LIMITS = {
   fit: { window: 5, day: 20, windowSeconds: 600 },
@@ -8,8 +9,6 @@ export const LIMITS = {
 } as const;
 export const BODY_LIMITS = { fit: 32 * 1024, meetings: 8 * 1024 } as const;
 type Operation = keyof typeof LIMITS;
-
-export type RedisAdapter = Pick<Redis, "set" | "eval" | "get">;
 
 export class ProtectionUnavailableError extends Error {
   constructor() {
@@ -20,7 +19,7 @@ export class ProtectionUnavailableError extends Error {
 
 const memory = new Map<string, { count: number; expires: number }>();
 const locks = new Map<string, { owner: string; expires: number }>();
-let redisInstance: Redis | undefined;
+let redisInstance: RedisAdapter | undefined;
 let redisOverride: RedisAdapter | undefined;
 let localSessionSecret: string | undefined;
 
@@ -44,6 +43,18 @@ export function resolveRedisCredentials(
   return undefined;
 }
 
+export function resolveRedisConfiguration(
+  environment: RedisEnvironment = process.env,
+) {
+  const localUrl = environment.REDIS_URL?.trim();
+  if (environment.NODE_ENV !== "production" && localUrl) {
+    return { kind: "local" as const, url: localUrl };
+  }
+
+  const credentials = resolveRedisCredentials(environment);
+  return credentials ? { kind: "upstash" as const, ...credentials } : undefined;
+}
+
 /** Replace the Redis client for deterministic integration tests. */
 export function setRedisAdapterForTests(adapter?: RedisAdapter) {
   redisOverride = adapter;
@@ -54,11 +65,14 @@ function redis() {
   if (redisOverride) {
     return redisOverride;
   }
-  const credentials = resolveRedisCredentials();
-  if (!credentials) {
+  const configuration = resolveRedisConfiguration();
+  if (!configuration) {
     return undefined;
   }
-  return (redisInstance ??= new Redis(credentials));
+  return (redisInstance ??=
+    configuration.kind === "local"
+      ? createLocalRedisAdapter(configuration.url)
+      : new Redis(configuration));
 }
 
 function sessionSecret() {
@@ -148,7 +162,7 @@ async function incrementRateLimit(
   key: string,
   seconds: number,
 ) {
-  const result = await store.eval<[string], [number, number]>(
+  const result = await store.eval<[number, number]>(
     RATE_LIMIT_SCRIPT,
     [key],
     [String(seconds)],

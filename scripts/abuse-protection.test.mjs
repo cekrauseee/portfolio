@@ -95,6 +95,38 @@ test("Redis credentials support Vercel KV names and direct Upstash aliases", () 
   );
 });
 
+test("local Redis is preferred outside production and ignored in production", () => {
+  assert.deepEqual(
+    protection.resolveRedisConfiguration({
+      NODE_ENV: "development",
+      REDIS_URL: " redis://127.0.0.1:6379 ",
+      KV_REST_API_URL: "https://cloud.test",
+      KV_REST_API_TOKEN: "cloud-token",
+    }),
+    { kind: "local", url: "redis://127.0.0.1:6379" },
+  );
+  assert.equal(
+    protection.resolveRedisConfiguration({
+      NODE_ENV: "production",
+      REDIS_URL: "redis://127.0.0.1:6379",
+    }),
+    undefined,
+  );
+  assert.deepEqual(
+    protection.resolveRedisConfiguration({
+      NODE_ENV: "production",
+      REDIS_URL: "redis://127.0.0.1:6379",
+      KV_REST_API_URL: "https://cloud.test",
+      KV_REST_API_TOKEN: "cloud-token",
+    }),
+    {
+      kind: "upstash",
+      url: "https://cloud.test",
+      token: "cloud-token",
+    },
+  );
+});
+
 test("protection issues a signed cookie and stable privacy-safe identity", async () => {
   const first = await protection.protect(
     "fit",
