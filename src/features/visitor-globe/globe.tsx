@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Canvas, type ThreeEvent } from "@react-three/fiber";
+import { Canvas, type ThreeEvent, useFrame } from "@react-three/fiber";
 import { Html, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { mutedButtonClassName } from "@/components/links";
 import type { VisitorMessage } from "@/features/visitor-globe/db/client";
+import type { GeoCoordinates } from "@/features/visitor-globe/geo";
 
 type GeoFeature = {
   type: "Feature";
@@ -152,7 +153,7 @@ function useCountryBorders(radius: number, geojson?: GeoJSON) {
 }
 
 const GLOBE_RADIUS = 1;
-const POINT_RADIUS = GLOBE_RADIUS + 0.028;
+const MARKER_RADIUS = GLOBE_RADIUS + 0.004;
 const POINT_HIT_RADIUS = 0.06;
 const WHEEL_ROTATION_SPEED = 0.004;
 const MAX_WHEEL_DELTA = 80;
@@ -160,6 +161,11 @@ const MIN_POLAR_ANGLE = 0.15;
 const MAX_POLAR_ANGLE = Math.PI - MIN_POLAR_ANGLE;
 const INTERACTION_IDLE_DELAY = 1200;
 const HOVER_EXIT_DELAY = 140;
+const CENTER_ANIMATION_DURATION = 900;
+const MESSAGE_MARKER_LIGHT = "#1f1f1f";
+const MESSAGE_MARKER_DARK = "#ffffff";
+const LOCATION_MARKER_LIGHT = "#2563eb";
+const LOCATION_MARKER_DARK = "#60a5fa";
 const GLOBE_OCCLUSION_SPHERE = new THREE.Sphere(
   new THREE.Vector3(),
   GLOBE_RADIUS,
@@ -273,26 +279,125 @@ function MessagePoints({
 
   return (
     <group>
-      {points.map((point) => (
-        <group key={point.id} position={point.position.toArray()}>
-          {/* Invisible larger hit area for easier interaction */}
-          <mesh
-            userData={{ pointId: point.id }}
-            onPointerOver={handlePointerOver(point)}
-            onPointerOut={handlePointerOut}
-            onClick={handleClick(point)}
+      {points.map((point) => {
+        const quaternion = new THREE.Quaternion().setFromUnitVectors(
+          new THREE.Vector3(0, 0, 1),
+          point.position.clone().normalize(),
+        );
+
+        return (
+          <group
+            key={point.id}
+            position={point.position.toArray()}
+            quaternion={quaternion}
           >
-            <sphereGeometry args={[POINT_HIT_RADIUS, 10, 10]} />
-            <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-          </mesh>
-          <mesh raycast={() => null}>
-            <sphereGeometry args={[0.014, 12, 12]} />
-            <meshBasicMaterial color={isDark ? "#ffffff" : "#1f1f1f"} />
-          </mesh>
-        </group>
-      ))}
+            {/* Invisible larger hit area for easier interaction */}
+            <mesh
+              userData={{ pointId: point.id }}
+              onPointerOver={handlePointerOver(point)}
+              onPointerOut={handlePointerOut}
+              onClick={handleClick(point)}
+            >
+              <sphereGeometry args={[POINT_HIT_RADIUS, 10, 10]} />
+              <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+            </mesh>
+            <mesh position={[0, 0, 0.001]} raycast={() => null}>
+              <circleGeometry args={[0.009, 20]} />
+              <meshBasicMaterial
+                color={isDark ? MESSAGE_MARKER_DARK : MESSAGE_MARKER_LIGHT}
+                side={THREE.DoubleSide}
+              />
+            </mesh>
+          </group>
+        );
+      })}
     </group>
   );
+}
+
+function ViewerLocationMarker({
+  location,
+  isDark,
+  reduceMotion,
+}: {
+  location: GeoCoordinates;
+  isDark: boolean;
+  reduceMotion: boolean;
+}) {
+  const pulseRef = useRef<THREE.Mesh>(null);
+  const pulseMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
+  const { position, quaternion } = useMemo(() => {
+    const markerPosition = latLonToVector3(
+      location.latitude,
+      location.longitude,
+      MARKER_RADIUS + 0.002,
+    );
+    const markerQuaternion = new THREE.Quaternion().setFromUnitVectors(
+      new THREE.Vector3(0, 0, 1),
+      markerPosition.clone().normalize(),
+    );
+
+    return { position: markerPosition, quaternion: markerQuaternion };
+  }, [location.latitude, location.longitude]);
+
+  const color = isDark ? LOCATION_MARKER_DARK : LOCATION_MARKER_LIGHT;
+
+  useFrame(({ clock }) => {
+    const pulse = pulseRef.current;
+    const material = pulseMaterialRef.current;
+    if (!pulse || !material) {
+      return;
+    }
+
+    if (reduceMotion) {
+      pulse.scale.setScalar(1);
+      material.opacity = 0.3;
+      return;
+    }
+
+    const progress = (clock.elapsedTime % 2.4) / 2.4;
+    pulse.scale.setScalar(1 + progress * 1.8);
+    material.opacity = Math.pow(1 - progress, 2) * 0.42;
+  });
+
+  return (
+    <group position={position.toArray()} quaternion={quaternion}>
+      <mesh ref={pulseRef} position={[0, 0, 0.001]} raycast={() => null}>
+        <ringGeometry args={[0.011, 0.014, 32]} />
+        <meshBasicMaterial
+          ref={pulseMaterialRef}
+          color={color}
+          transparent
+          opacity={0.42}
+          depthWrite={false}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      <mesh position={[0, 0, 0.002]} raycast={() => null}>
+        <circleGeometry args={[0.007, 20]} />
+        <meshBasicMaterial color={color} side={THREE.DoubleSide} />
+      </mesh>
+    </group>
+  );
+}
+
+function viewAnglesForLocation(location: GeoCoordinates) {
+  const direction = latLonToVector3(location.latitude, location.longitude, 1);
+  const spherical = new THREE.Spherical().setFromVector3(direction);
+
+  return { azimuthal: spherical.theta, polar: spherical.phi };
+}
+
+function shortestAngleDelta(from: number, to: number) {
+  return (
+    THREE.MathUtils.euclideanModulo(to - from + Math.PI, Math.PI * 2) - Math.PI
+  );
+}
+
+function easeInOutCubic(progress: number) {
+  return progress < 0.5
+    ? 4 * progress * progress * progress
+    : 1 - Math.pow(-2 * progress + 2, 3) / 2;
 }
 
 function AtmosphereGlow({ isDark }: { isDark: boolean }) {
@@ -314,27 +419,40 @@ export type { GlobePoint };
 export function Globe({
   messages,
   geojson,
+  viewerLocation,
 }: {
   messages: VisitorMessage[];
   geojson?: GeoJSON;
+  viewerLocation: GeoCoordinates;
 }) {
   const [hoveredPoint, setHoveredPoint] = useState<GlobePoint | null>(null);
   const [selectedPoint, setSelectedPoint] = useState<GlobePoint | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isPointerOverGlobe, setIsPointerOverGlobe] = useState(false);
   const [isUserInteracting, setIsUserInteracting] = useState(false);
+  const [isCentering, setIsCentering] = useState(false);
   const controlsRef = useRef<OrbitControlsImpl>(null);
+  const centerAnimationRef = useRef<number | undefined>(undefined);
   const interactionTimerRef = useRef<number | undefined>(undefined);
   const hoverExitTimerRef = useRef<number | undefined>(undefined);
   const isDark = useMediaQuery("(prefers-color-scheme: dark)");
   const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
+  const initialCameraPosition = useMemo(
+    () =>
+      latLonToVector3(
+        viewerLocation.latitude,
+        viewerLocation.longitude,
+        3,
+      ).toArray() as [number, number, number],
+    [viewerLocation.latitude, viewerLocation.longitude],
+  );
 
   const points = useMemo(() => {
     const mapped: GlobePoint[] = messages.map((msg) => {
       const position = latLonToVector3(
         msg.latitude,
         msg.longitude,
-        POINT_RADIUS,
+        MARKER_RADIUS,
       );
       return {
         id: msg.id,
@@ -344,7 +462,7 @@ export function Globe({
         lon: msg.longitude,
       };
     });
-    return clusterPoints(mapped, POINT_RADIUS);
+    return clusterPoints(mapped, MARKER_RADIUS);
   }, [messages]);
 
   const allMessages = useMemo<GlobePoint>(
@@ -358,7 +476,19 @@ export function Globe({
     [messages],
   );
 
+  const cancelCentering = useCallback(() => {
+    if (centerAnimationRef.current !== undefined) {
+      window.cancelAnimationFrame(centerAnimationRef.current);
+      centerAnimationRef.current = undefined;
+    }
+    if (controlsRef.current) {
+      controlsRef.current.enableDamping = true;
+    }
+    setIsCentering(false);
+  }, []);
+
   const markUserInteraction = useCallback(() => {
+    cancelCentering();
     setIsUserInteracting(true);
     if (interactionTimerRef.current !== undefined) {
       window.clearTimeout(interactionTimerRef.current);
@@ -367,7 +497,71 @@ export function Globe({
       setIsUserInteracting(false);
       interactionTimerRef.current = undefined;
     }, INTERACTION_IDLE_DELAY);
-  }, []);
+  }, [cancelCentering]);
+
+  const centerOnViewer = useCallback(() => {
+    const controls = controlsRef.current;
+    if (!controls) {
+      return;
+    }
+
+    cancelCentering();
+    setSelectedPoint(null);
+    setHoveredPoint(null);
+    setIsCentering(true);
+    setIsUserInteracting(true);
+    if (interactionTimerRef.current !== undefined) {
+      window.clearTimeout(interactionTimerRef.current);
+      interactionTimerRef.current = undefined;
+    }
+
+    const target = viewAnglesForLocation(viewerLocation);
+    const startPolar = controls.getPolarAngle();
+    const startAzimuthal = controls.getAzimuthalAngle();
+    const azimuthalDelta = shortestAngleDelta(startAzimuthal, target.azimuthal);
+
+    const finish = () => {
+      controls.setPolarAngle(target.polar);
+      controls.setAzimuthalAngle(target.azimuthal);
+      controls.enableDamping = true;
+      centerAnimationRef.current = undefined;
+      setIsCentering(false);
+      interactionTimerRef.current = window.setTimeout(() => {
+        setIsUserInteracting(false);
+        interactionTimerRef.current = undefined;
+      }, INTERACTION_IDLE_DELAY);
+    };
+
+    if (reduceMotion) {
+      finish();
+      return;
+    }
+
+    controls.enableDamping = false;
+    const startedAt = performance.now();
+    const animate = (now: number) => {
+      const progress = Math.min(
+        (now - startedAt) / CENTER_ANIMATION_DURATION,
+        1,
+      );
+      const easedProgress = easeInOutCubic(progress);
+
+      controls.setPolarAngle(
+        THREE.MathUtils.lerp(startPolar, target.polar, easedProgress),
+      );
+      controls.setAzimuthalAngle(
+        startAzimuthal + azimuthalDelta * easedProgress,
+      );
+
+      if (progress < 1) {
+        centerAnimationRef.current = window.requestAnimationFrame(animate);
+      } else {
+        finish();
+      }
+    };
+
+    centerAnimationRef.current = window.requestAnimationFrame(animate);
+  }, [cancelCentering, reduceMotion, viewerLocation]);
 
   const handleWheel = useCallback(
     (event: React.WheelEvent<HTMLDivElement>) => {
@@ -459,6 +653,9 @@ export function Globe({
       if (hoverExitTimerRef.current !== undefined) {
         window.clearTimeout(hoverExitTimerRef.current);
       }
+      if (centerAnimationRef.current !== undefined) {
+        window.cancelAnimationFrame(centerAnimationRef.current);
+      }
     };
   }, []);
 
@@ -485,7 +682,7 @@ export function Globe({
         onWheel={handleWheel}
       >
         <Canvas
-          camera={{ position: [0, 0, 3], fov: 45 }}
+          camera={{ position: initialCameraPosition, fov: 45 }}
           dpr={[1, 2]}
           gl={{ antialias: true, alpha: true }}
         >
@@ -504,6 +701,11 @@ export function Globe({
               onHover={handlePointHover}
               onSelect={setSelectedPoint}
             />
+            <ViewerLocationMarker
+              location={viewerLocation}
+              isDark={isDark}
+              reduceMotion={reduceMotion}
+            />
             {hoveredPoint ? <HoverTooltip point={hoveredPoint} /> : null}
           </group>
           <OrbitControls
@@ -516,7 +718,10 @@ export function Globe({
             enableDamping
             dampingFactor={0.08}
             autoRotate={
-              !reduceMotion && !isExploringPoint && !isUserInteracting
+              !reduceMotion &&
+              !isCentering &&
+              !isExploringPoint &&
+              !isUserInteracting
             }
             autoRotateSpeed={0.3}
             rotateSpeed={0.5}
@@ -531,6 +736,27 @@ export function Globe({
           />
         </Canvas>
       </div>
+
+      <button
+        type="button"
+        className={`${mutedButtonClassName} absolute bottom-[calc(1rem+env(safe-area-inset-bottom))] left-[calc(1rem+env(safe-area-inset-left))] z-10 inline-flex min-h-10 items-center gap-2 text-sm motion-safe:transition-transform motion-safe:active:scale-[0.96]`}
+        onClick={centerOnViewer}
+      >
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="size-4"
+        >
+          <circle cx="12" cy="12" r="3" />
+          <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+        </svg>
+        {isCentering ? "Centering…" : "My location"}
+      </button>
 
       {messages.length > 0 ? (
         <button

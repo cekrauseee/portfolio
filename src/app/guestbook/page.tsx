@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import Link from "next/link";
 import { linkFocusClassName } from "@/components/links";
 import { site } from "@/config/site";
 import { fetchMessages } from "@/features/visitor-globe/db/client";
+import { resolveGeoFromHeaders } from "@/features/visitor-globe/geo";
 import { VisitorGlobe } from "@/features/visitor-globe/visitor-globe";
 
 const path = "/guestbook";
@@ -27,11 +29,15 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function GuestbookPage() {
-  const messages = await fetchMessages();
+  const [messages, requestHeaders] = await Promise.all([
+    fetchMessages(),
+    headers(),
+  ]);
+  const viewerLocation = resolveGeoFromHeaders(requestHeaders);
 
   return (
     <main className="bg-background fixed inset-0">
-      <VisitorGlobe messages={messages} />
+      <VisitorGlobe messages={messages} viewerLocation={viewerLocation} />
 
       <Link
         href="/"

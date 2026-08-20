@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { actionClassName } from "@/components/links";
 import type { VisitorMessage } from "@/features/visitor-globe/db/client";
+import type { GeoCoordinates } from "@/features/visitor-globe/geo";
 
 const Globe = dynamic(
   () => import("@/features/visitor-globe/globe").then((m) => m.Globe),
@@ -38,7 +39,13 @@ type GeoJSON = {
   features: GeoFeature[];
 };
 
-export function VisitorGlobe({ messages }: { messages: VisitorMessage[] }) {
+export function VisitorGlobe({
+  messages,
+  viewerLocation,
+}: {
+  messages: VisitorMessage[];
+  viewerLocation: GeoCoordinates;
+}) {
   const [geojson, setGeojson] = useState<GeoJSON | null>(null);
 
   useEffect(() => {
@@ -51,7 +58,11 @@ export function VisitorGlobe({ messages }: { messages: VisitorMessage[] }) {
   return (
     <div className="relative h-full w-full">
       {geojson ? (
-        <Globe messages={messages} geojson={geojson} />
+        <Globe
+          messages={messages}
+          geojson={geojson}
+          viewerLocation={viewerLocation}
+        />
       ) : (
         <GlobePlaceholder />
       )}

@@ -7,6 +7,8 @@ export type GeoCoordinates = {
   city: string | null;
 };
 
+type GeoHeaders = Pick<Headers, "get">;
+
 /**
  * Resolve visitor coordinates from Vercel's trusted IP geolocation headers.
  *
@@ -22,7 +24,13 @@ export function resolveGeo(
   request: Request,
   environment: GeoEnvironment = process.env,
 ): GeoCoordinates {
-  const headers = request.headers;
+  return resolveGeoFromHeaders(request.headers, environment);
+}
+
+export function resolveGeoFromHeaders(
+  headers: GeoHeaders,
+  environment: GeoEnvironment = process.env,
+): GeoCoordinates {
   const latitude = headers.get("x-vercel-ip-latitude");
   const longitude = headers.get("x-vercel-ip-longitude");
 
@@ -48,7 +56,7 @@ export function resolveGeo(
   };
 }
 
-function header(headers: Headers, name: string): string | null {
+function header(headers: GeoHeaders, name: string): string | null {
   const value = headers.get(name)?.trim();
   return value || null;
 }
