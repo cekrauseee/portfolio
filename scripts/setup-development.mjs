@@ -17,6 +17,10 @@ import { parseEnv } from "node:util";
 const projectDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const envPath = resolve(projectDirectory, ".env.local");
 const localRedisUrl = "redis://127.0.0.1:6379";
+const localDatabaseUrl =
+  "postgres://portfolio:portfolio@127.0.0.1:5433/portfolio";
+const obsoleteLocalDatabaseUrl =
+  "postgres://portfolio:portfolio@127.0.0.1:5432/portfolio";
 const minimumNodeVersion = [22, 23, 2];
 const minimumSessionSecretLength = 32;
 
@@ -27,8 +31,8 @@ Usage:
   npm run setup
 
 Requires Node.js 22.23.2, Docker with Compose, and GITHUB_OWNER in .env.local.
-Installs the exact lockfile, starts local Redis, writes missing local protection
-values, and verifies the Redis adapter.`);
+Installs the exact lockfile, writes missing local service values, starts Redis
+and Postgres, verifies Redis, pushes the database schema, and seeds demo messages.`);
   process.exit(0);
 }
 
@@ -40,10 +44,15 @@ ensureLocalEnvValue("REDIS_URL", () => localRedisUrl);
 ensureLocalEnvValue("ANON_SESSION_SECRET", () =>
   randomBytes(48).toString("base64url"),
 );
+ensureLocalEnvValue("DATABASE_URL", () => localDatabaseUrl, [
+  obsoleteLocalDatabaseUrl,
+]);
 validateLocalProtectionConfiguration();
 chmodSync(envPath, 0o600);
-run("docker", ["compose", "up", "-d", "--wait", "redis"]);
+run("npm", ["run", "services:up"]);
 run("npm", ["run", "test:redis"]);
+run("npm", ["run", "db:push"]);
+run("npm", ["run", "db:seed"]);
 
 console.log("\nDevelopment setup complete.");
 console.log("Run npm run dev and open http://localhost:3000.");
@@ -121,9 +130,10 @@ function requireLocalOwner() {
   }
 }
 
-function ensureLocalEnvValue(name, createValue) {
+function ensureLocalEnvValue(name, createValue, replaceValues = []) {
   const current = readLocalEnv();
-  if (localEnvValue(name, current)) {
+  const localValue = localEnvValue(name, current);
+  if (localValue && !replaceValues.includes(localValue)) {
     return;
   }
 

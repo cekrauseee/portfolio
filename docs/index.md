@@ -11,4 +11,6 @@ Read only the documents relevant to the task.
 
 ## Modules
 
-The project has no subsystem that requires a separate module document.
+| Document                                            | Read when                                      |
+| --------------------------------------------------- | ---------------------------------------------- |
+| [Meeting scheduling](modules/meeting-scheduling.md) | Configuring Calendar OAuth or request handling |

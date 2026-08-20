@@ -34,6 +34,19 @@ jobs:
           --health-interval 2s
           --health-timeout 2s
           --health-retries 15
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: portfolio
+          POSTGRES_PASSWORD: portfolio
+          POSTGRES_DB: portfolio
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U portfolio -d portfolio"
+          --health-interval 2s
+          --health-timeout 2s
+          --health-retries 15
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -60,6 +73,12 @@ jobs:
         run: npm run test:redis
       - name: Validate production environment
         run: npm run env:validate
+      - name: Prepare and seed Postgres
+        env:
+          DATABASE_URL: postgres://portfolio:portfolio@127.0.0.1:5433/portfolio
+        run: |
+          npm run db:push
+          npm run db:seed
       - name: Validate Docker Compose
         run: docker compose config --quiet
       - name: Type-check

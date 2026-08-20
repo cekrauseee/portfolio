@@ -1,8 +1,15 @@
 #!/usr/bin/env node
 
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import nextEnv from "@next/env";
 import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { messages } from "../src/features/visitor-globe/db/schema.ts";
+
+const { loadEnvConfig } = nextEnv;
+const projectDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+loadEnvConfig(projectDir, process.env.NODE_ENV !== "production");
 
 const databaseUrl =
   process.env.DATABASE_URL ??
