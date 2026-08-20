@@ -54,13 +54,15 @@ export default function Home() {
           Assess my fit
         </Link>
 
-        <Link className={textLinkClassName} href="/guestbook">
-          Leave a message on the globe
-        </Link>
+        <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
+          <Link className={textLinkClassName} href="/schedule">
+            Schedule a conversation
+          </Link>
 
-        <Link className={textLinkClassName} href="/schedule">
-          Schedule a conversation
-        </Link>
+          <Link className={textLinkClassName} href="/guestbook">
+            Leave a message on the globe
+          </Link>
+        </div>
       </div>
 
       <ProjectList />
