@@ -8,9 +8,27 @@ code lives under `src/features`. Site identity is canonical in
 `src/config/site.ts`, while `src/content/portfolio.ts` adds profile details,
 social links, and the validated project snapshot.
 
-The home page and project case studies are React Server Components. Only the
-role-fit and meeting forms cross a client boundary. Project synchronization runs
+The home page and project case studies are React Server Components. Interactive
+forms and the visitor globe cross client boundaries. Project synchronization runs
 at development startup or build time and never during visitor requests.
+
+## Components
+
+| Path                                    | Responsibility                                                   |
+| --------------------------------------- | ---------------------------------------------------------------- |
+| `src/app`                               | Pages, Route Handlers, metadata, and global styles               |
+| `src/components`                        | Shared page shell, navigation, project list, and link primitives |
+| `src/features/role-fit`                 | Role-fit form, input parsing, prompt context, and OpenAI request |
+| `src/features/meeting-scheduling`       | Scheduling form, validation, calendar access, and notification   |
+| `src/features/visitor-globe`            | Moderated guestbook persistence, shared cache, and globe UI      |
+| `src/content/portfolio.ts`              | Profile, social links, and normalized project contract           |
+| `src/content/project.ts`                | Shared `Project` and `ProjectSection` types                      |
+| `src/content/github-projects.ts`        | Validated build-time snapshot loader                             |
+| `src/lib/redis.ts`                      | Shared local and production Redis client selection               |
+| `src/lib/abuse-protection.ts`           | Bot checks, identities, rate limits, locks, and deduplication    |
+| `scripts/sync-github-projects.mjs`      | Paginated GitHub reconciliation and atomic snapshot writer       |
+| `src/config/site.ts`                    | Site identity and canonical URL configuration                    |
+| `scripts/authorize-google-calendar.mjs` | Local Google Calendar OAuth authorization                        |
 
 ## Build-time project content
 
@@ -41,6 +59,20 @@ Missing or failed protection dependencies return `503` before OpenAI or Calendar
 is called. Temporary protection responses carry `Retry-After`; configuration
 errors do not, allowing the UI to distinguish retryable outages from deployment
 misconfiguration.
+
+## Visitor globe
+
+Approved visitor messages are persisted in Postgres and returned oldest first.
+A five-minute Redis snapshot caches the global message collection independently
+of the request-specific viewer location. Each Redis cache command has a short
+abortable deadline and does not retry, so a degraded cache cannot hold a
+visitor request indefinitely. Successful inserts advance a generation key, so
+concurrent readers cannot restore an obsolete snapshot after a write. Postgres
+remains authoritative: cache read and fill failures fall back to the database
+and never turn a committed message into a failed response. If cache
+invalidation fails after a successful insert, readers can continue serving the
+old snapshot until its five-minute TTL expires; the committed message is then
+included when that snapshot is replaced.
 
 ## Role-fit assessment
 
@@ -103,12 +135,22 @@ reproducible from the committed lockfile.
 ## Invariants
 
 - Visitor requests never call GitHub.
+- The home page remains a Server Component and does not require hydration.
+- Content changes belong in `src/content/portfolio.ts`, not duplicated across
+  components or prompts.
+- Shared UI belongs in `src/components`; capability-specific UI and integration
+  code belong in `src/features`.
 - Protected operations never continue without shared Redis storage.
-- Calendar replay never authorizes access based only on a slot or attendee email.
+- Visitor message caching fails open and keeps Postgres as its source of truth.
+- Calendar replay requires the original operation metadata and never authorizes
+  access based only on a slot or attendee email.
 - External work has deadlines shorter than the locks that serialize it.
 - Resend configuration is either complete or absent.
 - The Calendar event remains successful even when the optional extra email fails.
 - Site identity has one canonical public-name source.
 - Client-side JavaScript is limited to features that require browser state.
 - Internal navigation uses Next.js `Link`; external navigation uses safe native anchors.
+- Cards remain fully clickable and keyboard focus remains visible.
 - Mobile layout preserves keyboard focus, safe-area insets, and no horizontal overflow.
+- Component styling uses Tailwind utilities; global CSS stays limited to
+  application-wide tokens and defaults.

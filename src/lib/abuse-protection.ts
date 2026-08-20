@@ -1,7 +1,13 @@
-import { Redis } from "@upstash/redis";
 import { checkBotId } from "botid/server";
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
-import { createLocalRedisAdapter, type RedisAdapter } from "@/lib/local-redis";
+import type { RedisAdapter } from "@/lib/local-redis";
+import { redis } from "@/lib/redis";
+
+export {
+  resolveRedisConfiguration,
+  resolveRedisCredentials,
+  setRedisAdapterForTests,
+} from "@/lib/redis";
 
 export const LIMITS = {
   fit: {
@@ -30,57 +36,12 @@ export const BODY_LIMITS = {
 
 type Operation = keyof typeof LIMITS;
 type LimitScope = "session" | "ip";
-type RedisEnvironment = Record<string, string | undefined>;
 
 export class ProtectionUnavailableError extends Error {
   constructor() {
     super("Protection storage is unavailable.");
     this.name = "ProtectionUnavailableError";
   }
-}
-
-let redisInstance: RedisAdapter | undefined;
-let redisOverride: RedisAdapter | undefined;
-
-export function resolveRedisCredentials(
-  environment: RedisEnvironment = process.env,
-) {
-  const url = environment.KV_REST_API_URL?.trim();
-  const token = environment.KV_REST_API_TOKEN?.trim();
-  return url && token ? { url, token } : undefined;
-}
-
-export function resolveRedisConfiguration(
-  environment: RedisEnvironment = process.env,
-) {
-  const localUrl = environment.REDIS_URL?.trim();
-  if (environment.NODE_ENV !== "production" && localUrl) {
-    return { kind: "local" as const, url: localUrl };
-  }
-
-  const credentials = resolveRedisCredentials(environment);
-  return credentials ? { kind: "upstash" as const, ...credentials } : undefined;
-}
-
-/** Replace the Redis client for deterministic integration tests. */
-export function setRedisAdapterForTests(adapter?: RedisAdapter) {
-  redisOverride = adapter;
-  redisInstance = undefined;
-}
-
-function redis() {
-  if (redisOverride) {
-    return redisOverride;
-  }
-  const configuration = resolveRedisConfiguration();
-  if (!configuration) {
-    return undefined;
-  }
-
-  return (redisInstance ??=
-    configuration.kind === "local"
-      ? createLocalRedisAdapter(configuration.url)
-      : new Redis(configuration));
 }
 
 function sessionSecret() {

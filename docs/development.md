@@ -56,9 +56,15 @@ GitHub during visitor traffic. A valid empty snapshot is supported.
 ### Shared protection
 
 Local development uses `REDIS_URL`. Production ignores it and accepts only
-`KV_REST_API_URL` with `KV_REST_API_TOKEN`. The two public POST routes have no
-in-memory runtime fallback and return `503` before calling an external service
-when BotID, the signed-session secret, or shared storage is unavailable.
+`KV_REST_API_URL` with `KV_REST_API_TOKEN`. The public `POST /api/fit`,
+`POST /api/meetings`, and `POST /api/visitor-globe` routes have no in-memory
+runtime fallback and return `503` before calling an external service when BotID,
+the signed-session secret, or shared storage is unavailable.
+
+The guestbook also uses Redis for a five-minute global message snapshot. Cache
+commands have a short abortable deadline and do not retry. Read and fill failures
+fall back to Postgres. Failed invalidation can leave the old snapshot available
+until its TTL expires.
 
 `ANON_SESSION_SECRET` must contain at least 32 characters. `npm run setup`
 generates a longer local value. Redis keys contain HMAC-derived identities rather

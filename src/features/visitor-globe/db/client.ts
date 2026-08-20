@@ -6,6 +6,10 @@ import {
 } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { env } from "node:process";
+import {
+  advanceMessageCacheGeneration,
+  fetchCachedMessages,
+} from "@/features/visitor-globe/message-cache";
 import { messages } from "@/features/visitor-globe/db/schema";
 
 export type { Message, NewMessage } from "@/features/visitor-globe/db/schema";
@@ -94,8 +98,7 @@ export async function closeDatabase() {
   instance = undefined;
 }
 
-/** Fetch every visitor message for the globe, oldest first. */
-export async function fetchMessages(): Promise<VisitorMessage[]> {
+async function fetchMessagesFromDatabase(): Promise<VisitorMessage[]> {
   const db = database();
   if (!db) {
     return [];
@@ -118,6 +121,11 @@ export async function fetchMessages(): Promise<VisitorMessage[]> {
     latitude: Number(row.latitude),
     longitude: Number(row.longitude),
   }));
+}
+
+/** Fetch every visitor message, oldest first, through the shared Redis cache. */
+export async function fetchMessages(): Promise<VisitorMessage[]> {
+  return fetchCachedMessages(fetchMessagesFromDatabase);
 }
 
 /**
@@ -147,5 +155,6 @@ export async function createMessage(input: {
     })
     .returning({ id: messages.id });
 
+  await advanceMessageCacheGeneration();
   return row.id;
 }
