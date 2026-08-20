@@ -5,6 +5,7 @@ import { linkFocusClassName } from "@/components/links";
 import { site } from "@/config/site";
 import { fetchMessages } from "@/features/visitor-globe/db/client";
 import { resolveGeoFromHeaders } from "@/features/visitor-globe/geo";
+import { COUNTRIES_GEOJSON_URL } from "@/features/visitor-globe/globe-data";
 import { VisitorGlobe } from "@/features/visitor-globe/visitor-globe";
 
 const path = "/guestbook";
@@ -37,6 +38,12 @@ export default async function GuestbookPage() {
 
   return (
     <main className="bg-background fixed inset-0">
+      <link
+        rel="preload"
+        href={COUNTRIES_GEOJSON_URL}
+        as="fetch"
+        crossOrigin="anonymous"
+      />
       <VisitorGlobe messages={messages} viewerLocation={viewerLocation} />
 
       <Link

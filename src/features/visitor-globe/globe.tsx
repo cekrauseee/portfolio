@@ -33,7 +33,9 @@ function latLonToVector3(lat: number, lon: number, radius: number) {
 }
 
 function useMediaQuery(query: string) {
-  const [matches, setMatches] = useState(false);
+  const [matches, setMatches] = useState(
+    () => window.matchMedia(query).matches,
+  );
 
   useEffect(() => {
     const mediaQuery = window.matchMedia(query);
@@ -67,26 +69,56 @@ function clusterPoints(points: GlobePoint[], radius: number): GlobePoint[] {
     return points;
   }
 
-  const clusters: GlobePoint[][] = [];
-  const assigned = new Set<string>();
+  const cellKey = (position: THREE.Vector3) =>
+    `${Math.floor(position.x / CLUSTER_THRESHOLD)},${Math.floor(position.y / CLUSTER_THRESHOLD)},${Math.floor(position.z / CLUSTER_THRESHOLD)}`;
+  const grid = new Map<string, number[]>();
 
-  for (const point of points) {
-    if (assigned.has(point.id)) {
-      continue;
+  points.forEach((point, index) => {
+    const key = cellKey(point.position);
+    const cell = grid.get(key);
+    if (cell) {
+      cell.push(index);
+    } else {
+      grid.set(key, [index]);
     }
-    const cluster = [point];
-    assigned.add(point.id);
-    for (const other of points) {
-      if (assigned.has(other.id)) {
-        continue;
-      }
-      if (point.position.distanceTo(other.position) < CLUSTER_THRESHOLD) {
-        cluster.push(other);
-        assigned.add(other.id);
+  });
+
+  const clusters: GlobePoint[][] = [];
+  const assigned = new Set<number>();
+
+  points.forEach((point, pointIndex) => {
+    if (assigned.has(pointIndex)) {
+      return;
+    }
+
+    const originX = Math.floor(point.position.x / CLUSTER_THRESHOLD);
+    const originY = Math.floor(point.position.y / CLUSTER_THRESHOLD);
+    const originZ = Math.floor(point.position.z / CLUSTER_THRESHOLD);
+    const nearbyIndexes: number[] = [];
+
+    for (let x = originX - 1; x <= originX + 1; x++) {
+      for (let y = originY - 1; y <= originY + 1; y++) {
+        for (let z = originZ - 1; z <= originZ + 1; z++) {
+          nearbyIndexes.push(...(grid.get(`${x},${y},${z}`) ?? []));
+        }
       }
     }
+
+    const cluster = nearbyIndexes
+      .filter(
+        (otherIndex) =>
+          !assigned.has(otherIndex) &&
+          point.position.distanceTo(points[otherIndex].position) <
+            CLUSTER_THRESHOLD,
+      )
+      .sort((a, b) => a - b)
+      .map((index) => {
+        assigned.add(index);
+        return points[index];
+      });
+
     clusters.push(cluster);
-  }
+  });
 
   return clusters.map((cluster) => {
     if (cluster.length === 1) {
@@ -155,6 +187,21 @@ function useCountryBorders(radius: number, geojson?: GeoJSON) {
 const GLOBE_RADIUS = 1;
 const MARKER_RADIUS = GLOBE_RADIUS + 0.004;
 const POINT_HIT_RADIUS = 0.06;
+const POINT_HIT_GEOMETRY = new THREE.SphereGeometry(POINT_HIT_RADIUS, 8, 8);
+const POINT_MARKER_GEOMETRY = new THREE.CircleGeometry(0.009, 16);
+const POINT_HIT_MATERIAL = new THREE.MeshBasicMaterial({
+  transparent: true,
+  opacity: 0,
+  depthWrite: false,
+});
+const POINT_MARKER_LIGHT_MATERIAL = new THREE.MeshBasicMaterial({
+  color: "#1f1f1f",
+  side: THREE.DoubleSide,
+});
+const POINT_MARKER_DARK_MATERIAL = new THREE.MeshBasicMaterial({
+  color: "#ffffff",
+  side: THREE.DoubleSide,
+});
 const WHEEL_ROTATION_SPEED = 0.004;
 const MAX_WHEEL_DELTA = 80;
 const MIN_POLAR_ANGLE = 0.15;
@@ -162,8 +209,6 @@ const MAX_POLAR_ANGLE = Math.PI - MIN_POLAR_ANGLE;
 const INTERACTION_IDLE_DELAY = 1200;
 const HOVER_EXIT_DELAY = 140;
 const CENTER_ANIMATION_DURATION = 900;
-const MESSAGE_MARKER_LIGHT = "#1f1f1f";
-const MESSAGE_MARKER_DARK = "#ffffff";
 const LOCATION_MARKER_LIGHT = "#2563eb";
 const LOCATION_MARKER_DARK = "#60a5fa";
 const GLOBE_OCCLUSION_SPHERE = new THREE.Sphere(
@@ -197,7 +242,7 @@ function GlobeSphere({
 }) {
   return (
     <mesh onPointerOver={onPointerOver} onPointerOut={onPointerOut}>
-      <sphereGeometry args={[GLOBE_RADIUS, 64, 64]} />
+      <sphereGeometry args={[GLOBE_RADIUS, 48, 48]} />
       <meshBasicMaterial
         color={isDark ? "#0d0d0d" : "#f3f3f3"}
         side={THREE.FrontSide}
@@ -278,7 +323,7 @@ function MessagePoints({
   }
 
   return (
-    <group>
+    <group dispose={null}>
       {points.map((point) => {
         const quaternion = new THREE.Quaternion().setFromUnitVectors(
           new THREE.Vector3(0, 0, 1),
@@ -293,21 +338,23 @@ function MessagePoints({
           >
             {/* Invisible larger hit area for easier interaction */}
             <mesh
+              geometry={POINT_HIT_GEOMETRY}
+              material={POINT_HIT_MATERIAL}
               userData={{ pointId: point.id }}
               onPointerOver={handlePointerOver(point)}
               onPointerOut={handlePointerOut}
               onClick={handleClick(point)}
-            >
-              <sphereGeometry args={[POINT_HIT_RADIUS, 10, 10]} />
-              <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-            </mesh>
-            <mesh position={[0, 0, 0.001]} raycast={() => null}>
-              <circleGeometry args={[0.009, 20]} />
-              <meshBasicMaterial
-                color={isDark ? MESSAGE_MARKER_DARK : MESSAGE_MARKER_LIGHT}
-                side={THREE.DoubleSide}
-              />
-            </mesh>
+            />
+            <mesh
+              geometry={POINT_MARKER_GEOMETRY}
+              material={
+                isDark
+                  ? POINT_MARKER_DARK_MATERIAL
+                  : POINT_MARKER_LIGHT_MATERIAL
+              }
+              position={[0, 0, 0.001]}
+              raycast={() => null}
+            />
           </group>
         );
       })}
@@ -414,16 +461,32 @@ function AtmosphereGlow({ isDark }: { isDark: boolean }) {
   );
 }
 
+function FirstFrame({ onReady }: { onReady: () => void }) {
+  const reported = useRef(false);
+
+  useFrame(() => {
+    if (reported.current) {
+      return;
+    }
+    reported.current = true;
+    window.setTimeout(onReady, 0);
+  });
+
+  return null;
+}
+
 export type { GlobePoint };
 
 export function Globe({
   messages,
   geojson,
   viewerLocation,
+  onReady,
 }: {
   messages: VisitorMessage[];
   geojson?: GeoJSON;
   viewerLocation: GeoCoordinates;
+  onReady: () => void;
 }) {
   const [hoveredPoint, setHoveredPoint] = useState<GlobePoint | null>(null);
   const [selectedPoint, setSelectedPoint] = useState<GlobePoint | null>(null);
@@ -683,9 +746,10 @@ export function Globe({
       >
         <Canvas
           camera={{ position: initialCameraPosition, fov: 45 }}
-          dpr={[1, 2]}
+          dpr={[1, 1.5]}
           gl={{ antialias: true, alpha: true }}
         >
+          <FirstFrame onReady={onReady} />
           <ambientLight intensity={1} />
           <group>
             <GlobeSphere

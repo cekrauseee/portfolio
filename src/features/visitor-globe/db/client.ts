@@ -18,7 +18,6 @@ export type VisitorMessage = {
   longitude: number;
   country: string | null;
   city: string | null;
-  createdAt: string;
 };
 
 type Database = NodePgDatabase<{ messages: typeof messages }>;
@@ -95,30 +94,29 @@ export async function closeDatabase() {
   instance = undefined;
 }
 
-/**
- * Fetch visitor messages for the globe, oldest first, bounded to keep the
- * payload small.
- */
-export async function fetchMessages(limit = 200): Promise<VisitorMessage[]> {
+/** Fetch every visitor message for the globe, oldest first. */
+export async function fetchMessages(): Promise<VisitorMessage[]> {
   const db = database();
   if (!db) {
     return [];
   }
   const rows = await db
-    .select()
+    .select({
+      id: messages.id,
+      name: messages.name,
+      message: messages.message,
+      latitude: messages.latitude,
+      longitude: messages.longitude,
+      country: messages.country,
+      city: messages.city,
+    })
     .from(messages)
-    .orderBy(messages.createdAt)
-    .limit(limit);
+    .orderBy(messages.createdAt);
 
   return rows.map((row) => ({
-    id: row.id,
-    name: row.name,
-    message: row.message,
+    ...row,
     latitude: Number(row.latitude),
     longitude: Number(row.longitude),
-    country: row.country,
-    city: row.city,
-    createdAt: row.createdAt.toISOString(),
   }));
 }
 
