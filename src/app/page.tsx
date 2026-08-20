@@ -54,6 +54,10 @@ export default function Home() {
           Assess my fit
         </Link>
 
+        <Link className={textLinkClassName} href="/guestbook">
+          Leave a message on the globe
+        </Link>
+
         <Link className={textLinkClassName} href="/schedule">
           Schedule a conversation
         </Link>

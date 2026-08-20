@@ -1,0 +1,119 @@
+import {
+  json,
+  protect,
+  readJson,
+  unavailable,
+  withSession,
+} from "@/lib/abuse-protection";
+import {
+  MAX_MESSAGE_LENGTH,
+  MAX_NAME_LENGTH,
+  moderateMessage,
+  validateSubmission,
+} from "@/features/visitor-globe/moderate-message";
+import { resolveGeo } from "@/features/visitor-globe/geo";
+import { createMessage } from "@/features/visitor-globe/db/client";
+
+export const runtime = "nodejs";
+
+type VisitorGlobeDependencies = {
+  protect: typeof protect;
+  readJson: typeof readJson;
+  moderateMessage: typeof moderateMessage;
+  resolveGeo: typeof resolveGeo;
+  createMessage: typeof createMessage;
+};
+
+const defaultDependencies: VisitorGlobeDependencies = {
+  protect,
+  readJson,
+  moderateMessage,
+  resolveGeo,
+  createMessage,
+};
+
+export function createVisitorGlobePost(
+  overrides: Partial<VisitorGlobeDependencies> = {},
+) {
+  const dependencies = { ...defaultDependencies, ...overrides };
+
+  return async function POST(request: Request) {
+    const protection = await dependencies.protect("visitorGlobe", request);
+    if (protection instanceof Response) {
+      return protection;
+    }
+
+    const parsed = await dependencies.readJson(request, "visitorGlobe");
+    if (parsed.response) {
+      return withSession(parsed.response, protection.sessionCookie);
+    }
+
+    const submission = validateSubmission(parsed.body);
+    if (!submission.name || !submission.message) {
+      return withSession(
+        json(
+          {
+            error: `Provide a name (up to ${MAX_NAME_LENGTH} characters) and a message (up to ${MAX_MESSAGE_LENGTH} characters).`,
+          },
+          400,
+        ),
+        protection.sessionCookie,
+      );
+    }
+
+    if (!process.env.OPENAI_API_KEY) {
+      return withSession(
+        json({ error: "The visitor globe is not configured yet." }, 503),
+        protection.sessionCookie,
+      );
+    }
+
+    const geo = dependencies.resolveGeo(request);
+
+    const moderation = await dependencies.moderateMessage(
+      submission.name,
+      submission.message,
+      protection.identity,
+    );
+
+    // Fail closed: if the guardrail cannot classify, do not persist.
+    if (!moderation) {
+      return withSession(unavailable(), protection.sessionCookie);
+    }
+
+    if (!moderation.approved) {
+      return withSession(
+        json(
+          {
+            error:
+              "Your message could not be published. Please keep it respectful and relevant.",
+          },
+          422,
+        ),
+        protection.sessionCookie,
+      );
+    }
+
+    try {
+      await dependencies.createMessage({
+        name: submission.name,
+        message: submission.message,
+        latitude: geo.latitude,
+        longitude: geo.longitude,
+        country: geo.country,
+        city: geo.city,
+      });
+      return withSession(
+        Response.json({ ok: true }, { status: 201 }),
+        protection.sessionCookie,
+      );
+    } catch {
+      return withSession(
+        json({ error: "Unable to publish your message right now." }, 502),
+        protection.sessionCookie,
+      );
+    }
+  };
+}
+
+export const POST = createVisitorGlobePost();

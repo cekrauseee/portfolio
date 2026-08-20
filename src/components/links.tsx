@@ -11,6 +11,8 @@ export const actionClassName = `${linkFocusClassName} inline-flex w-fit cursor-p
 
 export const mutedTextLinkClassName = `${linkFocusClassName} text-black/70 underline decoration-black/30 underline-offset-4 hover:text-black dark:text-white/75 dark:decoration-white/30 dark:hover:text-white`;
 
+export const mutedButtonClassName = `${mutedTextLinkClassName} cursor-pointer`;
+
 export function ExternalLink({
   children,
   className,

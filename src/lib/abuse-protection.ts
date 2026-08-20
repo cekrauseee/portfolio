@@ -14,10 +14,19 @@ export const LIMITS = {
     ip: { window: 15, day: 50 },
     windowSeconds: 600,
   },
+  visitorGlobe: {
+    session: { window: 3, day: 10 },
+    ip: { window: 15, day: 50 },
+    windowSeconds: 600,
+  },
 } as const;
 
 // A 16,000-character role description can exceed 64 KiB once encoded as JSON.
-export const BODY_LIMITS = { fit: 128 * 1024, meetings: 8 * 1024 } as const;
+export const BODY_LIMITS = {
+  fit: 128 * 1024,
+  meetings: 8 * 1024,
+  visitorGlobe: 4 * 1024,
+} as const;
 
 type Operation = keyof typeof LIMITS;
 type LimitScope = "session" | "ip";
