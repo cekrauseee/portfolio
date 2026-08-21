@@ -105,3 +105,32 @@ test("guestbook endpoint distinguishes missing configuration from temporary fail
     restore("OPENAI_API_KEY", previousApiKey);
   }
 });
+
+test("guestbook endpoint rejects missing geo before moderation or persistence", async () => {
+  const previousApiKey = process.env.OPENAI_API_KEY;
+  process.env.OPENAI_API_KEY = "test-openai-key";
+  let moderated = false;
+  let created = false;
+  try {
+    const response = await createGuestbookPost(
+      dependencies({
+        resolveGeo: () => null,
+        moderateMessage: async () => {
+          moderated = true;
+          return { approved: true };
+        },
+        createMessage: async () => {
+          created = true;
+          return "message-id";
+        },
+      }),
+    )(request());
+    assert.equal(response.status, 503);
+    assert.equal(response.headers.get("Retry-After"), null);
+    assert.match(response.headers.get("Set-Cookie") ?? "", /signed-session/);
+    assert.equal(moderated, false);
+    assert.equal(created, false);
+  } finally {
+    restore("OPENAI_API_KEY", previousApiKey);
+  }
+});

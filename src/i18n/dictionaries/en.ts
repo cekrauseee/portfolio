@@ -112,6 +112,11 @@ export const en: Dictionary = {
       leaveMessage: "Leave a message",
       centerGlobe: "Center globe",
       centering: "Centering…",
+      useMyLocation: "Use my location",
+      requestingLocation: "Finding your location…",
+      locationDenied:
+        "Location access was denied. Check your browser permissions or settings.",
+      locationUnavailable: "Location is unavailable. You can try again.",
       messageCountOne: "{count} message",
       messageCountMany: "{count} messages",
       visitorMessages: "Visitor messages",

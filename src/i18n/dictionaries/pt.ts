@@ -119,6 +119,11 @@ export const pt: Dictionary = {
       leaveMessage: "Deixar uma mensagem",
       centerGlobe: "Centralizar globo",
       centering: "Centralizando…",
+      useMyLocation: "Usar minha localização",
+      requestingLocation: "Buscando sua localização…",
+      locationDenied:
+        "O acesso à localização foi negado. Verifique as permissões ou configurações do navegador.",
+      locationUnavailable: "A localização está indisponível. Tente novamente.",
       messageCountOne: "{count} mensagem",
       messageCountMany: "{count} mensagens",
       visitorMessages: "Mensagens de visitantes",

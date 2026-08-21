@@ -163,7 +163,7 @@ export function Globe({
 }: {
   messages: GuestbookMessage[];
   geojson?: GeoJSON;
-  viewerLocation: GeoCoordinates;
+  viewerLocation: GeoCoordinates | null;
   onReady: () => void;
   locale: Locale;
   dictionary: Dictionary["guestbook"]["globe"];
@@ -175,8 +175,14 @@ export function Globe({
   const [isPointerOverGlobe, setIsPointerOverGlobe] = useState(false);
   const [isUserInteracting, setIsUserInteracting] = useState(false);
   const [isCentering, setIsCentering] = useState(false);
+  const [viewerLocationState, setViewerLocationState] =
+    useState<GeoCoordinates | null>(viewerLocation);
+  const [locationRequest, setLocationRequest] = useState<
+    "idle" | "requesting" | "denied" | "unavailable"
+  >("idle");
   const controlsRef = useRef<OrbitControlsImpl>(null);
   const centerAnimationRef = useRef<number | undefined>(undefined);
+  const automaticLocationCheckRef = useRef(false);
   const interactionTimerRef = useRef<number | undefined>(undefined);
   const hoverExitTimerRef = useRef<number | undefined>(undefined);
   const tooltipPortalRef = useRef<HTMLDivElement>(null!);
@@ -185,12 +191,15 @@ export function Globe({
   const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const initialCameraPosition = useMemo(
     () =>
-      latLonToVector3(
-        viewerLocation.latitude,
-        viewerLocation.longitude,
-        3,
+      (viewerLocationState
+        ? latLonToVector3(
+            viewerLocationState.latitude,
+            viewerLocationState.longitude,
+            3,
+          )
+        : new THREE.Vector3(0, 0, 3)
       ).toArray() as [number, number, number],
-    [viewerLocation.latitude, viewerLocation.longitude],
+    [viewerLocationState],
   );
 
   const points = useMemo(() => {
@@ -242,68 +251,142 @@ export function Globe({
     }, INTERACTION_IDLE_DELAY);
   }, [cancelCentering]);
 
-  const centerOnViewer = useCallback(() => {
-    const controls = controlsRef.current;
-    if (!controls) {
-      return;
-    }
-
-    cancelCentering();
-    setSelectedPoint(null);
-    setHoveredPoint(null);
-    setIsCentering(true);
-    setIsUserInteracting(true);
-    if (interactionTimerRef.current !== undefined) {
-      window.clearTimeout(interactionTimerRef.current);
-      interactionTimerRef.current = undefined;
-    }
-
-    const target = viewAnglesForLocation(viewerLocation);
-    const startPolar = controls.getPolarAngle();
-    const startAzimuthal = controls.getAzimuthalAngle();
-    const azimuthalDelta = shortestAngleDelta(startAzimuthal, target.azimuthal);
-
-    const finish = () => {
-      controls.setPolarAngle(target.polar);
-      controls.setAzimuthalAngle(target.azimuthal);
-      controls.enableDamping = true;
-      centerAnimationRef.current = undefined;
-      setIsCentering(false);
-      interactionTimerRef.current = window.setTimeout(() => {
-        setIsUserInteracting(false);
-        interactionTimerRef.current = undefined;
-      }, INTERACTION_IDLE_DELAY);
-    };
-
-    if (reduceMotion) {
-      finish();
-      return;
-    }
-
-    controls.enableDamping = false;
-    const startedAt = performance.now();
-    const animate = (now: number) => {
-      const progress = Math.min(
-        (now - startedAt) / CENTER_ANIMATION_DURATION,
-        1,
-      );
-      const easedProgress = easeInOutCubic(progress);
-      controls.setPolarAngle(
-        THREE.MathUtils.lerp(startPolar, target.polar, easedProgress),
-      );
-      controls.setAzimuthalAngle(
-        startAzimuthal + azimuthalDelta * easedProgress,
-      );
-
-      if (progress < 1) {
-        centerAnimationRef.current = window.requestAnimationFrame(animate);
-      } else {
-        finish();
+  const centerOnLocation = useCallback(
+    (location: GeoCoordinates) => {
+      const controls = controlsRef.current;
+      if (!controls) {
+        return;
       }
-    };
 
-    centerAnimationRef.current = window.requestAnimationFrame(animate);
-  }, [cancelCentering, reduceMotion, viewerLocation]);
+      cancelCentering();
+      setSelectedPoint(null);
+      setHoveredPoint(null);
+      setIsCentering(true);
+      setIsUserInteracting(true);
+      if (interactionTimerRef.current !== undefined) {
+        window.clearTimeout(interactionTimerRef.current);
+        interactionTimerRef.current = undefined;
+      }
+
+      const target = viewAnglesForLocation(location);
+      const startPolar = controls.getPolarAngle();
+      const startAzimuthal = controls.getAzimuthalAngle();
+      const azimuthalDelta = shortestAngleDelta(
+        startAzimuthal,
+        target.azimuthal,
+      );
+
+      const finish = () => {
+        controls.setPolarAngle(target.polar);
+        controls.setAzimuthalAngle(target.azimuthal);
+        controls.enableDamping = true;
+        centerAnimationRef.current = undefined;
+        setIsCentering(false);
+        interactionTimerRef.current = window.setTimeout(() => {
+          setIsUserInteracting(false);
+          interactionTimerRef.current = undefined;
+        }, INTERACTION_IDLE_DELAY);
+      };
+
+      if (reduceMotion) {
+        finish();
+        return;
+      }
+
+      controls.enableDamping = false;
+      const startedAt = performance.now();
+      const animate = (now: number) => {
+        const progress = Math.min(
+          (now - startedAt) / CENTER_ANIMATION_DURATION,
+          1,
+        );
+        const easedProgress = easeInOutCubic(progress);
+        controls.setPolarAngle(
+          THREE.MathUtils.lerp(startPolar, target.polar, easedProgress),
+        );
+        controls.setAzimuthalAngle(
+          startAzimuthal + azimuthalDelta * easedProgress,
+        );
+
+        if (progress < 1) {
+          centerAnimationRef.current = window.requestAnimationFrame(animate);
+        } else {
+          finish();
+        }
+      };
+
+      centerAnimationRef.current = window.requestAnimationFrame(animate);
+    },
+    [cancelCentering, reduceMotion],
+  );
+
+  const centerOnViewer = useCallback(() => {
+    if (viewerLocationState) {
+      centerOnLocation(viewerLocationState);
+    }
+  }, [centerOnLocation, viewerLocationState]);
+
+  const requestCurrentLocation = useCallback(() => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const location: GeoCoordinates = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          country: null,
+          city: null,
+        };
+        setViewerLocationState(location);
+        setLocationRequest("idle");
+        centerOnLocation(location);
+      },
+      (error) => {
+        setLocationRequest(error.code === 1 ? "denied" : "unavailable");
+      },
+      { enableHighAccuracy: false, timeout: 10_000, maximumAge: 300_000 },
+    );
+  }, [centerOnLocation]);
+
+  const requestViewerLocation = useCallback(() => {
+    if (locationRequest === "requesting") {
+      return;
+    }
+    if (!navigator.geolocation) {
+      setLocationRequest("unavailable");
+      return;
+    }
+    setLocationRequest("requesting");
+    requestCurrentLocation();
+  }, [locationRequest, requestCurrentLocation]);
+
+  useEffect(() => {
+    if (viewerLocationState || automaticLocationCheckRef.current) {
+      return;
+    }
+
+    if (!navigator.permissions?.query || !navigator.geolocation) {
+      return;
+    }
+
+    let cancelled = false;
+    void Promise.resolve()
+      .then(() => navigator.permissions.query({ name: "geolocation" }))
+      .then((permission) => {
+        if (
+          !cancelled &&
+          permission.state === "granted" &&
+          !automaticLocationCheckRef.current
+        ) {
+          automaticLocationCheckRef.current = true;
+          setLocationRequest("requesting");
+          requestCurrentLocation();
+        }
+      })
+      .catch(() => undefined);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [requestCurrentLocation, viewerLocationState]);
 
   const handleWheel = useCallback(
     (event: React.WheelEvent<HTMLDivElement>) => {
@@ -366,6 +449,8 @@ export function Globe({
   }, []);
 
   const isExploringPoint = hoveredPoint !== null || selectedPoint !== null;
+  const hasLocationError =
+    locationRequest === "denied" || locationRequest === "unavailable";
 
   const closeMessages = useCallback(() => {
     const restoreMessageIndexFocus = selectedPoint?.id === "all-messages";
@@ -445,11 +530,13 @@ export function Globe({
               onHover={handlePointHover}
               onSelect={setSelectedPoint}
             />
-            <ViewerLocationMarker
-              location={viewerLocation}
-              isDark={isDark}
-              reduceMotion={reduceMotion}
-            />
+            {viewerLocationState ? (
+              <ViewerLocationMarker
+                location={viewerLocationState}
+                isDark={isDark}
+                reduceMotion={reduceMotion}
+              />
+            ) : null}
             {hoveredPoint ? (
               <Html
                 position={hoveredPoint.position.toArray()}
@@ -490,17 +577,48 @@ export function Globe({
       </div>
 
       <div className="pointer-events-none absolute [inset-inline-start:calc(1rem+env(safe-area-inset-left))] [inset-inline-end:calc(1rem+env(safe-area-inset-right))] bottom-[calc(1rem+env(safe-area-inset-bottom))] z-20 flex items-end justify-between gap-4">
-        <button
-          type="button"
-          className={`${mutedButtonClassName} pointer-events-auto inline-flex min-h-10 items-center text-sm`}
-          onClick={centerOnViewer}
-        >
-          {isCentering ? dictionary.centering : dictionary.centerGlobe}
-        </button>
+        <div className="pointer-events-auto flex min-w-0 flex-col items-start gap-1">
+          <button
+            type="button"
+            className={`${mutedButtonClassName} inline-flex min-h-10 items-center text-sm disabled:cursor-wait disabled:opacity-60`}
+            onClick={
+              viewerLocationState ? centerOnViewer : requestViewerLocation
+            }
+            disabled={locationRequest === "requesting"}
+            aria-busy={locationRequest === "requesting"}
+          >
+            {locationRequest === "requesting"
+              ? dictionary.requestingLocation
+              : isCentering
+                ? dictionary.centering
+                : viewerLocationState
+                  ? dictionary.centerGlobe
+                  : dictionary.useMyLocation}
+          </button>
+        </div>
         <div className="pointer-events-auto shrink-0">{primaryAction}</div>
       </div>
 
-      {messages.length > 0 && !selectedPoint ? (
+      <p className="sr-only" role="status" aria-live="polite">
+        {hasLocationError
+          ? locationRequest === "denied"
+            ? dictionary.locationDenied
+            : dictionary.locationUnavailable
+          : ""}
+      </p>
+
+      {hasLocationError ? (
+        <p
+          className="pointer-events-none absolute bottom-[calc(4.5rem+env(safe-area-inset-bottom))] left-1/2 z-20 w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 text-center text-sm text-black/60 dark:text-white/65 [@media(min-width:40rem)]:bottom-[calc(1rem+env(safe-area-inset-bottom))]"
+          aria-hidden="true"
+        >
+          {locationRequest === "denied"
+            ? dictionary.locationDenied
+            : dictionary.locationUnavailable}
+        </p>
+      ) : null}
+
+      {messages.length > 0 && !selectedPoint && !hasLocationError ? (
         <button
           ref={messageIndexRef}
           type="button"

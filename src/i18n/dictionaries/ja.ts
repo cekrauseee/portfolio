@@ -114,6 +114,11 @@ export const ja: Dictionary = {
       leaveMessage: "メッセージを残す",
       centerGlobe: "地球儀を中央に戻す",
       centering: "中央に移動中…",
+      useMyLocation: "現在地を使う",
+      requestingLocation: "現在地を確認中…",
+      locationDenied:
+        "位置情報へのアクセスが拒否されました。ブラウザの権限または設定を確認してください。",
+      locationUnavailable: "位置情報を利用できません。もう一度お試しください。",
       messageCountOne: "{count}件のメッセージ",
       messageCountMany: "{count}件のメッセージ",
       visitorMessages: "訪問者からのメッセージ",

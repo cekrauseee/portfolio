@@ -47,7 +47,7 @@ export function GuestbookGlobe({
   dictionary,
 }: {
   messages: GuestbookMessage[];
-  viewerLocation: GeoCoordinates;
+  viewerLocation: GeoCoordinates | null;
   locale: Locale;
   dictionary: Dictionary["guestbook"];
 }) {

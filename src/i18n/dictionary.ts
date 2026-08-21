@@ -108,6 +108,10 @@ export type Dictionary = {
       leaveMessage: string;
       centerGlobe: string;
       centering: string;
+      useMyLocation: string;
+      requestingLocation: string;
+      locationDenied: string;
+      locationUnavailable: string;
       messageCountOne: string;
       messageCountMany: string;
       visitorMessages: string;
