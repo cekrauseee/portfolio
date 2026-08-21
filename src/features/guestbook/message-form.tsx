@@ -3,7 +3,7 @@
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { retryMessage, shouldUseRetryMessage } from "@/lib/retry-message";
-import { actionClassName } from "@/components/links";
+import { actionClassName, focusVisibleClassName } from "@/components/links";
 import {
   MAX_MESSAGE_LENGTH,
   MAX_NAME_LENGTH,
@@ -103,8 +103,7 @@ export function MessageForm({ onSubmitted }: { onSubmitted?: () => void }) {
     }
   }
 
-  const inputClass =
-    "w-full border border-black/20 bg-transparent px-3 py-3 text-base leading-6 text-foreground outline-none placeholder:text-black/45 focus:border-black dark:border-white/25 dark:placeholder:text-white/45 dark:focus:border-white";
+  const inputClass = `w-full border border-black/20 bg-transparent px-3 py-3 text-base leading-6 text-foreground outline-none placeholder:text-black/45 focus:border-black dark:border-white/25 dark:placeholder:text-white/45 dark:focus:border-white ${focusVisibleClassName}`;
 
   const field = (name: FieldName, label: string, control: React.ReactNode) => (
     <div className="flex flex-col gap-2">
@@ -139,7 +138,7 @@ export function MessageForm({ onSubmitted }: { onSubmitted?: () => void }) {
             value={fields.name}
             aria-invalid={Boolean(errors.name)}
             aria-describedby={errors.name ? "globe-name-error" : undefined}
-            placeholder="Your name"
+            placeholder="Alex Morgan"
           />,
         )}
         {field(
@@ -157,7 +156,7 @@ export function MessageForm({ onSubmitted }: { onSubmitted?: () => void }) {
             aria-describedby={
               errors.message ? "globe-message-error" : undefined
             }
-            placeholder="Leave a message for everyone to see"
+            placeholder="I would love to learn more about your work."
           />,
         )}
         {generalError ? (

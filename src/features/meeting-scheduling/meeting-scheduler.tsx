@@ -2,7 +2,11 @@
 
 import type { FormEvent } from "react";
 import { useRef, useState } from "react";
-import { actionClassName, ExternalLink } from "@/components/links";
+import {
+  actionClassName,
+  ExternalLink,
+  focusVisibleClassName,
+} from "@/components/links";
 import { retryMessage, shouldUseRetryMessage } from "@/lib/retry-message";
 
 type FieldName = "name" | "email" | "date" | "time";
@@ -273,8 +277,7 @@ export function MeetingScheduler() {
     </div>
   );
 
-  const inputClass =
-    "w-full border border-black/20 bg-transparent px-3 py-3 text-base leading-6 outline-none placeholder:text-black/45 focus:border-black dark:border-white/25 dark:placeholder:text-white/45 dark:focus:border-white";
+  const inputClass = `w-full border border-black/20 bg-transparent px-3 py-3 text-base leading-6 outline-none placeholder:text-black/45 focus:border-black dark:border-white/25 dark:placeholder:text-white/45 dark:focus:border-white ${focusVisibleClassName}`;
   return (
     <div>
       <form className="flex flex-col gap-5" onSubmit={handleSubmit} noValidate>
@@ -287,6 +290,7 @@ export function MeetingScheduler() {
             id="meeting-name"
             name="name"
             onChange={(event) => updateField("name", event.target.value)}
+            placeholder="Alex Morgan"
             value={fields.name}
             aria-invalid={Boolean(errors.name)}
             aria-describedby={errors.name ? "meeting-name-error" : undefined}
@@ -302,6 +306,7 @@ export function MeetingScheduler() {
             name="email"
             type="email"
             onChange={(event) => updateField("email", event.target.value)}
+            placeholder="alex@example.com"
             value={fields.email}
             aria-invalid={Boolean(errors.email)}
             aria-describedby={errors.email ? "meeting-email-error" : undefined}
@@ -340,7 +345,7 @@ export function MeetingScheduler() {
                 errors.time ? "meeting-time-error" : "meeting-time-hint"
               }
             >
-              <option value="">Select a time</option>
+              <option value="">Choose a time</option>
               {times.map((time) => (
                 <option key={time} value={time}>
                   {time}

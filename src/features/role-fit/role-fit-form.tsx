@@ -3,7 +3,7 @@
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { actionClassName } from "@/components/links";
+import { actionClassName, focusVisibleClassName } from "@/components/links";
 import { MAX_ROLE_DESCRIPTION_LENGTH } from "@/features/role-fit/constants";
 import { retryMessage, shouldUseRetryMessage } from "@/lib/retry-message";
 
@@ -159,7 +159,7 @@ export function RoleFitForm() {
               error ? "role-description-error" : "role-description-hint"
             }
             aria-invalid={Boolean(error)}
-            className="min-h-52 w-full resize-y border border-black/20 bg-transparent px-3 py-3 text-base leading-6 outline-none placeholder:text-black/45 focus:border-black dark:border-white/25 dark:placeholder:text-white/45 dark:focus:border-white"
+            className={`min-h-52 w-full resize-y border border-black/20 bg-transparent px-3 py-3 text-base leading-6 outline-none placeholder:text-black/45 focus:border-black dark:border-white/25 dark:placeholder:text-white/45 dark:focus:border-white ${focusVisibleClassName}`}
             disabled={isBusy}
             id="role-description"
             maxLength={MAX_ROLE_DESCRIPTION_LENGTH}
@@ -170,7 +170,7 @@ export function RoleFitForm() {
                 setError("");
               }
             }}
-            placeholder="Paste the role description."
+            placeholder="Senior software engineer with 5+ years of experience"
             ref={textareaRef}
             value={description}
           />

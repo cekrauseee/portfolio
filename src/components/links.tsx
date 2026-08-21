@@ -2,8 +2,10 @@ import type { ComponentProps } from "react";
 
 type ExternalLinkProps = Omit<ComponentProps<"a">, "rel" | "target">;
 
-export const linkFocusClassName =
-  "touch-manipulation focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-foreground";
+export const focusVisibleClassName =
+  "focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-foreground";
+
+export const linkFocusClassName = `touch-manipulation ${focusVisibleClassName}`;
 
 export const textLinkClassName = `${linkFocusClassName} underline [text-decoration-skip-ink:auto] [text-decoration-thickness:from-font] underline-offset-[0.28em] hover:decoration-[0.12em]`;
 
