@@ -19,7 +19,6 @@ export function createLocalRedisAdapter(url: string) {
     url,
     socket: {
       connectTimeout: REDIS_COMMAND_TIMEOUT_MS,
-      socketTimeout: REDIS_COMMAND_TIMEOUT_MS,
       reconnectStrategy: false,
     },
   });
@@ -29,6 +28,12 @@ export function createLocalRedisAdapter(url: string) {
 
   let connection: Promise<typeof client> | undefined;
   const connected = () => {
+    // `socketTimeout` is intentionally not configured: node-redis treats it as
+    // an idle-socket timeout, not a per-command deadline. Reconnect a client
+    // that was closed by an unexpected socket failure.
+    if (!client.isOpen) {
+      connection = undefined;
+    }
     connection ??= client
       .connect()
       .then(() => client)

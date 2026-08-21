@@ -13,6 +13,10 @@ test("local Redis adapter supports values, locks, and Lua scripts", async () => 
     assert.equal(await redis.incr(`${prefix}:generation`), 1);
     assert.equal(await redis.incr(`${prefix}:generation`), 2);
 
+    // A command deadline must not close an otherwise healthy idle connection.
+    await new Promise((resolve) => setTimeout(resolve, 1_100));
+    assert.deepEqual(await redis.get(`${prefix}:object`), { ok: true });
+
     assert.equal(
       await redis.set(`${prefix}:lock`, "first", { ex: 30, nx: true }),
       "OK",
