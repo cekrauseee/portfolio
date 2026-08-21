@@ -1,20 +1,40 @@
 "use client";
 
 import { mutedButtonClassName } from "@/components/links";
+import { localeTag, type Locale } from "@/i18n/config";
+import type { Dictionary } from "@/i18n/dictionary";
 import type { GlobePoint } from "@/features/guestbook/globe/geometry";
 
-export function HoverTooltip({ point }: { point: GlobePoint }) {
+type GlobeDictionary = Dictionary["guestbook"]["globe"];
+
+function messageCount(template: string, count: number, locale: Locale) {
+  return template.replace("{count}", count.toLocaleString(localeTag(locale)));
+}
+
+export function HoverTooltip({
+  point,
+  dictionary,
+  locale,
+}: {
+  point: GlobePoint;
+  dictionary: GlobeDictionary;
+  locale: Locale;
+}) {
   const firstMessage = point.messages[0];
   const location = [firstMessage.city, firstMessage.country]
     .filter(Boolean)
     .join(", ");
 
   return (
-    <div className="pointer-events-none w-max max-w-56 -translate-y-8 bg-white/95 px-3 py-2 text-center text-sm leading-5 break-words text-black shadow-md select-none dark:bg-black/90 dark:text-white">
+    <div className="bg-background text-foreground pointer-events-none w-max max-w-[min(14rem,calc(100vw-1.5rem))] -translate-y-8 px-3 py-2 text-center text-sm leading-5 break-words select-none">
       <p className="font-medium text-pretty">
         {point.messages.length === 1
           ? firstMessage.name
-          : `${point.messages.length} messages`}
+          : messageCount(
+              dictionary.messageCountMany,
+              point.messages.length,
+              locale,
+            )}
       </p>
       {location ? (
         <p className="mt-0.5 text-xs leading-4 text-pretty text-black/60 dark:text-white/65">
@@ -27,25 +47,33 @@ export function HoverTooltip({ point }: { point: GlobePoint }) {
 
 export function MessagePanel({
   point,
+  dictionary,
+  locale,
   onClose,
 }: {
   point: GlobePoint;
+  dictionary: GlobeDictionary;
+  locale: Locale;
   onClose: () => void;
 }) {
   return (
     <aside
-      aria-label="Visitor messages"
-      className="absolute inset-x-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-20 flex max-h-[min(60dvh,28rem)] flex-col bg-white/95 p-4 text-black shadow-xl sm:inset-x-auto sm:top-[calc(3.75rem+env(safe-area-inset-top))] sm:right-[calc(1rem+env(safe-area-inset-right))] sm:bottom-auto sm:w-80 dark:bg-black/90 dark:text-white"
+      aria-label={dictionary.visitorMessages}
+      className="bg-background text-foreground absolute [inset-inline-start:calc(1rem+env(safe-area-inset-left))] [inset-inline-end:calc(1rem+env(safe-area-inset-right))] bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-40 flex max-h-[min(60dvh,28rem)] flex-col p-4 outline outline-black/10 sm:[inset-inline-start:auto] sm:w-80 dark:outline-white/15"
       onWheel={(event) => event.stopPropagation()}
     >
       <header className="flex shrink-0 items-start justify-between gap-4">
         <div>
           <h2 className="text-sm font-medium">
             {point.id === "all-messages"
-              ? "Visitor messages"
+              ? dictionary.visitorMessages
               : point.messages.length === 1
-                ? "Message"
-                : `${point.messages.length} messages nearby`}
+                ? dictionary.message
+                : messageCount(
+                    dictionary.nearbyMessages,
+                    point.messages.length,
+                    locale,
+                  )}
           </h2>
           {point.id !== "all-messages" ? (
             <p className="mt-1 text-xs text-black/55 dark:text-white/55">
@@ -58,10 +86,10 @@ export function MessagePanel({
         <button
           autoFocus
           type="button"
-          className={`${mutedButtonClassName} shrink-0 text-sm`}
+          className={`${mutedButtonClassName} inline-flex min-h-8 shrink-0 items-center text-sm`}
           onClick={onClose}
         >
-          Close
+          {dictionary.close}
         </button>
       </header>
 

@@ -31,24 +31,15 @@ const POINT_MARKER_DARK_MATERIAL = new THREE.MeshBasicMaterial({
 });
 const LOCATION_MARKER_LIGHT = "#2563eb";
 const LOCATION_MARKER_DARK = "#60a5fa";
-const GLOBE_OCCLUSION_SPHERE = new THREE.Sphere(
-  new THREE.Vector3(),
-  GLOBE_RADIUS,
-);
-const GLOBE_OCCLUSION_POINT = new THREE.Vector3();
+const POINT_VISIBILITY_MARGIN = -0.02;
+const POINT_DIRECTION = new THREE.Vector3();
+const CAMERA_POSITION = new THREE.Vector3();
 
-function isOccludedByGlobe(
-  event: Pick<ThreeEvent<PointerEvent>, "distance" | "ray">,
-) {
-  const intersection = event.ray.intersectSphere(
-    GLOBE_OCCLUSION_SPHERE,
-    GLOBE_OCCLUSION_POINT,
-  );
+function isPointVisibleFromCamera(point: GlobePoint, camera: THREE.Camera) {
+  const pointDirection = POINT_DIRECTION.copy(point.position).normalize();
+  const cameraDirection = camera.getWorldPosition(CAMERA_POSITION).normalize();
 
-  return (
-    intersection !== null &&
-    event.ray.origin.distanceTo(intersection) < event.distance
-  );
+  return pointDirection.dot(cameraDirection) > POINT_VISIBILITY_MARGIN;
 }
 
 function useCountryBorders(radius: number, geojson?: GeoJSON) {
@@ -115,7 +106,7 @@ export function MessagePoints({
 }) {
   const handlePointerOver = useCallback(
     (point: GlobePoint) => (event: ThreeEvent<PointerEvent>) => {
-      if (isOccludedByGlobe(event)) {
+      if (!isPointVisibleFromCamera(point, event.camera)) {
         return;
       }
       event.stopPropagation();
@@ -132,7 +123,7 @@ export function MessagePoints({
   );
   const handleClick = useCallback(
     (point: GlobePoint) => (event: ThreeEvent<MouseEvent>) => {
-      if (isOccludedByGlobe(event)) {
+      if (!isPointVisibleFromCamera(point, event.camera)) {
         return;
       }
       event.stopPropagation();

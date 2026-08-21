@@ -1,7 +1,5 @@
 import type { ComponentProps } from "react";
 
-type ExternalLinkProps = Omit<ComponentProps<"a">, "rel" | "target">;
-
 export const focusVisibleClassName =
   "focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-foreground";
 
@@ -15,9 +13,14 @@ export const mutedTextLinkClassName = `${linkFocusClassName} text-black/70 under
 
 export const mutedButtonClassName = `${mutedTextLinkClassName} cursor-pointer`;
 
+type ExternalLinkProps = Omit<ComponentProps<"a">, "rel" | "target"> & {
+  newTabLabel?: string;
+};
+
 export function ExternalLink({
   children,
   className,
+  newTabLabel = " (opens in a new tab)",
   ...props
 }: ExternalLinkProps) {
   return (
@@ -28,7 +31,7 @@ export function ExternalLink({
       rel="noreferrer"
     >
       {children}
-      <span className="sr-only"> (opens in a new tab)</span>
+      <span className="sr-only">{newTabLabel}</span>
     </a>
   );
 }

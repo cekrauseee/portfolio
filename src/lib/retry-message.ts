@@ -1,3 +1,13 @@
+export type RetryCopy = {
+  waitMoment: string;
+  waitSeconds: string;
+};
+
+const defaultRetryCopy: RetryCopy = {
+  waitMoment: "Please wait a moment before trying again.",
+  waitSeconds: "Please wait {count} second{plural} before trying again.",
+};
+
 export function shouldUseRetryMessage(response: Response) {
   return (
     response.status === 429 ||
@@ -5,14 +15,19 @@ export function shouldUseRetryMessage(response: Response) {
   );
 }
 
-export function retryMessage(response: Response) {
+export function retryMessage(
+  response: Response,
+  copy: RetryCopy = defaultRetryCopy,
+) {
   const retryAfter = response.headers.get("Retry-After")?.trim();
   if (!retryAfter || !/^\d+$/.test(retryAfter)) {
-    return "Please wait a moment before trying again.";
+    return copy.waitMoment;
   }
   const seconds = Number(retryAfter);
   if (!Number.isSafeInteger(seconds)) {
-    return "Please wait a moment before trying again.";
+    return copy.waitMoment;
   }
-  return `Please wait ${retryAfter} second${seconds === 1 ? "" : "s"} before trying again.`;
+  return copy.waitSeconds
+    .replace("{count}", retryAfter)
+    .replace("{plural}", seconds === 1 ? "" : "s");
 }

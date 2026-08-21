@@ -4,35 +4,45 @@ import { PageShell } from "@/components/page-shell";
 import { ProjectList } from "@/components/project-list";
 import { site } from "@/config/site";
 import { profile, socialLinks } from "@/content/portfolio";
+import { localeDetails } from "@/i18n/config";
+import { getDictionary } from "@/i18n/get-dictionary";
+import { getRequestLocale } from "@/i18n/request-locale";
 
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@type": "ProfilePage",
-  "@id": `${site.url}/#profile-page`,
-  url: site.url,
-  name: site.title,
-  description: site.description,
-  inLanguage: site.language,
-  mainEntity: {
-    "@type": "Person",
-    "@id": `${site.url}/#person`,
-    name: profile.name,
-    alternateName: profile.handle,
-    url: site.url,
-    image: `${site.url}/icon.png`,
-    jobTitle: profile.role,
-    email: profile.email,
-    homeLocation: {
-      "@type": "Place",
-      name: profile.location,
+export default async function Home() {
+  const locale = await getRequestLocale();
+  const dictionary = await getDictionary(locale);
+  const canonicalUrl = site.url;
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ProfilePage",
+    "@id": `${canonicalUrl}/#profile-page`,
+    url: canonicalUrl,
+    name: site.title,
+    description: dictionary.site.description,
+    inLanguage: localeDetails[locale].languageTag,
+    mainEntity: {
+      "@type": "Person",
+      "@id": `${canonicalUrl}/#person`,
+      name: profile.name,
+      alternateName: profile.handle,
+      url: canonicalUrl,
+      image: `${site.url}/icon.png`,
+      jobTitle: dictionary.site.role,
+      email: profile.email,
+      homeLocation: {
+        "@type": "Place",
+        name: dictionary.site.location,
+      },
+      sameAs: socialLinks.map(({ href }) => href),
     },
-    sameAs: socialLinks.map(({ href }) => href),
-  },
-};
+  };
 
-export default function Home() {
   return (
-    <PageShell size="compact" disableTextSelection>
+    <PageShell
+      locale={locale}
+      navigation={dictionary.navigation}
+      disableTextSelection
+    >
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -42,7 +52,9 @@ export default function Home() {
       <header className="flex flex-col gap-1">
         <h1 className="font-medium">{profile.name}</h1>
         <p>
-          {profile.role} based in {profile.location}.
+          {dictionary.site.profileSummary
+            .replace("{role}", dictionary.site.role)
+            .replace("{location}", dictionary.site.location)}
         </p>
         <a className={textLinkClassName} href={`mailto:${profile.email}`}>
           {profile.email}
@@ -51,21 +63,21 @@ export default function Home() {
 
       <div className="flex flex-col items-start gap-3">
         <Link className={actionClassName} href="/fit">
-          Assess my fit
+          {dictionary.home.assessFit}
         </Link>
 
         <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
           <Link className={textLinkClassName} href="/schedule">
-            Schedule a conversation
+            {dictionary.home.scheduleConversation}
           </Link>
 
           <Link className={textLinkClassName} href="/guestbook">
-            Leave a message on the globe
+            {dictionary.home.leaveMessage}
           </Link>
         </div>
       </div>
 
-      <ProjectList />
+      <ProjectList dictionary={dictionary.home} locale={locale} />
     </PageShell>
   );
 }

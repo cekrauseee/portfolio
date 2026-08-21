@@ -1,8 +1,9 @@
 import { site } from "@/config/site";
 import { loadGithubProjects } from "./github-projects";
-import type { Project } from "./project";
+import { localizeProject, type Project } from "./project";
+import type { Locale } from "@/i18n/config";
 
-export type { Project } from "./project";
+export type { LocalizedProject, Project } from "./project";
 
 export const profile = {
   handle: "cekrause",
@@ -20,6 +21,11 @@ export const socialLinks = [
 
 export const projects: readonly Project[] = loadGithubProjects();
 
-export function getProject(slug: string) {
-  return projects.find((project) => project.slug === slug);
+export function getProject(slug: string, locale: Locale = "en") {
+  const project = projects.find((candidate) => candidate.slug === slug);
+  return project ? localizeProject(project, locale) : undefined;
+}
+
+export function getProjects(locale: Locale) {
+  return projects.map((project) => localizeProject(project, locale));
 }

@@ -1,10 +1,20 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
+import type { Locale } from "@/i18n/config";
+import type { Dictionary } from "@/i18n/dictionary";
 import { MessageForm } from "@/features/guestbook/message-form";
 
-export function NewMessage() {
+export function NewMessage({
+  locale,
+  dictionary,
+  retry,
+}: {
+  locale: Locale;
+  dictionary: Dictionary["guestbook"]["form"];
+  retry: Dictionary["retry"];
+}) {
   const router = useRouter();
   const [submitted, setSubmitted] = useState(false);
 
@@ -16,10 +26,17 @@ export function NewMessage() {
   if (submitted) {
     return (
       <p className="text-sm text-black/75 dark:text-white/85">
-        Your message is on the globe. Redirecting…
+        {dictionary.redirecting}
       </p>
     );
   }
 
-  return <MessageForm onSubmitted={handleSubmitted} />;
+  return (
+    <MessageForm
+      locale={locale}
+      dictionary={dictionary}
+      retry={retry}
+      onSubmitted={handleSubmitted}
+    />
+  );
 }

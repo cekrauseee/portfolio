@@ -1,7 +1,5 @@
 import type { GeoCoordinates } from "@/features/guestbook/message";
 
-type GeoEnvironment = Record<string, string | undefined>;
-
 export type { GeoCoordinates };
 
 type GeoHeaders = Pick<Headers, "get">;
@@ -11,30 +9,32 @@ type GeoHeaders = Pick<Headers, "get">;
  *
  * Vercel injects `x-vercel-ip-latitude`, `x-vercel-ip-longitude`,
  * `x-vercel-ip-country`, `x-vercel-ip-country-region`, and `x-vercel-ip-city`
- * on every request. In development these headers are absent, so we fall back
- * to a default coordinate (Lisbon) to keep the local experience functional.
+ * on every request. When coordinates are unavailable, the result is null.
  *
  * The IP address itself is never stored. Only the derived coordinates and
  * region labels are persisted.
  */
-export function resolveGeo(
-  request: Request,
-  environment: GeoEnvironment = process.env,
-): GeoCoordinates {
-  return resolveGeoFromHeaders(request.headers, environment);
+export function resolveGeo(request: Request): GeoCoordinates | null {
+  return resolveGeoFromHeaders(request.headers);
 }
 
 export function resolveGeoFromHeaders(
   headers: GeoHeaders,
-  environment: GeoEnvironment = process.env,
-): GeoCoordinates {
-  const latitude = headers.get("x-vercel-ip-latitude");
-  const longitude = headers.get("x-vercel-ip-longitude");
+): GeoCoordinates | null {
+  const latitude = headers.get("x-vercel-ip-latitude")?.trim();
+  const longitude = headers.get("x-vercel-ip-longitude")?.trim();
 
   if (latitude && longitude) {
     const lat = Number(latitude);
     const lon = Number(longitude);
-    if (Number.isFinite(lat) && Number.isFinite(lon)) {
+    if (
+      Number.isFinite(lat) &&
+      Number.isFinite(lon) &&
+      lat >= -90 &&
+      lat <= 90 &&
+      lon >= -180 &&
+      lon <= 180
+    ) {
       return {
         latitude: lat,
         longitude: lon,
@@ -44,13 +44,7 @@ export function resolveGeoFromHeaders(
     }
   }
 
-  // Development fallback: Lisbon. Avoids requiring geo headers locally.
-  return {
-    latitude: 38.7223,
-    longitude: -9.1393,
-    country: environment.NODE_ENV === "production" ? null : "Portugal",
-    city: environment.NODE_ENV === "production" ? null : "Lisbon",
-  };
+  return null;
 }
 
 function header(headers: GeoHeaders, name: string): string | null {

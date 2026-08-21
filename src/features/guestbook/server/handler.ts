@@ -60,6 +60,14 @@ export function createGuestbookPost(
       );
     }
 
+    const geo = dependencies.resolveGeo(request);
+    if (!geo) {
+      return withSession(
+        json({ error: "Your location could not be resolved right now." }, 503),
+        protection.sessionCookie,
+      );
+    }
+
     if (!process.env.OPENAI_API_KEY?.trim()) {
       return withSession(
         json({ error: "The visitor globe is not configured yet." }, 503),
@@ -67,7 +75,6 @@ export function createGuestbookPost(
       );
     }
 
-    const geo = dependencies.resolveGeo(request);
     const moderation = await dependencies.moderateMessage(
       submission.name,
       submission.message,

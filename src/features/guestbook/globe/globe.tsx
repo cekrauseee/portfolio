@@ -1,11 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Canvas } from "@react-three/fiber";
+import {
+  type ReactNode,
+  type RefObject,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { Canvas, useThree } from "@react-three/fiber";
 import { Html, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { mutedButtonClassName } from "@/components/links";
+import { localeTag, type Locale } from "@/i18n/config";
+import { useTheme } from "@/theme/theme-provider";
+import type { Dictionary } from "@/i18n/dictionary";
 import type {
   GeoCoordinates,
   GuestbookMessage,
@@ -40,6 +51,89 @@ const MAX_POLAR_ANGLE = Math.PI - MIN_POLAR_ANGLE;
 const INTERACTION_IDLE_DELAY = 1200;
 const HOVER_EXIT_DELAY = 140;
 const CENTER_ANIMATION_DURATION = 900;
+const TOOLTIP_EDGE_GUTTER = 12;
+const TOOLTIP_VERTICAL_OFFSET = 32;
+const TOOLTIP_MAX_WIDTH = 224;
+const TOOLTIP_MAX_HEIGHT = 88;
+
+function clampPosition(value: number, min: number, max: number) {
+  return THREE.MathUtils.clamp(value, Math.min(min, max), Math.max(min, max));
+}
+
+function calculateTooltipPosition(
+  object: THREE.Object3D,
+  camera: THREE.Camera,
+  size: { width: number; height: number },
+) {
+  const projected = new THREE.Vector3()
+    .setFromMatrixPosition(object.matrixWorld)
+    .project(camera);
+  const projectedX = projected.x * (size.width / 2) + size.width / 2;
+  const projectedY = -projected.y * (size.height / 2) + size.height / 2;
+  const tooltipWidth = Math.min(
+    TOOLTIP_MAX_WIDTH,
+    Math.max(0, size.width - TOOLTIP_EDGE_GUTTER * 2),
+  );
+  const tooltipHalfHeight = TOOLTIP_MAX_HEIGHT / 2;
+
+  return [
+    clampPosition(
+      projectedX,
+      TOOLTIP_EDGE_GUTTER + tooltipWidth / 2,
+      size.width - TOOLTIP_EDGE_GUTTER - tooltipWidth / 2,
+    ),
+    clampPosition(
+      projectedY,
+      TOOLTIP_EDGE_GUTTER + TOOLTIP_VERTICAL_OFFSET + tooltipHalfHeight,
+      size.height -
+        TOOLTIP_EDGE_GUTTER +
+        TOOLTIP_VERTICAL_OFFSET -
+        tooltipHalfHeight,
+    ),
+  ];
+}
+
+function GlobeControls({
+  controlsRef,
+  enableRotate,
+  autoRotate,
+  onStart,
+  onEnd,
+}: {
+  controlsRef: RefObject<OrbitControlsImpl | null>;
+  enableRotate: boolean;
+  autoRotate: boolean;
+  onStart: () => void;
+  onEnd: () => void;
+}) {
+  const events = useThree((state) => state.events);
+  const updatePointer = useCallback(() => {
+    events.update?.();
+  }, [events]);
+
+  return (
+    <OrbitControls
+      ref={controlsRef}
+      enablePan={false}
+      enableZoom={false}
+      enableRotate={enableRotate}
+      enableDamping
+      dampingFactor={0.08}
+      autoRotate={autoRotate}
+      autoRotateSpeed={0.3}
+      rotateSpeed={0.5}
+      minPolarAngle={MIN_POLAR_ANGLE}
+      maxPolarAngle={MAX_POLAR_ANGLE}
+      onChange={updatePointer}
+      onStart={onStart}
+      onEnd={onEnd}
+      touches={{
+        ONE: THREE.TOUCH.ROTATE,
+        TWO: THREE.TOUCH.ROTATE,
+      }}
+    />
+  );
+}
 
 function useMediaQuery(query: string) {
   const [matches, setMatches] = useState(
@@ -63,11 +157,17 @@ export function Globe({
   geojson,
   viewerLocation,
   onReady,
+  locale,
+  dictionary,
+  primaryAction,
 }: {
   messages: GuestbookMessage[];
   geojson?: GeoJSON;
-  viewerLocation: GeoCoordinates;
+  viewerLocation: GeoCoordinates | null;
   onReady: () => void;
+  locale: Locale;
+  dictionary: Dictionary["guestbook"]["globe"];
+  primaryAction: ReactNode;
 }) {
   const [hoveredPoint, setHoveredPoint] = useState<GlobePoint | null>(null);
   const [selectedPoint, setSelectedPoint] = useState<GlobePoint | null>(null);
@@ -75,20 +175,31 @@ export function Globe({
   const [isPointerOverGlobe, setIsPointerOverGlobe] = useState(false);
   const [isUserInteracting, setIsUserInteracting] = useState(false);
   const [isCentering, setIsCentering] = useState(false);
+  const [viewerLocationState, setViewerLocationState] =
+    useState<GeoCoordinates | null>(viewerLocation);
+  const [locationRequest, setLocationRequest] = useState<
+    "idle" | "requesting" | "denied" | "unavailable"
+  >("idle");
   const controlsRef = useRef<OrbitControlsImpl>(null);
   const centerAnimationRef = useRef<number | undefined>(undefined);
+  const automaticLocationCheckRef = useRef(false);
   const interactionTimerRef = useRef<number | undefined>(undefined);
   const hoverExitTimerRef = useRef<number | undefined>(undefined);
-  const isDark = useMediaQuery("(prefers-color-scheme: dark)");
+  const tooltipPortalRef = useRef<HTMLDivElement>(null!);
+  const messageIndexRef = useRef<HTMLButtonElement>(null);
+  const { isDark } = useTheme();
   const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const initialCameraPosition = useMemo(
     () =>
-      latLonToVector3(
-        viewerLocation.latitude,
-        viewerLocation.longitude,
-        3,
+      (viewerLocationState
+        ? latLonToVector3(
+            viewerLocationState.latitude,
+            viewerLocationState.longitude,
+            3,
+          )
+        : new THREE.Vector3(0, 0, 3)
       ).toArray() as [number, number, number],
-    [viewerLocation.latitude, viewerLocation.longitude],
+    [viewerLocationState],
   );
 
   const points = useMemo(() => {
@@ -140,68 +251,142 @@ export function Globe({
     }, INTERACTION_IDLE_DELAY);
   }, [cancelCentering]);
 
-  const centerOnViewer = useCallback(() => {
-    const controls = controlsRef.current;
-    if (!controls) {
-      return;
-    }
-
-    cancelCentering();
-    setSelectedPoint(null);
-    setHoveredPoint(null);
-    setIsCentering(true);
-    setIsUserInteracting(true);
-    if (interactionTimerRef.current !== undefined) {
-      window.clearTimeout(interactionTimerRef.current);
-      interactionTimerRef.current = undefined;
-    }
-
-    const target = viewAnglesForLocation(viewerLocation);
-    const startPolar = controls.getPolarAngle();
-    const startAzimuthal = controls.getAzimuthalAngle();
-    const azimuthalDelta = shortestAngleDelta(startAzimuthal, target.azimuthal);
-
-    const finish = () => {
-      controls.setPolarAngle(target.polar);
-      controls.setAzimuthalAngle(target.azimuthal);
-      controls.enableDamping = true;
-      centerAnimationRef.current = undefined;
-      setIsCentering(false);
-      interactionTimerRef.current = window.setTimeout(() => {
-        setIsUserInteracting(false);
-        interactionTimerRef.current = undefined;
-      }, INTERACTION_IDLE_DELAY);
-    };
-
-    if (reduceMotion) {
-      finish();
-      return;
-    }
-
-    controls.enableDamping = false;
-    const startedAt = performance.now();
-    const animate = (now: number) => {
-      const progress = Math.min(
-        (now - startedAt) / CENTER_ANIMATION_DURATION,
-        1,
-      );
-      const easedProgress = easeInOutCubic(progress);
-      controls.setPolarAngle(
-        THREE.MathUtils.lerp(startPolar, target.polar, easedProgress),
-      );
-      controls.setAzimuthalAngle(
-        startAzimuthal + azimuthalDelta * easedProgress,
-      );
-
-      if (progress < 1) {
-        centerAnimationRef.current = window.requestAnimationFrame(animate);
-      } else {
-        finish();
+  const centerOnLocation = useCallback(
+    (location: GeoCoordinates) => {
+      const controls = controlsRef.current;
+      if (!controls) {
+        return;
       }
-    };
 
-    centerAnimationRef.current = window.requestAnimationFrame(animate);
-  }, [cancelCentering, reduceMotion, viewerLocation]);
+      cancelCentering();
+      setSelectedPoint(null);
+      setHoveredPoint(null);
+      setIsCentering(true);
+      setIsUserInteracting(true);
+      if (interactionTimerRef.current !== undefined) {
+        window.clearTimeout(interactionTimerRef.current);
+        interactionTimerRef.current = undefined;
+      }
+
+      const target = viewAnglesForLocation(location);
+      const startPolar = controls.getPolarAngle();
+      const startAzimuthal = controls.getAzimuthalAngle();
+      const azimuthalDelta = shortestAngleDelta(
+        startAzimuthal,
+        target.azimuthal,
+      );
+
+      const finish = () => {
+        controls.setPolarAngle(target.polar);
+        controls.setAzimuthalAngle(target.azimuthal);
+        controls.enableDamping = true;
+        centerAnimationRef.current = undefined;
+        setIsCentering(false);
+        interactionTimerRef.current = window.setTimeout(() => {
+          setIsUserInteracting(false);
+          interactionTimerRef.current = undefined;
+        }, INTERACTION_IDLE_DELAY);
+      };
+
+      if (reduceMotion) {
+        finish();
+        return;
+      }
+
+      controls.enableDamping = false;
+      const startedAt = performance.now();
+      const animate = (now: number) => {
+        const progress = Math.min(
+          (now - startedAt) / CENTER_ANIMATION_DURATION,
+          1,
+        );
+        const easedProgress = easeInOutCubic(progress);
+        controls.setPolarAngle(
+          THREE.MathUtils.lerp(startPolar, target.polar, easedProgress),
+        );
+        controls.setAzimuthalAngle(
+          startAzimuthal + azimuthalDelta * easedProgress,
+        );
+
+        if (progress < 1) {
+          centerAnimationRef.current = window.requestAnimationFrame(animate);
+        } else {
+          finish();
+        }
+      };
+
+      centerAnimationRef.current = window.requestAnimationFrame(animate);
+    },
+    [cancelCentering, reduceMotion],
+  );
+
+  const centerOnViewer = useCallback(() => {
+    if (viewerLocationState) {
+      centerOnLocation(viewerLocationState);
+    }
+  }, [centerOnLocation, viewerLocationState]);
+
+  const requestCurrentLocation = useCallback(() => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const location: GeoCoordinates = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          country: null,
+          city: null,
+        };
+        setViewerLocationState(location);
+        setLocationRequest("idle");
+        centerOnLocation(location);
+      },
+      (error) => {
+        setLocationRequest(error.code === 1 ? "denied" : "unavailable");
+      },
+      { enableHighAccuracy: false, timeout: 10_000, maximumAge: 300_000 },
+    );
+  }, [centerOnLocation]);
+
+  const requestViewerLocation = useCallback(() => {
+    if (locationRequest === "requesting") {
+      return;
+    }
+    if (!navigator.geolocation) {
+      setLocationRequest("unavailable");
+      return;
+    }
+    setLocationRequest("requesting");
+    requestCurrentLocation();
+  }, [locationRequest, requestCurrentLocation]);
+
+  useEffect(() => {
+    if (viewerLocationState || automaticLocationCheckRef.current) {
+      return;
+    }
+
+    if (!navigator.permissions?.query || !navigator.geolocation) {
+      return;
+    }
+
+    let cancelled = false;
+    void Promise.resolve()
+      .then(() => navigator.permissions.query({ name: "geolocation" }))
+      .then((permission) => {
+        if (
+          !cancelled &&
+          permission.state === "granted" &&
+          !automaticLocationCheckRef.current
+        ) {
+          automaticLocationCheckRef.current = true;
+          setLocationRequest("requesting");
+          requestCurrentLocation();
+        }
+      })
+      .catch(() => undefined);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [requestCurrentLocation, viewerLocationState]);
 
   const handleWheel = useCallback(
     (event: React.WheelEvent<HTMLDivElement>) => {
@@ -264,6 +449,16 @@ export function Globe({
   }, []);
 
   const isExploringPoint = hoveredPoint !== null || selectedPoint !== null;
+  const hasLocationError =
+    locationRequest === "denied" || locationRequest === "unavailable";
+
+  const closeMessages = useCallback(() => {
+    const restoreMessageIndexFocus = selectedPoint?.id === "all-messages";
+    setSelectedPoint(null);
+    if (restoreMessageIndexFocus) {
+      window.requestAnimationFrame(() => messageIndexRef.current?.focus());
+    }
+  }, [selectedPoint]);
 
   useEffect(() => {
     if (!selectedPoint) {
@@ -271,12 +466,12 @@ export function Globe({
     }
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setSelectedPoint(null);
+        closeMessages();
       }
     };
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [selectedPoint]);
+  }, [closeMessages, selectedPoint]);
 
   useEffect(() => {
     return () => {
@@ -335,94 +530,124 @@ export function Globe({
               onHover={handlePointHover}
               onSelect={setSelectedPoint}
             />
-            <ViewerLocationMarker
-              location={viewerLocation}
-              isDark={isDark}
-              reduceMotion={reduceMotion}
-            />
+            {viewerLocationState ? (
+              <ViewerLocationMarker
+                location={viewerLocationState}
+                isDark={isDark}
+                reduceMotion={reduceMotion}
+              />
+            ) : null}
             {hoveredPoint ? (
               <Html
                 position={hoveredPoint.position.toArray()}
                 center
+                portal={tooltipPortalRef as RefObject<HTMLElement>}
+                calculatePosition={calculateTooltipPosition}
                 pointerEvents="none"
                 style={{ pointerEvents: "none" }}
                 zIndexRange={[9, 1]}
               >
-                <HoverTooltip point={hoveredPoint} />
+                <HoverTooltip
+                  point={hoveredPoint}
+                  dictionary={dictionary}
+                  locale={locale}
+                />
               </Html>
             ) : null}
           </group>
-          <OrbitControls
-            ref={controlsRef}
-            enablePan={false}
-            enableZoom={false}
+          <GlobeControls
+            controlsRef={controlsRef}
             enableRotate={
               isPointerOverGlobe || isDragging || hoveredPoint !== null
             }
-            enableDamping
-            dampingFactor={0.08}
             autoRotate={
               !reduceMotion &&
               !isCentering &&
               !isExploringPoint &&
               !isUserInteracting
             }
-            autoRotateSpeed={0.3}
-            rotateSpeed={0.5}
-            minPolarAngle={MIN_POLAR_ANGLE}
-            maxPolarAngle={MAX_POLAR_ANGLE}
             onStart={markUserInteraction}
             onEnd={markUserInteraction}
-            touches={{
-              ONE: THREE.TOUCH.ROTATE,
-              TWO: THREE.TOUCH.ROTATE,
-            }}
           />
         </Canvas>
+        <div
+          ref={tooltipPortalRef}
+          className="pointer-events-none absolute inset-0 z-10"
+        />
       </div>
 
-      <button
-        type="button"
-        className={`${mutedButtonClassName} absolute bottom-[calc(1rem+env(safe-area-inset-bottom))] left-[calc(1rem+env(safe-area-inset-left))] z-10 inline-flex min-h-10 items-center gap-2 text-sm motion-safe:transition-transform motion-safe:active:scale-[0.96]`}
-        onClick={centerOnViewer}
-      >
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="size-4"
-        >
-          <circle cx="12" cy="12" r="3" />
-          <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
-        </svg>
-        {isCentering ? "Centering…" : "My location"}
-      </button>
+      <div className="pointer-events-none absolute [inset-inline-start:calc(1rem+env(safe-area-inset-left))] [inset-inline-end:calc(1rem+env(safe-area-inset-right))] bottom-[calc(1rem+env(safe-area-inset-bottom))] z-20 flex items-end justify-between gap-4">
+        <div className="pointer-events-auto flex min-w-0 flex-col items-start gap-1">
+          <button
+            type="button"
+            className={`${mutedButtonClassName} inline-flex min-h-10 items-center text-sm disabled:cursor-wait disabled:opacity-60`}
+            onClick={
+              viewerLocationState ? centerOnViewer : requestViewerLocation
+            }
+            disabled={locationRequest === "requesting"}
+            aria-busy={locationRequest === "requesting"}
+          >
+            {locationRequest === "requesting"
+              ? dictionary.requestingLocation
+              : isCentering
+                ? dictionary.centering
+                : viewerLocationState
+                  ? dictionary.centerGlobe
+                  : dictionary.useMyLocation}
+          </button>
+        </div>
+        <div className="pointer-events-auto shrink-0">{primaryAction}</div>
+      </div>
 
-      {messages.length > 0 ? (
+      <p className="sr-only" role="status" aria-live="polite">
+        {hasLocationError
+          ? locationRequest === "denied"
+            ? dictionary.locationDenied
+            : dictionary.locationUnavailable
+          : ""}
+      </p>
+
+      {hasLocationError ? (
+        <p
+          className="pointer-events-none absolute bottom-[calc(4.5rem+env(safe-area-inset-bottom))] left-1/2 z-20 w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 text-center text-sm text-black/60 dark:text-white/65 [@media(min-width:40rem)]:bottom-[calc(1rem+env(safe-area-inset-bottom))]"
+          aria-hidden="true"
+        >
+          {locationRequest === "denied"
+            ? dictionary.locationDenied
+            : dictionary.locationUnavailable}
+        </p>
+      ) : null}
+
+      {messages.length > 0 && !selectedPoint && !hasLocationError ? (
         <button
+          ref={messageIndexRef}
           type="button"
-          className={`${mutedButtonClassName} absolute top-[calc(1rem+env(safe-area-inset-top))] right-[calc(1rem+env(safe-area-inset-right))] z-10 text-sm`}
+          className={`${mutedButtonClassName} absolute bottom-[calc(4.5rem+env(safe-area-inset-bottom))] left-1/2 z-20 inline-flex min-h-10 -translate-x-1/2 items-center text-sm [@media(min-width:40rem)]:bottom-[calc(1rem+env(safe-area-inset-bottom))]`}
           onClick={() => setSelectedPoint(allMessages)}
         >
-          {messages.length} {messages.length === 1 ? "message" : "messages"}
+          {(messages.length === 1
+            ? dictionary.messageCountOne
+            : dictionary.messageCountMany
+          ).replace(
+            "{count}",
+            messages.length.toLocaleString(localeTag(locale)),
+          )}
         </button>
       ) : null}
 
       {selectedPoint ? (
         <MessagePanel
           point={selectedPoint}
-          onClose={() => setSelectedPoint(null)}
+          dictionary={dictionary}
+          locale={locale}
+          onClose={closeMessages}
         />
       ) : null}
 
       {messages.length === 0 ? (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <p className="text-sm text-black/50 dark:text-white/50">
-            No messages yet. Be the first.
+            {dictionary.empty}
           </p>
         </div>
       ) : null}
