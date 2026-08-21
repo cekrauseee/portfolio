@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { SiteFooter } from "@/components/site-footer";
 import { SiteNavigation } from "@/components/site-navigation";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionary";
@@ -27,8 +28,9 @@ export function PageShell({
       className={`${pageClassName} ${disableTextSelection ? "select-none" : ""}`}
     >
       <div className={containerClassName}>
-        <SiteNavigation locale={locale} dictionary={navigation} />
+        <SiteNavigation dictionary={navigation} />
         {children}
+        <SiteFooter locale={locale} dictionary={navigation} />
       </div>
     </main>
   );

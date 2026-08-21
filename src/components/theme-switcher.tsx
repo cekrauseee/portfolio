@@ -14,11 +14,9 @@ export function ThemeSwitcher({
   const { preference, setPreference } = useTheme();
 
   return (
-    <fieldset className="min-w-0">
-      <legend className="text-xs text-black/55 dark:text-white/65">
-        {label}
-      </legend>
-      <div className="mt-1 flex max-w-full flex-wrap items-center gap-x-2 gap-y-1">
+    <fieldset className="w-max min-w-0">
+      <legend className="sr-only">{label}</legend>
+      <div className="flex max-w-full flex-wrap items-center gap-x-2 gap-y-1">
         {themePreferences.map((candidate) => (
           <button
             className={`${preferenceOptionClassName} ${candidate === preference ? "font-medium underline" : ""}`}

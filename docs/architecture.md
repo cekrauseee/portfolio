@@ -21,9 +21,10 @@ The site supports `en`, `pt-BR`, and `ja` while keeping stable, unprefixed URLs
 for every route. Locale is request state, not URL state. A valid explicit
 preference in the one-year, `SameSite=Lax` `portfolio-locale` cookie wins over
 the trusted deployment country (`JP` or a configured Portuguese-speaking
-country), then supported `Accept-Language`, then English. The shared preferences
-panel submits a Server Action that validates the locale and sets the `HttpOnly`
-cookie. Next.js then re-renders the current route in the same roundtrip. There
+country), then supported `Accept-Language`, then English. The shared inline
+preferences submit a Server Action that validates the locale and sets the
+`HttpOnly` cookie. Next.js then re-renders the current route in the same
+roundtrip. There
 are no locale paths, Proxy, locale API, or `localStorage` state.
 
 Each request resolves a locale on the server and loads its typed, server-only
@@ -51,7 +52,7 @@ that effective theme.
 | Path                                    | Responsibility                                                                            |
 | --------------------------------------- | ----------------------------------------------------------------------------------------- |
 | `src/app`                               | Pages, Route Handlers, metadata, and global styles                                        |
-| `src/components`                        | Shared 36rem page shell, navigation, preferences panel, project list, and link primitives |
+| `src/components`                        | Shared 36rem page shell, navigation, settings controls, project list, and link primitives |
 | `src/i18n`                              | Request locale resolution, typed server dictionaries, and locale metadata                 |
 | `src/theme`                             | Theme preference, effective class, browser color, persistence, and live updates           |
 | `src/features/role-fit`                 | Role-fit form, input parsing, prompt context, and OpenAI request                          |

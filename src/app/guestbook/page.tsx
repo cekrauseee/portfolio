@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { linkFocusClassName } from "@/components/links";
-import { PreferencesMenu } from "@/components/preferences-menu";
+import { Preferences } from "@/components/preferences";
 import { fetchMessages } from "@/features/guestbook/server/db/client";
 import { resolveGeoFromHeaders } from "@/features/guestbook/server/geo";
 import { COUNTRIES_GEOJSON_URL } from "@/features/guestbook/globe-data";
@@ -48,7 +48,7 @@ export default async function GuestbookPage() {
         dictionary={dictionary.guestbook}
       />
 
-      <header className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center justify-between gap-4 pt-[calc(1rem+env(safe-area-inset-top))] pr-[calc(1rem+env(safe-area-inset-right))] pl-[calc(1rem+env(safe-area-inset-left))]">
+      <header className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between gap-4 pt-[calc(1rem+env(safe-area-inset-top))] pr-[calc(1rem+env(safe-area-inset-right))] pl-[calc(1rem+env(safe-area-inset-left))]">
         <Link
           href="/"
           className={`${linkFocusClassName} pointer-events-auto min-h-8 min-w-0 shrink content-center text-sm text-black/70 underline decoration-black/30 underline-offset-4 hover:text-black dark:text-white/75 dark:decoration-white/30 dark:hover:text-white`}
@@ -57,10 +57,10 @@ export default async function GuestbookPage() {
         </Link>
 
         <div className="pointer-events-auto shrink-0">
-          <PreferencesMenu
-            key={locale}
+          <Preferences
             locale={locale}
             dictionary={dictionary.navigation}
+            align="end"
           />
         </div>
       </header>
