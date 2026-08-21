@@ -2,49 +2,49 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { mutedTextLinkClassName } from "@/components/links";
 import { PageShell } from "@/components/page-shell";
-import { site } from "@/config/site";
 import { RoleFitForm } from "@/features/role-fit/role-fit-form";
+import { getDictionary } from "@/i18n/get-dictionary";
+import { getRequestLocale } from "@/i18n/request-locale";
+import { requestMetadata } from "@/i18n/metadata";
 
-const path = "/fit";
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getRequestLocale();
+  const dictionary = await getDictionary(locale);
+  return requestMetadata(
+    locale,
+    "/fit",
+    dictionary.fit.title,
+    dictionary.fit.description,
+  );
+}
 
-export const metadata: Metadata = {
-  title: "Assess my fit",
-  description:
-    "Compare a role with Henrique Krause's published software engineering experience.",
-  alternates: {
-    canonical: path,
-  },
-  openGraph: {
-    type: "website",
-    url: path,
-    title: "Assess my fit",
-    description:
-      "Compare a role with Henrique Krause's published software engineering experience.",
-    siteName: site.name,
-    locale: site.locale,
-  },
-};
+export default async function FitPage() {
+  const locale = await getRequestLocale();
+  const dictionary = await getDictionary(locale);
 
-export default function FitPage() {
   return (
-    <PageShell>
+    <PageShell locale={locale} navigation={dictionary.navigation}>
       <article className="max-w-[65ch]">
         <header>
           <h1 className="text-2xl leading-8 font-medium tracking-[-0.02em] text-balance">
-            Assess my fit
+            {dictionary.fit.title}
           </h1>
           <p className="mt-4 text-base leading-7 text-black/75 dark:text-white/85">
-            Paste a role description to compare it with my experience.
+            {dictionary.fit.description}
           </p>
         </header>
 
         <div className="mt-10">
-          <RoleFitForm />
+          <RoleFitForm
+            locale={locale}
+            dictionary={dictionary.fit.form}
+            retry={dictionary.retry}
+          />
         </div>
 
         <footer className="mt-12 [@media(max-height:42rem)]:mt-9">
           <Link className={mutedTextLinkClassName} href="/">
-            Back
+            {dictionary.fit.back}
           </Link>
         </footer>
       </article>

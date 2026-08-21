@@ -7,6 +7,8 @@ import {
   ExternalLink,
   focusVisibleClassName,
 } from "@/components/links";
+import { localeTag, type Locale } from "@/i18n/config";
+import type { Dictionary } from "@/i18n/dictionary";
 import { retryMessage, shouldUseRetryMessage } from "@/lib/retry-message";
 
 type FieldName = "name" | "email" | "date" | "time";
@@ -126,7 +128,15 @@ export async function resolveMeetingIdempotency(
   return idempotency;
 }
 
-export function MeetingScheduler() {
+export function MeetingScheduler({
+  locale,
+  dictionary,
+  retry,
+}: {
+  locale: Locale;
+  dictionary: Dictionary["schedule"]["form"];
+  retry: Dictionary["retry"];
+}) {
   const [fields, setFields] = useState<Fields>(initialFields);
   const [errors, setErrors] = useState<Errors>({});
   const [generalError, setGeneralError] = useState("");
@@ -152,22 +162,22 @@ export function MeetingScheduler() {
   function validate() {
     const nextErrors: Errors = {};
     if (!fields.name.trim()) {
-      nextErrors.name = "Enter your name.";
+      nextErrors.name = dictionary.enterName;
     }
     if (!fields.email.trim()) {
-      nextErrors.email = "Enter your email address.";
+      nextErrors.email = dictionary.enterEmail;
     } else if (!/^\S+@\S+\.\S+$/.test(fields.email.trim())) {
-      nextErrors.email = "Enter a valid email address.";
+      nextErrors.email = dictionary.validEmail;
     }
     if (!fields.date) {
-      nextErrors.date = "Choose a date.";
+      nextErrors.date = dictionary.chooseDate;
     } else if (fields.date < minDate) {
-      nextErrors.date = "Choose a future date.";
+      nextErrors.date = dictionary.futureDate;
     }
     if (!fields.time) {
-      nextErrors.time = "Choose a time.";
+      nextErrors.time = dictionary.chooseTimeError;
     } else if (new Date(`${fields.date}T${fields.time}:00`) <= new Date()) {
-      nextErrors.time = "Choose a future time.";
+      nextErrors.time = dictionary.futureTime;
     }
     return nextErrors;
   }
@@ -215,33 +225,22 @@ export function MeetingScheduler() {
       if (!response.ok) {
         if (response.status === 409) {
           clearIdempotency();
-          throw new Error(
-            responseValue(data, "error") ??
-              "That time is no longer available. Choose another time.",
-          );
+          setGeneralError(dictionary.conflict);
+        } else if (shouldUseRetryMessage(response)) {
+          setGeneralError(retryMessage(response, retry));
+        } else {
+          setGeneralError(dictionary.unableToSchedule);
         }
-        if (shouldUseRetryMessage(response)) {
-          throw new Error(retryMessage(response));
-        }
-        throw new Error(
-          responseValue(data, "error") ??
-            "Unable to schedule the meeting. Check your details and try again.",
-        );
+        return;
       }
 
       clearIdempotency();
-      setSuccess(
-        "Your meeting is scheduled. Check your email for the calendar invitation.",
-      );
+      setSuccess(dictionary.success);
       setMeetingLink(
         responseValue(data, "meetLink") ?? responseValue(data, "calendarLink"),
       );
-    } catch (caught) {
-      setGeneralError(
-        caught instanceof Error
-          ? caught.message
-          : "Unable to schedule the meeting. Check your connection and try again.",
-      );
+    } catch {
+      setGeneralError(dictionary.connectionError);
     } finally {
       setSubmitting(false);
     }
@@ -279,18 +278,18 @@ export function MeetingScheduler() {
 
   const inputClass = `w-full border border-black/20 bg-transparent px-3 py-3 text-base leading-6 outline-none placeholder:text-black/45 focus:border-black dark:border-white/25 dark:placeholder:text-white/45 dark:focus:border-white ${focusVisibleClassName}`;
   return (
-    <div>
+    <div lang={localeTag(locale)}>
       <form className="flex flex-col gap-5" onSubmit={handleSubmit} noValidate>
         {field(
           "name",
-          "Name",
+          dictionary.name,
           <input
             autoComplete="name"
             className={inputClass}
             id="meeting-name"
             name="name"
             onChange={(event) => updateField("name", event.target.value)}
-            placeholder="Alex Morgan"
+            placeholder={dictionary.namePlaceholder}
             value={fields.name}
             aria-invalid={Boolean(errors.name)}
             aria-describedby={errors.name ? "meeting-name-error" : undefined}
@@ -298,7 +297,7 @@ export function MeetingScheduler() {
         )}
         {field(
           "email",
-          "Email",
+          dictionary.email,
           <input
             autoComplete="email"
             className={inputClass}
@@ -306,7 +305,7 @@ export function MeetingScheduler() {
             name="email"
             type="email"
             onChange={(event) => updateField("email", event.target.value)}
-            placeholder="alex@example.com"
+            placeholder={dictionary.emailPlaceholder}
             value={fields.email}
             aria-invalid={Boolean(errors.email)}
             aria-describedby={errors.email ? "meeting-email-error" : undefined}
@@ -314,7 +313,7 @@ export function MeetingScheduler() {
         )}
         {field(
           "date",
-          "Date",
+          dictionary.date,
           <input
             className={`${inputClass} cursor-pointer`}
             id="meeting-date"
@@ -328,11 +327,11 @@ export function MeetingScheduler() {
               errors.date ? "meeting-date-error" : "meeting-date-hint"
             }
           />,
-          "All dates are available. Times use your local time zone.",
+          dictionary.dateHint,
         )}
         {field(
           "time",
-          "Time",
+          dictionary.time,
           <div className="relative">
             <select
               className={`${inputClass} cursor-pointer appearance-none pr-10`}
@@ -345,7 +344,7 @@ export function MeetingScheduler() {
                 errors.time ? "meeting-time-error" : "meeting-time-hint"
               }
             >
-              <option value="">Choose a time</option>
+              <option value="">{dictionary.chooseTime}</option>
               {times.map((time) => (
                 <option key={time} value={time}>
                   {time}
@@ -367,7 +366,7 @@ export function MeetingScheduler() {
               />
             </svg>
           </div>,
-          "One hour, starting at the selected time.",
+          dictionary.timeHint,
         )}
         {generalError ? (
           <p className="text-black/70 dark:text-white/75" role="alert">
@@ -379,11 +378,11 @@ export function MeetingScheduler() {
           disabled={submitting}
           type="submit"
         >
-          {submitting ? "Booking meeting…" : "Book this meeting"}
+          {submitting ? dictionary.booking : dictionary.book}
         </button>
       </form>
       <p aria-live="polite" className="sr-only" role="status">
-        {submitting ? "Booking your meeting." : success}
+        {submitting ? dictionary.bookingStatus : success}
       </p>
       {success ? (
         <p className="mt-6 text-black/75 dark:text-white/85">
@@ -391,8 +390,11 @@ export function MeetingScheduler() {
           {meetingLink ? (
             <>
               {" "}
-              <ExternalLink href={meetingLink}>
-                Open the meeting details
+              <ExternalLink
+                href={meetingLink}
+                newTabLabel={dictionary.externalLinkNewTab}
+              >
+                {dictionary.meetingDetails}
               </ExternalLink>
               .
             </>

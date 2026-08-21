@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { actionClassName } from "@/components/links";
+import type { Locale } from "@/i18n/config";
+import type { Dictionary } from "@/i18n/dictionary";
 import type {
   GeoCoordinates,
   GuestbookMessage,
@@ -19,7 +21,13 @@ const Globe = dynamic(
   },
 );
 
-function GlobePlaceholder({ hidden }: { hidden: boolean }) {
+function GlobePlaceholder({
+  hidden,
+  dictionary,
+}: {
+  hidden: boolean;
+  dictionary: Dictionary["guestbook"]["globe"];
+}) {
   return (
     <div
       className={`pointer-events-none absolute inset-0 z-10 flex items-center justify-center ${hidden ? "opacity-0" : "opacity-100"}`}
@@ -27,7 +35,7 @@ function GlobePlaceholder({ hidden }: { hidden: boolean }) {
       aria-hidden={hidden || undefined}
     >
       <div className="size-[min(66vmin,38rem)] rounded-full bg-black/[0.035] shadow-[inset_0_0_0_1px_rgb(0_0_0/0.06)] motion-safe:animate-pulse dark:bg-white/[0.035] dark:shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)]" />
-      <span className="sr-only">Loading globe</span>
+      <span className="sr-only">{dictionary.loading}</span>
     </div>
   );
 }
@@ -35,9 +43,13 @@ function GlobePlaceholder({ hidden }: { hidden: boolean }) {
 export function GuestbookGlobe({
   messages,
   viewerLocation,
+  locale,
+  dictionary,
 }: {
   messages: GuestbookMessage[];
   viewerLocation: GeoCoordinates;
+  locale: Locale;
+  dictionary: Dictionary["guestbook"];
 }) {
   const [geojson, setGeojson] = useState<GeoJSON | null | undefined>(undefined);
   const [globeReady, setGlobeReady] = useState(false);
@@ -49,7 +61,7 @@ export function GuestbookGlobe({
     fetch(COUNTRIES_GEOJSON_URL)
       .then((response) => {
         if (!response.ok) {
-          throw new Error("Unable to load country borders.");
+          return null;
         }
         return response.json() as Promise<GeoJSON>;
       })
@@ -68,16 +80,26 @@ export function GuestbookGlobe({
             geojson={geojson ?? undefined}
             viewerLocation={viewerLocation}
             onReady={() => setGlobeReady(true)}
+            locale={locale}
+            dictionary={dictionary.globe}
           />
         ) : null}
       </div>
-      <GlobePlaceholder hidden={globeReady} />
+      <GlobePlaceholder hidden={globeReady} dictionary={dictionary.globe} />
+      {geojson === null ? (
+        <p
+          className="pointer-events-none absolute inset-x-4 top-1/2 z-10 -translate-y-1/2 text-center text-sm text-black/60 dark:text-white/65"
+          role="status"
+        >
+          {dictionary.globe.loadBordersError}
+        </p>
+      ) : null}
 
       <Link
         href="/guestbook/new"
         className={`${actionClassName} absolute right-[calc(1rem+env(safe-area-inset-right))] bottom-[calc(1rem+env(safe-area-inset-bottom))] py-2.5`}
       >
-        Leave a message
+        {dictionary.globe.leaveMessage}
       </Link>
     </div>
   );

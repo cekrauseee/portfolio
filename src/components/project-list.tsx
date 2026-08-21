@@ -1,12 +1,17 @@
 import Link from "next/link";
 import { projects } from "@/content/portfolio";
 import { linkFocusClassName } from "@/components/links";
+import type { Dictionary } from "@/i18n/dictionary";
 
-export function ProjectList() {
+export function ProjectList({
+  dictionary,
+}: {
+  dictionary: Dictionary["home"];
+}) {
   return (
     <section
       className="flex flex-col gap-5 [@media(max-height:42rem)]:gap-4 [@media(max-width:23rem)_and_(max-height:42rem)]:gap-3"
-      aria-label="Projects"
+      aria-label={dictionary.projects}
     >
       {projects.map((project) => (
         <article key={project.slug}>
@@ -15,11 +20,14 @@ export function ProjectList() {
             href={`/projects/${project.slug}`}
           >
             <h2 className="text-lg leading-7 font-medium">{project.name}</h2>
-            <p className="mt-2 leading-6 text-black/55 dark:text-white/65">
+            <p
+              className="mt-2 leading-6 text-black/55 dark:text-white/65"
+              lang="en"
+            >
               {project.description}
             </p>
             <span className="mt-3 block text-sm text-black/70 dark:text-white/75">
-              Read project notes
+              {dictionary.readProjectNotes}
             </span>
           </Link>
         </article>

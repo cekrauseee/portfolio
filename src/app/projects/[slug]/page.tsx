@@ -5,6 +5,10 @@ import { ExternalLink, mutedTextLinkClassName } from "@/components/links";
 import { PageShell } from "@/components/page-shell";
 import { site } from "@/config/site";
 import { getProject, projects } from "@/content/portfolio";
+import { defaultLocale } from "@/i18n/config";
+import { getDictionary } from "@/i18n/get-dictionary";
+import { getRequestLocale } from "@/i18n/request-locale";
+import { requestMetadata } from "@/i18n/metadata";
 
 type ProjectPageProps = {
   params: Promise<{ slug: string }>;
@@ -26,27 +30,29 @@ export async function generateMetadata({
     return {};
   }
 
-  const path = `/projects/${project.slug}`;
+  const locale = await getRequestLocale();
+  const dictionary = await getDictionary(locale);
+  const metadata = requestMetadata(
+    defaultLocale,
+    `/projects/${project.slug}`,
+    project.slug,
+    project.metaDescription,
+    project.name,
+  );
 
   return {
-    title: project.slug,
-    description: project.metaDescription,
-    alternates: {
-      canonical: path,
-    },
+    ...metadata,
     openGraph: {
-      type: "website",
-      url: path,
-      title: project.name,
-      description: project.metaDescription,
-      siteName: site.name,
-      locale: site.locale,
+      ...metadata.openGraph,
       images: [
         {
           url: "/opengraph-image.png",
           width: 1200,
           height: 630,
-          alt: `${project.name} project notes`,
+          alt: dictionary.projects.projectNotesAlt.replace(
+            "{name}",
+            project.name,
+          ),
         },
       ],
     },
@@ -60,7 +66,10 @@ export async function generateMetadata({
           url: "/twitter-image.png",
           width: 1200,
           height: 630,
-          alt: `${project.name} project notes`,
+          alt: dictionary.projects.projectNotesAlt.replace(
+            "{name}",
+            project.name,
+          ),
         },
       ],
     },
@@ -75,6 +84,8 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     notFound();
   }
 
+  const locale = await getRequestLocale();
+  const dictionary = await getDictionary(locale);
   const projectUrl = `${site.url}/projects/${project.slug}`;
   const jsonLd = [
     {
@@ -84,7 +95,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
         {
           "@type": "ListItem",
           position: 1,
-          name: "Portfolio",
+          name: dictionary.projects.portfolio,
           item: site.url,
         },
         {
@@ -107,11 +118,12 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
       author: {
         "@id": `${site.url}/#person`,
       },
+      inLanguage: "en",
     },
   ];
 
   return (
-    <PageShell>
+    <PageShell locale={locale} navigation={dictionary.navigation}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -123,18 +135,32 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
           <h1 className="text-2xl leading-8 font-medium tracking-[-0.02em] text-balance">
             {project.name}
           </h1>
-          <p className="mt-4 text-base leading-7 text-pretty text-black/75 dark:text-white/85">
+          <p
+            className="mt-4 text-base leading-7 text-pretty text-black/75 dark:text-white/85"
+            lang="en"
+          >
             {project.summary}
           </p>
           <p className="mt-6">
-            <ExternalLink href={project.repositoryUrl}>Repository</ExternalLink>
+            <ExternalLink
+              href={project.repositoryUrl}
+              newTabLabel={dictionary.projects.externalLinkNewTab}
+            >
+              {dictionary.projects.repository}
+            </ExternalLink>
           </p>
-          <p className="mt-3 max-w-[48ch] text-sm leading-6 text-black/60 dark:text-white/70">
+          <p
+            className="mt-3 max-w-[48ch] text-sm leading-6 text-black/60 dark:text-white/70"
+            lang="en"
+          >
             {project.highlights.join(" · ")}
           </p>
         </header>
 
-        <div className="mt-10 flex flex-col gap-10 [@media(max-height:42rem)]:gap-8">
+        <div
+          className="mt-10 flex flex-col gap-10 [@media(max-height:42rem)]:gap-8"
+          lang="en"
+        >
           {project.sections.map((section) => (
             <section key={section.title}>
               <h2 className="text-lg leading-7 font-medium">{section.title}</h2>
@@ -149,7 +175,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 
         <footer className="mt-12 [@media(max-height:42rem)]:mt-9">
           <Link className={mutedTextLinkClassName} href="/">
-            Back
+            {dictionary.projects.back}
           </Link>
         </footer>
       </article>

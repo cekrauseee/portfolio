@@ -4,6 +4,8 @@ import type { FormEvent } from "react";
 import { useState } from "react";
 import { retryMessage, shouldUseRetryMessage } from "@/lib/retry-message";
 import { actionClassName, focusVisibleClassName } from "@/components/links";
+import { localeTag, type Locale } from "@/i18n/config";
+import type { Dictionary } from "@/i18n/dictionary";
 import {
   MAX_MESSAGE_LENGTH,
   MAX_NAME_LENGTH,
@@ -13,18 +15,21 @@ type FieldName = "name" | "message";
 type Fields = Record<FieldName, string>;
 type Errors = Partial<Record<FieldName, string>>;
 
+type MessageFormDictionary = Dictionary["guestbook"]["form"];
+
 const initialFields: Fields = { name: "", message: "" };
 
-function responseValue(data: unknown, key: string) {
-  return data &&
-    typeof data === "object" &&
-    key in data &&
-    typeof data[key as keyof typeof data] === "string"
-    ? data[key as keyof typeof data]
-    : undefined;
-}
-
-export function MessageForm({ onSubmitted }: { onSubmitted?: () => void }) {
+export function MessageForm({
+  locale,
+  dictionary,
+  retry,
+  onSubmitted,
+}: {
+  locale: Locale;
+  dictionary: MessageFormDictionary;
+  retry: Dictionary["retry"];
+  onSubmitted?: () => void;
+}) {
   const [fields, setFields] = useState<Fields>(initialFields);
   const [errors, setErrors] = useState<Errors>({});
   const [generalError, setGeneralError] = useState("");
@@ -41,14 +46,20 @@ export function MessageForm({ onSubmitted }: { onSubmitted?: () => void }) {
   function validate() {
     const nextErrors: Errors = {};
     if (!fields.name.trim()) {
-      nextErrors.name = "Enter your name.";
+      nextErrors.name = dictionary.enterName;
     } else if (fields.name.trim().length > MAX_NAME_LENGTH) {
-      nextErrors.name = `Keep your name under ${MAX_NAME_LENGTH} characters.`;
+      nextErrors.name = dictionary.nameTooLong.replace(
+        "{max}",
+        String(MAX_NAME_LENGTH),
+      );
     }
     if (!fields.message.trim()) {
-      nextErrors.message = "Write a message.";
+      nextErrors.message = dictionary.writeMessage;
     } else if (fields.message.trim().length > MAX_MESSAGE_LENGTH) {
-      nextErrors.message = `Keep your message under ${MAX_MESSAGE_LENGTH} characters.`;
+      nextErrors.message = dictionary.messageTooLong.replace(
+        "{max}",
+        String(MAX_MESSAGE_LENGTH),
+      );
     }
     return nextErrors;
   }
@@ -79,25 +90,19 @@ export function MessageForm({ onSubmitted }: { onSubmitted?: () => void }) {
           message: fields.message.trim(),
         }),
       });
-      const data: unknown = await response.json();
       if (!response.ok) {
-        if (shouldUseRetryMessage(response)) {
-          throw new Error(retryMessage(response));
-        }
-        const error = responseValue(data, "error");
-        throw new Error(
-          error ?? "Unable to publish your message. Try again later.",
+        setGeneralError(
+          shouldUseRetryMessage(response)
+            ? retryMessage(response, retry)
+            : dictionary.unableToPublish,
         );
+        return;
       }
-      setSuccess("Your message is on the globe.");
+      setSuccess(dictionary.success);
       setFields(initialFields);
       onSubmitted?.();
-    } catch (caught) {
-      setGeneralError(
-        caught instanceof Error
-          ? caught.message
-          : "Unable to publish your message. Check your connection and try again.",
-      );
+    } catch {
+      setGeneralError(dictionary.connectionError);
     } finally {
       setSubmitting(false);
     }
@@ -123,11 +128,11 @@ export function MessageForm({ onSubmitted }: { onSubmitted?: () => void }) {
   );
 
   return (
-    <div>
+    <div lang={localeTag(locale)}>
       <form className="flex flex-col gap-5" onSubmit={handleSubmit} noValidate>
         {field(
           "name",
-          "Name",
+          dictionary.name,
           <input
             autoComplete="name"
             className={inputClass}
@@ -138,12 +143,12 @@ export function MessageForm({ onSubmitted }: { onSubmitted?: () => void }) {
             value={fields.name}
             aria-invalid={Boolean(errors.name)}
             aria-describedby={errors.name ? "globe-name-error" : undefined}
-            placeholder="Alex Morgan"
+            placeholder={dictionary.namePlaceholder}
           />,
         )}
         {field(
           "message",
-          "Message",
+          dictionary.message,
           <textarea
             className={`${inputClass} resize-none`}
             id="globe-message"
@@ -156,7 +161,7 @@ export function MessageForm({ onSubmitted }: { onSubmitted?: () => void }) {
             aria-describedby={
               errors.message ? "globe-message-error" : undefined
             }
-            placeholder="I would love to learn more about your work."
+            placeholder={dictionary.messagePlaceholder}
           />,
         )}
         {generalError ? (
@@ -169,11 +174,11 @@ export function MessageForm({ onSubmitted }: { onSubmitted?: () => void }) {
           disabled={submitting}
           type="submit"
         >
-          {submitting ? "Publishing…" : "Publish message"}
+          {submitting ? dictionary.publishing : dictionary.publish}
         </button>
       </form>
       <p aria-live="polite" className="sr-only" role="status">
-        {submitting ? "Publishing your message." : success}
+        {submitting ? dictionary.publishingStatus : success}
       </p>
       {success ? (
         <p className="mt-6 text-black/75 dark:text-white/85">{success}</p>

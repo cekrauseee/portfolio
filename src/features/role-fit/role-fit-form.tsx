@@ -4,16 +4,36 @@ import type { FormEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { actionClassName, focusVisibleClassName } from "@/components/links";
+import { localeTag, type Locale } from "@/i18n/config";
+import type { Dictionary } from "@/i18n/dictionary";
 import { MAX_ROLE_DESCRIPTION_LENGTH } from "@/features/role-fit/constants";
 import { retryMessage, shouldUseRetryMessage } from "@/lib/retry-message";
 
-const MAX_DESCRIPTION_LABEL =
-  MAX_ROLE_DESCRIPTION_LENGTH.toLocaleString("en-US");
 const WORD_INTERVAL_MS = 24;
 
 type Status = "idle" | "loading" | "revealing" | "done" | "error";
 
-export function RoleFitForm() {
+type RoleFitDictionary = Dictionary["fit"]["form"];
+
+function interpolate(
+  template: string,
+  values: Record<string, string | number>,
+) {
+  return Object.entries(values).reduce(
+    (result, [key, value]) => result.replace(`{${key}}`, String(value)),
+    template,
+  );
+}
+
+export function RoleFitForm({
+  locale,
+  dictionary,
+  retry,
+}: {
+  locale: Locale;
+  dictionary: RoleFitDictionary;
+  retry: Dictionary["retry"];
+}) {
   const [description, setDescription] = useState("");
   const [answer, setAnswer] = useState("");
   const [visibleWordCount, setVisibleWordCount] = useState(0);
@@ -22,6 +42,10 @@ export function RoleFitForm() {
   const revealTimer = useRef<number | undefined>(undefined);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const characterCount = interpolate(dictionary.characterCount, {
+    count: description.length,
+    max: MAX_ROLE_DESCRIPTION_LENGTH.toLocaleString(localeTag(locale)),
+  });
   const wordEndOffsets = useMemo(
     () =>
       Array.from(
@@ -89,7 +113,7 @@ export function RoleFitForm() {
 
     const input = description.trim();
     if (!input) {
-      setError("Paste a role description before assessing the fit.");
+      setError(dictionary.emptyDescription);
       setStatus("error");
       textareaRef.current?.focus();
       return;
@@ -110,19 +134,13 @@ export function RoleFitForm() {
       const data: unknown = await response.json();
 
       if (!response.ok) {
-        if (shouldUseRetryMessage(response)) {
-          throw new Error(retryMessage(response));
-        }
-        if (
-          data &&
-          typeof data === "object" &&
-          "error" in data &&
-          typeof data.error === "string"
-        ) {
-          throw new Error(data.error);
-        }
-
-        throw new Error("Unable to assess fit. Try again.");
+        setError(
+          shouldUseRetryMessage(response)
+            ? retryMessage(response, retry)
+            : dictionary.unableToAssess,
+        );
+        setStatus("error");
+        return;
       }
 
       if (
@@ -131,16 +149,14 @@ export function RoleFitForm() {
         !("answer" in data) ||
         typeof data.answer !== "string"
       ) {
-        throw new Error("Unable to assess fit. Try again.");
+        setError(dictionary.unableToAssess);
+        setStatus("error");
+        return;
       }
 
       revealAnswer(data.answer);
-    } catch (caught) {
-      setError(
-        caught instanceof Error
-          ? caught.message
-          : "Unable to assess fit. Check your connection and try again.",
-      );
+    } catch {
+      setError(dictionary.connectionError);
       setStatus("error");
     }
   }
@@ -152,7 +168,7 @@ export function RoleFitForm() {
       <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
         <div className="flex flex-col gap-2">
           <label className="font-medium" htmlFor="role-description">
-            Role description
+            {dictionary.roleDescription}
           </label>
           <textarea
             aria-describedby={
@@ -170,7 +186,7 @@ export function RoleFitForm() {
                 setError("");
               }
             }}
-            placeholder="Senior software engineer with 5+ years of experience"
+            placeholder={dictionary.placeholder}
             ref={textareaRef}
             value={description}
           />
@@ -178,7 +194,7 @@ export function RoleFitForm() {
             className="text-black/60 dark:text-white/65"
             id="role-description-hint"
           >
-            {description.length} / {MAX_DESCRIPTION_LABEL}
+            {characterCount}
           </p>
         </div>
 
@@ -197,22 +213,22 @@ export function RoleFitForm() {
           disabled={isBusy}
           type="submit"
         >
-          {status === "loading" ? "Assessing fit…" : "Assess fit"}
+          {status === "loading" ? dictionary.assessing : dictionary.assess}
         </button>
       </form>
 
       <p className="sr-only" aria-live="polite" role="status">
         {status === "loading"
-          ? "Assessing fit."
+          ? dictionary.assessing
           : status === "done"
-            ? "Fit assessment ready."
+            ? dictionary.assessmentReady
             : ""}
       </p>
 
       {answer ? (
         <section className="mt-10" aria-labelledby="fit-assessment">
           <h2 className="text-lg leading-7 font-medium" id="fit-assessment">
-            Fit assessment
+            {dictionary.assessment}
           </h2>
           <p className="mt-3 text-base leading-7 whitespace-pre-wrap text-black/75 dark:text-white/85">
             {visibleAnswer}
@@ -223,7 +239,7 @@ export function RoleFitForm() {
       {status === "done" ? (
         <div className="mt-8">
           <Link className={actionClassName} href="/schedule">
-            Schedule a conversation
+            {dictionary.scheduleConversation}
           </Link>
         </div>
       ) : null}

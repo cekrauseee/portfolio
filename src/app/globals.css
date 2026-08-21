@@ -9,7 +9,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans:
+    var(--font-geist-sans), "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo",
+    sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {

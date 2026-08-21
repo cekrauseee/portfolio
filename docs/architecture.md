@@ -15,23 +15,46 @@ cache, geolocation, moderation, and HTTP orchestration stay under
 `src/features/guestbook/server`. Project synchronization runs at development
 startup or build time and never during visitor requests.
 
+## Internationalization
+
+The site supports `en`, `pt-BR`, and `ja` while keeping stable, unprefixed URLs
+for every route. Locale is request state, not URL state. A valid explicit
+preference in the one-year, `SameSite=Lax` `portfolio-locale` cookie wins over
+the trusted deployment country (`JP` or a configured Portuguese-speaking
+country), then supported `Accept-Language`, then English. The compact language
+control submits a Server Action that validates the locale and sets the `HttpOnly`
+cookie. Next.js then re-renders the current route in the same roundtrip. There are
+no locale paths, Proxy, locale API, or `localStorage` state.
+
+Each request resolves a locale on the server and loads its typed, server-only
+dictionary. The layout sets `<html lang>` and route metadata from that locale;
+`pt` uses the `pt-BR` language tag. Client components receive only the
+serializable dictionary subsets they need. External synchronized project
+editorial content intentionally remains in its source language; surrounding UI
+chrome is localized.
+
+Canonical metadata and the sitemap emit one URL per route. They do not emit
+`hreflang` variants because language is stateful rather than represented by
+separate URLs.
+
 ## Components
 
-| Path                                    | Responsibility                                                   |
-| --------------------------------------- | ---------------------------------------------------------------- |
-| `src/app`                               | Pages, Route Handlers, metadata, and global styles               |
-| `src/components`                        | Shared page shell, navigation, project list, and link primitives |
-| `src/features/role-fit`                 | Role-fit form, input parsing, prompt context, and OpenAI request |
-| `src/features/meeting-scheduling`       | Scheduling form, validation, calendar access, and notification   |
-| `src/features/guestbook`                | Shared guestbook contracts, server integrations, and globe UI    |
-| `src/content/portfolio.ts`              | Profile, social links, and normalized project contract           |
-| `src/content/project.ts`                | Shared `Project` and `ProjectSection` types                      |
-| `src/content/github-projects.ts`        | Validated build-time snapshot loader                             |
-| `src/lib/redis.ts`                      | Shared local and production Redis client selection               |
-| `src/lib/abuse-protection.ts`           | Bot checks, identities, rate limits, locks, and deduplication    |
-| `scripts/sync-github-projects.mjs`      | Paginated GitHub reconciliation and atomic snapshot writer       |
-| `src/config/site.ts`                    | Site identity and canonical URL configuration                    |
-| `scripts/authorize-google-calendar.mjs` | Local Google Calendar OAuth authorization                        |
+| Path                                    | Responsibility                                                                             |
+| --------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `src/app`                               | Pages, Route Handlers, metadata, and global styles                                         |
+| `src/components`                        | Shared page shell, navigation, compact language control, project list, and link primitives |
+| `src/i18n`                              | Request locale resolution, typed server dictionaries, and locale metadata                  |
+| `src/features/role-fit`                 | Role-fit form, input parsing, prompt context, and OpenAI request                           |
+| `src/features/meeting-scheduling`       | Scheduling form, validation, calendar access, and notification                             |
+| `src/features/guestbook`                | Shared guestbook contracts, server integrations, and globe UI                              |
+| `src/content/portfolio.ts`              | Profile, social links, and normalized project contract                                     |
+| `src/content/project.ts`                | Shared `Project` and `ProjectSection` types                                                |
+| `src/content/github-projects.ts`        | Validated build-time snapshot loader                                                       |
+| `src/lib/redis.ts`                      | Shared local and production Redis client selection                                         |
+| `src/lib/abuse-protection.ts`           | Bot checks, identities, rate limits, locks, and deduplication                              |
+| `scripts/sync-github-projects.mjs`      | Paginated GitHub reconciliation and atomic snapshot writer                                 |
+| `src/config/site.ts`                    | Site identity and canonical URL configuration                                              |
+| `scripts/authorize-google-calendar.mjs` | Local Google Calendar OAuth authorization                                                  |
 
 ## Build-time project content
 
@@ -144,6 +167,8 @@ reproducible from the committed lockfile.
 ## Invariants
 
 - Visitor requests never call GitHub.
+- Locale selection never changes a public URL; each route has one canonical and sitemap URL, with no `hreflang` variants.
+- The explicit language preference is the `portfolio-locale` cookie; locale state is not stored in `localStorage`.
 - The home page remains a Server Component and does not require hydration.
 - Content changes belong in `src/content/portfolio.ts`, not duplicated across
   components or prompts.

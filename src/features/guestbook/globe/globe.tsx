@@ -6,6 +6,8 @@ import { Html, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { mutedButtonClassName } from "@/components/links";
+import { localeTag, type Locale } from "@/i18n/config";
+import type { Dictionary } from "@/i18n/dictionary";
 import type {
   GeoCoordinates,
   GuestbookMessage,
@@ -63,11 +65,15 @@ export function Globe({
   geojson,
   viewerLocation,
   onReady,
+  locale,
+  dictionary,
 }: {
   messages: GuestbookMessage[];
   geojson?: GeoJSON;
   viewerLocation: GeoCoordinates;
   onReady: () => void;
+  locale: Locale;
+  dictionary: Dictionary["guestbook"]["globe"];
 }) {
   const [hoveredPoint, setHoveredPoint] = useState<GlobePoint | null>(null);
   const [selectedPoint, setSelectedPoint] = useState<GlobePoint | null>(null);
@@ -348,7 +354,11 @@ export function Globe({
                 style={{ pointerEvents: "none" }}
                 zIndexRange={[9, 1]}
               >
-                <HoverTooltip point={hoveredPoint} />
+                <HoverTooltip
+                  point={hoveredPoint}
+                  dictionary={dictionary}
+                  locale={locale}
+                />
               </Html>
             ) : null}
           </group>
@@ -399,22 +409,30 @@ export function Globe({
           <circle cx="12" cy="12" r="3" />
           <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
         </svg>
-        {isCentering ? "Centering…" : "My location"}
+        {isCentering ? dictionary.centering : dictionary.myLocation}
       </button>
 
       {messages.length > 0 ? (
         <button
           type="button"
-          className={`${mutedButtonClassName} absolute top-[calc(1rem+env(safe-area-inset-top))] right-[calc(1rem+env(safe-area-inset-right))] z-10 text-sm`}
+          className={`${mutedButtonClassName} absolute top-[calc(3.5rem+env(safe-area-inset-top))] right-[calc(1rem+env(safe-area-inset-right))] z-10 text-sm`}
           onClick={() => setSelectedPoint(allMessages)}
         >
-          {messages.length} {messages.length === 1 ? "message" : "messages"}
+          {(messages.length === 1
+            ? dictionary.messageCountOne
+            : dictionary.messageCountMany
+          ).replace(
+            "{count}",
+            messages.length.toLocaleString(localeTag(locale)),
+          )}
         </button>
       ) : null}
 
       {selectedPoint ? (
         <MessagePanel
           point={selectedPoint}
+          dictionary={dictionary}
+          locale={locale}
           onClose={() => setSelectedPoint(null)}
         />
       ) : null}
@@ -422,7 +440,7 @@ export function Globe({
       {messages.length === 0 ? (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <p className="text-sm text-black/50 dark:text-white/50">
-            No messages yet. Be the first.
+            {dictionary.empty}
           </p>
         </div>
       ) : null}
