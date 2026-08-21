@@ -1,15 +1,46 @@
+import type { Locale } from "@/i18n/config";
+
 export type ProjectSection = {
   readonly title: string;
   readonly paragraphs: readonly string[];
 };
 
-export type Project = {
-  readonly slug: string;
-  readonly name: string;
+export type ProjectTranslation = {
   readonly description: string;
-  readonly repositoryUrl: string;
   readonly metaDescription: string;
   readonly summary: string;
   readonly highlights: readonly string[];
   readonly sections: readonly ProjectSection[];
 };
+
+export type Project = {
+  readonly slug: string;
+  readonly name: string;
+  readonly repositoryUrl: string;
+  readonly translations: Readonly<
+    Partial<Record<Locale, ProjectTranslation>>
+  > & {
+    readonly en: ProjectTranslation;
+  };
+};
+
+export type LocalizedProject = Omit<Project, "translations"> &
+  ProjectTranslation & {
+    readonly contentLocale: Locale;
+  };
+
+export function localizeProject(
+  project: Project,
+  locale: Locale,
+): LocalizedProject {
+  const contentLocale = project.translations[locale] ? locale : "en";
+  const translation = project.translations[locale] ?? project.translations.en;
+
+  return {
+    slug: project.slug,
+    name: project.name,
+    repositoryUrl: project.repositoryUrl,
+    ...translation,
+    contentLocale,
+  };
+}

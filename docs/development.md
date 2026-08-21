@@ -64,9 +64,17 @@ optional for a higher public GitHub API rate limit.
 
 `predev` and `prebuild` reconcile public repositories owned by that account.
 Repositories opt in by committing `.portfolio/project.json` on their default
-branch. The writer and reader enforce the same normalized fields and string slug
-contract. Invalid records, duplicate slugs, and upstream failures stop the sync;
-a successful sync atomically replaces the complete snapshot.
+branch. Identity fields (`slug`, `name`, and `repositoryUrl`) stay at the top
+level. Put `description`, `metaDescription`, `summary`, `highlights`, and
+`sections` under `translations.en`, with optional matching `pt` and `ja` entries.
+English is required and is used when the requested translation is absent. The
+sync still accepts the previous English-only shape so repositories can migrate
+independently.
+
+The writer and reader enforce the same normalized fields and string slug
+contract. Invalid records, unsupported translation keys, duplicate slugs, and
+upstream failures stop the sync; a successful sync atomically replaces the
+complete snapshot.
 
 The application renders only from `.cache/github-projects.json`. It never calls
 GitHub during visitor traffic. A valid empty snapshot is supported. Run

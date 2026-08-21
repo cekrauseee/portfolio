@@ -78,7 +78,7 @@ export default async function Home() {
         </div>
       </div>
 
-      <ProjectList dictionary={dictionary.home} />
+      <ProjectList dictionary={dictionary.home} locale={locale} />
     </PageShell>
   );
 }

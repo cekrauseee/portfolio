@@ -5,7 +5,7 @@ import { ExternalLink, mutedTextLinkClassName } from "@/components/links";
 import { PageShell } from "@/components/page-shell";
 import { site } from "@/config/site";
 import { getProject, projects } from "@/content/portfolio";
-import { defaultLocale } from "@/i18n/config";
+import { localeTag } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getRequestLocale } from "@/i18n/request-locale";
 import { requestMetadata } from "@/i18n/metadata";
@@ -24,16 +24,16 @@ export async function generateMetadata({
   params,
 }: ProjectPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const project = getProject(slug);
+  const locale = await getRequestLocale();
+  const project = getProject(slug, locale);
 
   if (!project) {
     return {};
   }
 
-  const locale = await getRequestLocale();
   const dictionary = await getDictionary(locale);
   const metadata = requestMetadata(
-    defaultLocale,
+    project.contentLocale,
     `/projects/${project.slug}`,
     project.slug,
     project.metaDescription,
@@ -78,13 +78,13 @@ export async function generateMetadata({
 
 export default async function ProjectPage({ params }: ProjectPageProps) {
   const { slug } = await params;
-  const project = getProject(slug);
+  const locale = await getRequestLocale();
+  const project = getProject(slug, locale);
 
   if (!project) {
     notFound();
   }
 
-  const locale = await getRequestLocale();
   const dictionary = await getDictionary(locale);
   const projectUrl = `${site.url}/projects/${project.slug}`;
   const jsonLd = [
@@ -118,7 +118,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
       author: {
         "@id": `${site.url}/#person`,
       },
-      inLanguage: "en",
+      inLanguage: localeTag(project.contentLocale),
     },
   ];
 
@@ -137,7 +137,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
           </h1>
           <p
             className="mt-4 text-base leading-7 text-pretty text-black/75 dark:text-white/85"
-            lang="en"
+            lang={localeTag(project.contentLocale)}
           >
             {project.summary}
           </p>
@@ -151,7 +151,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
           </p>
           <p
             className="mt-3 max-w-[48ch] text-sm leading-6 text-black/60 dark:text-white/70"
-            lang="en"
+            lang={localeTag(project.contentLocale)}
           >
             {project.highlights.join(" · ")}
           </p>
@@ -159,7 +159,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 
         <div
           className="mt-10 flex flex-col gap-10 [@media(max-height:42rem)]:gap-8"
-          lang="en"
+          lang={localeTag(project.contentLocale)}
         >
           {project.sections.map((section) => (
             <section key={section.title}>

@@ -29,9 +29,10 @@ no locale paths, Proxy, locale API, or `localStorage` state.
 Each request resolves a locale on the server and loads its typed, server-only
 dictionary. The layout sets `<html lang>` and route metadata from that locale;
 `pt` uses the `pt-BR` language tag. Client components receive only the
-serializable dictionary subsets they need. External synchronized project
-editorial content intentionally remains in its source language; surrounding UI
-chrome is localized.
+serializable dictionary subsets they need. Synchronized project records can
+provide `en`, `pt`, and `ja` editorial translations. English is required and is
+the fallback when a requested translation is absent; the rendered content keeps
+its actual language tag.
 
 Canonical metadata and the sitemap emit one URL per route. They do not emit
 `hreflang` variants because language is stateful rather than represented by
@@ -66,8 +67,20 @@ and slugs, sorts deterministically, and atomically replaces
 
 The snapshot loader revalidates the complete file and binds it to the configured
 owner. Writer and reader both require a string slug matching the same safe
-pattern. Tests create their snapshot from a neutral committed fixture, removing
-hidden dependence on prior local commands.
+pattern. The localized convention keeps identity fields at the project level and
+editorial fields under `translations`; it requires English and accepts Portuguese
+and Japanese. Legacy English-only records remain valid and are normalized to the
+same internal shape during migration.
+
+`generateStaticParams` enumerates project slugs from the build-time snapshot and
+rejects unknown slugs. It does not make the current project HTML fully static:
+the unprefixed URL resolves locale from request cookies and headers, and those
+Next.js request-time APIs opt the route into dynamic rendering. Fully static HTML
+per language would require locale-bearing URLs and generation of every
+`{ locale, slug }` pair.
+
+Tests create their snapshot from a neutral committed fixture, removing hidden
+dependence on prior local commands.
 
 ## Shared protection
 
