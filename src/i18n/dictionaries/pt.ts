@@ -117,7 +117,7 @@ export const pt: Dictionary = {
       loading: "Carregando o globo",
       loadBordersError: "Não foi possível carregar as fronteiras dos países.",
       leaveMessage: "Deixar uma mensagem",
-      myLocation: "Minha localização",
+      centerGlobe: "Centralizar globo",
       centering: "Centralizando…",
       messageCountOne: "{count} mensagem",
       messageCountMany: "{count} mensagens",

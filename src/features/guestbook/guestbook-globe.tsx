@@ -34,7 +34,7 @@ function GlobePlaceholder({
       role={hidden ? undefined : "status"}
       aria-hidden={hidden || undefined}
     >
-      <div className="size-[min(66vmin,38rem)] rounded-full bg-black/[0.035] shadow-[inset_0_0_0_1px_rgb(0_0_0/0.06)] motion-safe:animate-pulse dark:bg-white/[0.035] dark:shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)]" />
+      <div className="size-[min(66vmin,38rem)] rounded-full bg-black/[0.035] outline outline-black/[0.06] motion-safe:animate-pulse dark:bg-white/[0.035] dark:outline-white/[0.08]" />
       <span className="sr-only">{dictionary.loading}</span>
     </div>
   );

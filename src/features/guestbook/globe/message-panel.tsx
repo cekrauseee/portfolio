@@ -26,7 +26,7 @@ export function HoverTooltip({
     .join(", ");
 
   return (
-    <div className="pointer-events-none w-max max-w-56 -translate-y-8 bg-white/95 px-3 py-2 text-center text-sm leading-5 break-words text-black shadow-md select-none dark:bg-black/90 dark:text-white">
+    <div className="bg-background text-foreground pointer-events-none w-max max-w-56 -translate-y-8 px-3 py-2 text-center text-sm leading-5 break-words select-none">
       <p className="font-medium text-pretty">
         {point.messages.length === 1
           ? firstMessage.name
@@ -59,7 +59,7 @@ export function MessagePanel({
   return (
     <aside
       aria-label={dictionary.visitorMessages}
-      className="absolute inset-x-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-20 flex max-h-[min(60dvh,28rem)] flex-col bg-white/95 p-4 text-black shadow-xl sm:inset-x-auto sm:top-[calc(3.75rem+env(safe-area-inset-top))] sm:right-[calc(1rem+env(safe-area-inset-right))] sm:bottom-auto sm:w-80 dark:bg-black/90 dark:text-white"
+      className="bg-background text-foreground absolute [inset-inline-start:calc(1rem+env(safe-area-inset-left))] [inset-inline-end:calc(1rem+env(safe-area-inset-right))] bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-40 flex max-h-[min(60dvh,28rem)] flex-col p-4 outline outline-black/10 sm:[inset-inline-start:auto] sm:w-80 dark:outline-white/15"
       onWheel={(event) => event.stopPropagation()}
     >
       <header className="flex shrink-0 items-start justify-between gap-4">
@@ -86,7 +86,7 @@ export function MessagePanel({
         <button
           autoFocus
           type="button"
-          className={`${mutedButtonClassName} shrink-0 text-sm`}
+          className={`${mutedButtonClassName} inline-flex min-h-8 shrink-0 items-center text-sm`}
           onClick={onClose}
         >
           {dictionary.close}

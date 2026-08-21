@@ -112,7 +112,7 @@ export const ja: Dictionary = {
       loading: "地球儀を読み込み中",
       loadBordersError: "国境を読み込めませんでした。",
       leaveMessage: "メッセージを残す",
-      myLocation: "現在地",
+      centerGlobe: "地球儀を中央に戻す",
       centering: "中央に移動中…",
       messageCountOne: "{count}件のメッセージ",
       messageCountMany: "{count}件のメッセージ",

@@ -110,7 +110,7 @@ export const en: Dictionary = {
       loading: "Loading globe",
       loadBordersError: "Unable to load country borders.",
       leaveMessage: "Leave a message",
-      myLocation: "My location",
+      centerGlobe: "Center globe",
       centering: "Centering…",
       messageCountOne: "{count} message",
       messageCountMany: "{count} messages",

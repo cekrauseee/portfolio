@@ -106,7 +106,7 @@ export type Dictionary = {
       loading: string;
       loadBordersError: string;
       leaveMessage: string;
-      myLocation: string;
+      centerGlobe: string;
       centering: string;
       messageCountOne: string;
       messageCountMany: string;

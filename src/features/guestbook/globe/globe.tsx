@@ -95,6 +95,7 @@ export function Globe({
   const centerAnimationRef = useRef<number | undefined>(undefined);
   const interactionTimerRef = useRef<number | undefined>(undefined);
   const hoverExitTimerRef = useRef<number | undefined>(undefined);
+  const messageIndexRef = useRef<HTMLButtonElement>(null);
   const { isDark } = useTheme();
   const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const initialCameraPosition = useMemo(
@@ -281,18 +282,26 @@ export function Globe({
 
   const isExploringPoint = hoveredPoint !== null || selectedPoint !== null;
 
+  const closeMessages = useCallback(() => {
+    const restoreMessageIndexFocus = selectedPoint?.id === "all-messages";
+    setSelectedPoint(null);
+    if (restoreMessageIndexFocus) {
+      window.requestAnimationFrame(() => messageIndexRef.current?.focus());
+    }
+  }, [selectedPoint]);
+
   useEffect(() => {
     if (!selectedPoint) {
       return;
     }
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setSelectedPoint(null);
+        closeMessages();
       }
     };
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [selectedPoint]);
+  }, [closeMessages, selectedPoint]);
 
   useEffect(() => {
     return () => {
@@ -401,36 +410,22 @@ export function Globe({
         </Canvas>
       </div>
 
-      <div className="pointer-events-none absolute inset-x-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-10 flex justify-center">
-        <div className="bg-background/85 pointer-events-auto flex max-w-full flex-wrap items-center justify-center gap-2 p-2 shadow-[0_8px_32px_rgb(0_0_0/0.14)] outline outline-black/10 backdrop-blur-md dark:shadow-[0_8px_32px_rgb(0_0_0/0.5)] dark:outline-white/15">
-          <button
-            type="button"
-            className={`${mutedButtonClassName} inline-flex min-h-10 items-center gap-2 px-2 text-sm motion-safe:transition-transform motion-safe:active:scale-[0.96]`}
-            onClick={centerOnViewer}
-          >
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="size-4"
-            >
-              <circle cx="12" cy="12" r="3" />
-              <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
-            </svg>
-            {isCentering ? dictionary.centering : dictionary.myLocation}
-          </button>
-          {primaryAction}
-        </div>
-      </div>
-
-      {messages.length > 0 ? (
+      <div className="pointer-events-none absolute [inset-inline-start:calc(1rem+env(safe-area-inset-left))] [inset-inline-end:calc(1rem+env(safe-area-inset-right))] bottom-[calc(1rem+env(safe-area-inset-bottom))] z-20 flex items-end justify-between gap-4">
         <button
           type="button"
-          className={`${mutedButtonClassName} absolute top-[calc(1rem+env(safe-area-inset-top))] left-1/2 z-20 inline-flex min-h-8 -translate-x-1/2 items-center text-sm`}
+          className={`${mutedButtonClassName} pointer-events-auto inline-flex min-h-10 items-center text-sm`}
+          onClick={centerOnViewer}
+        >
+          {isCentering ? dictionary.centering : dictionary.centerGlobe}
+        </button>
+        <div className="pointer-events-auto shrink-0">{primaryAction}</div>
+      </div>
+
+      {messages.length > 0 && !selectedPoint ? (
+        <button
+          ref={messageIndexRef}
+          type="button"
+          className={`${mutedButtonClassName} absolute bottom-[calc(4.5rem+env(safe-area-inset-bottom))] left-1/2 z-20 inline-flex min-h-10 -translate-x-1/2 items-center text-sm [@media(min-width:40rem)]:bottom-[calc(1rem+env(safe-area-inset-bottom))]`}
           onClick={() => setSelectedPoint(allMessages)}
         >
           {(messages.length === 1
@@ -448,7 +443,7 @@ export function Globe({
           point={selectedPoint}
           dictionary={dictionary}
           locale={locale}
-          onClose={() => setSelectedPoint(null)}
+          onClose={closeMessages}
         />
       ) : null}
 
