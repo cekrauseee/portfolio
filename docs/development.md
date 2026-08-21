@@ -189,10 +189,12 @@ PROJECTS_SYNC_SKIP=1 npm run build
 docker compose config --quiet
 ```
 
-`npm test` discovers deterministic `*.test.mjs` files under `tests/` and creates `.cache/github-projects.json` from the committed neutral
-fixture, so it does not depend on a previous sync. Integration modules and
-runners live under `tests/integration/`; `scripts/` is reserved for operational
-commands. `npm run check` aggregates the
+`npm test` discovers deterministic `*.test.mjs` files under `tests/` without
+reading or replacing the development snapshot in `.cache/github-projects.json`.
+Tests that need project data read the committed neutral fixture directly, so the
+suite does not depend on a previous sync. Integration modules and runners live
+under `tests/integration/`; `scripts/` is reserved for operational commands.
+`npm run check` aggregates the
 first three quality commands and type checking. The Redis and Postgres integration
 checks require the local services started by `npm run setup` or
 `npm run services:up`; run `db:push` before the Postgres test when the schema is

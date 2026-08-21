@@ -1,7 +1,15 @@
 #!/usr/bin/env node
 
 import { spawnSync } from "node:child_process";
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -26,30 +34,37 @@ if (
   throw new Error("The GitHub project fixture must declare a valid owner.");
 }
 
-const cacheDirectory = path.join(projectDirectory, ".cache");
-mkdirSync(cacheDirectory, { recursive: true });
+const testFiles = readdirSync(path.join(projectDirectory, "tests"))
+  .filter((name) => name.endsWith(".test.mjs"))
+  .sort()
+  .map((name) => path.join(projectDirectory, "tests", name));
+const testDirectory = mkdtempSync(path.join(os.tmpdir(), "portfolio-tests-"));
+const cacheDirectory = path.join(testDirectory, ".cache");
+mkdirSync(cacheDirectory);
 writeFileSync(
   path.join(cacheDirectory, "github-projects.json"),
   fixtureContents,
   "utf8",
 );
 
-const testFiles = readdirSync(path.join(projectDirectory, "tests"))
-  .filter((name) => name.endsWith(".test.mjs"))
-  .sort()
-  .map((name) => path.join("tests", name));
-const result = spawnSync(
-  process.execPath,
-  ["--import", "tsx", "--test", ...testFiles],
-  {
-    cwd: projectDirectory,
-    env: {
-      ...process.env,
-      GITHUB_OWNER: fixture.owner,
+let result;
+try {
+  result = spawnSync(
+    process.execPath,
+    ["--import", import.meta.resolve("tsx"), "--test", ...testFiles],
+    {
+      cwd: testDirectory,
+      env: {
+        ...process.env,
+        GITHUB_OWNER: fixture.owner,
+        TSX_TSCONFIG_PATH: path.join(projectDirectory, "tsconfig.json"),
+      },
+      stdio: "inherit",
     },
-    stdio: "inherit",
-  },
-);
+  );
+} finally {
+  rmSync(testDirectory, { recursive: true, force: true });
+}
 
 if (result.error) {
   throw result.error;
