@@ -18,10 +18,12 @@ The site includes:
 - a role-fit assessment grounded in the published portfolio content;
 - one-hour meeting scheduling through Google Calendar;
 - an optional best-effort Resend notification to the owner;
+- a moderated visitor guestbook displayed on an interactive globe;
 - responsive light and dark presentation for desktop and mobile browsers.
 
-The site does not provide an interactive terminal, authentication, persistent
-application data, or a content management system.
+The site does not provide an interactive terminal, authentication, visitor
+accounts, or a content management system. Postgres persists approved guestbook
+messages only.
 
 ## Core concepts
 

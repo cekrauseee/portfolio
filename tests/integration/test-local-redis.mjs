@@ -6,7 +6,10 @@ import { fileURLToPath } from "node:url";
 import nextEnv from "@next/env";
 
 const { loadEnvConfig } = nextEnv;
-const projectDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const projectDirectory = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "../..",
+);
 loadEnvConfig(projectDirectory, true, console, true);
 
 const redisUrl = process.env.REDIS_URL?.trim();
@@ -19,7 +22,12 @@ if (!redisUrl) {
 
 const result = spawnSync(
   process.execPath,
-  ["--import", "tsx", "--test", "scripts/local-redis.integration.mjs"],
+  [
+    "--import",
+    "tsx",
+    "--test",
+    "tests/integration/local-redis.integration.mjs",
+  ],
   {
     cwd: projectDirectory,
     env: { ...process.env, REDIS_URL: redisUrl },

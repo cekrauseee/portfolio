@@ -12,6 +12,9 @@ const fixture = JSON.parse(
 process.env.NODE_ENV = "test";
 process.env.ANON_SESSION_SECRET = "test-only-secret";
 process.env.OPENAI_API_KEY = "test-key";
+process.env.GOOGLE_CLIENT_ID = "test-google-client-id";
+process.env.GOOGLE_CLIENT_SECRET = "test-google-client-secret";
+process.env.GOOGLE_REFRESH_TOKEN = "test-google-refresh-token";
 process.env.MEETING_OWNER_NAME = "Test Owner";
 process.env.GITHUB_OWNER ||= fixture.owner;
 

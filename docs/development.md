@@ -24,20 +24,38 @@ npm run dev
 2. requires `GITHUB_OWNER` in `.env.local`;
 3. installs exactly `package-lock.json` with `npm ci`;
 4. verifies that Docker is running;
-5. adds the local `REDIS_URL` and a strong `ANON_SESSION_SECRET` only when missing;
-6. validates those protection values;
-7. starts Redis from `compose.yaml` and waits for health;
-8. runs the real local Redis integration test.
+5. adds local Redis, Postgres, and anonymous-session values when missing;
+6. replaces the obsolete example database port `5432` with `5433`;
+7. validates the local service and protection values;
+8. starts Redis and Postgres and waits for their health checks;
+9. verifies Redis, pushes the Drizzle schema, and idempotently seeds demo messages.
 
-The script preserves existing values, writes `.env.local` atomically, refuses to
+The script preserves custom values, writes `.env.local` atomically, refuses to
 follow a symlink, and applies mode `0600`. Exported shell variables do not replace
 the required persistent local configuration.
 
-Use `npm run services:down` to stop and remove Redis and `npm run services:up` to
-start it again. Local Redis binds only to `127.0.0.1`, disables persistence, and
-contains disposable rate-limit, lock, and dedupe state.
+Use `npm run services:down` to stop the containers without deleting Postgres
+data. Use `npm run services:up` to start them again. Redis binds only to
+`127.0.0.1`, disables persistence, and contains disposable rate-limit, lock,
+dedupe, and cache state. Postgres binds to `127.0.0.1:5433` and uses a named
+volume.
 
 ## Environment configuration
+
+### Visitor database
+
+The guestbook stores approved messages in Postgres. Standalone database commands
+load `.env.local` with Next.js environment precedence and otherwise use the local
+Compose connection on port `5433`.
+
+Run `npm run db:push` after changing
+`src/features/guestbook/server/db/schema.ts`. Run `npm run db:seed` to add missing
+demo records. The seed is idempotent and does not delete visitor data.
+`npm run db:studio` opens Drizzle Studio for the configured database.
+
+In production, set `DATABASE_URL` to the Neon pooled connection string and run
+`npm run db:push` before deploying code that depends on a schema change. Do not
+seed production unless the demo messages are intentionally wanted there.
 
 ### Project content
 
@@ -46,118 +64,114 @@ optional for a higher public GitHub API rate limit.
 
 `predev` and `prebuild` reconcile public repositories owned by that account.
 Repositories opt in by committing `.portfolio/project.json` on their default
-branch. The writer and reader enforce the same normalized fields and string slug
-contract. Invalid records, duplicate slugs, and upstream failures stop the sync;
-a successful sync atomically replaces the complete snapshot.
+branch. Identity fields (`slug`, `name`, and `repositoryUrl`) stay at the top
+level. Put `description`, `metaDescription`, `summary`, `highlights`, and
+`sections` under `translations.en`, with optional matching `pt` and `ja` entries.
+English is required and is used when the requested translation is absent. The
+sync still accepts the previous English-only shape so repositories can migrate
+independently.
+
+The writer and reader enforce the same normalized fields and string slug
+contract. Invalid records, unsupported translation keys, duplicate slugs, and
+upstream failures stop the sync; a successful sync atomically replaces the
+complete snapshot.
 
 The application renders only from `.cache/github-projects.json`. It never calls
-GitHub during visitor traffic. A valid empty snapshot is supported.
+GitHub during visitor traffic. A valid empty snapshot is supported. Run
+`npm run projects:sync` and restart the server to refresh the snapshot explicitly.
+
+The scheduled and manual `.github/workflows/reconcile-projects.yml` workflow
+calls `VERCEL_DEPLOY_HOOK_URL`. The Vercel build performs the authoritative fresh
+public-only sync with its production `GITHUB_OWNER` and optional `GITHUB_TOKEN`.
 
 ### Shared protection
 
 Local development uses `REDIS_URL`. Production ignores it and accepts only
-`KV_REST_API_URL` with `KV_REST_API_TOKEN`. The two public POST routes have no
-in-memory runtime fallback and return `503` before calling an external service
-when BotID, the signed-session secret, or shared storage is unavailable.
+`KV_REST_API_URL` with `KV_REST_API_TOKEN`. The public `POST /api/fit`,
+`POST /api/meetings`, `POST /api/guestbook`, and legacy `POST /api/visitor-globe` routes have no in-memory
+runtime fallback and return `503` before external work when BotID, the signed
+session, or shared storage is unavailable.
+
+The guestbook also uses Redis for a five-minute global message snapshot. Cache
+commands have a short abortable deadline and do not retry. Read and fill failures
+fall back to Postgres. Failed invalidation can leave the old snapshot available
+until its TTL expires.
 
 `ANON_SESSION_SECRET` must contain at least 32 characters. `npm run setup`
 generates a longer local value. Redis keys contain HMAC-derived identities rather
 than raw cookies, IP addresses, role descriptions, or meeting data.
 
-### Role-fit assessment
+### Role-fit assessment and moderation
 
-Set `OPENAI_API_KEY` to enable `/fit`. The endpoint accepts at most 16,000
-characters, disables OpenAI response storage, sends a privacy-safe safety
-identifier, and uses a bounded upstream request with no SDK retries. Its Redis
-lock outlives that request deadline.
+Set `OPENAI_API_KEY` to enable `/fit` and visitor-message moderation. The role-fit
+endpoint accepts at most 16,000 characters, disables OpenAI response storage,
+sends a privacy-safe safety identifier, and uses a bounded upstream request with
+no SDK retries. Its Redis lock outlives that request deadline.
 
-### Google Calendar
+### Meeting scheduling
 
-Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, then run:
-
-```bash
-npm run calendar:authorize
-```
-
-For a web OAuth client, register this exact redirect URI:
-
-```text
-http://localhost:53682/oauth2callback
-```
-
-The authorization command uses PKCE and state validation, requests the owned-event
-and free/busy scopes, and writes `GOOGLE_REFRESH_TOKEN` to `.env.local` without
-printing it. `GOOGLE_CALENDAR_ID` is optional and defaults to `primary`.
-
-The scheduling endpoint requires a future local whole-hour start, an IANA time
-zone, and an `Idempotency-Key`. Google requests have explicit deadlines. The
-operation lock is derived from a conservative upper bound for all Calendar calls,
-conference polling, and optional notification work.
-
-Calendar events use deterministic event and conference IDs plus private
-application, schema, idempotency, and request digests. An existing event is
-returned only for the exact original operation. A same-slot request with another
-key or payload gets a generic conflict. A cancelled deterministic event is
-restored as a fresh booking.
-
-### Optional Resend notification
-
-The Calendar invitation is the authoritative booking result. A separate owner
-email through Resend is optional and best effort. To enable it, configure all of:
-
-```text
-RESEND_API_KEY
-MEETING_OWNER_EMAIL
-RESEND_FROM_EMAIL
-```
-
-Leaving all three unset disables the extra email without affecting scheduling.
-A partial group is a configuration error and stops a production build. Delivery
-has a deadline and uses a deterministic Resend idempotency key, so an ambiguous
-retry cannot send a duplicate. The owner display name comes from
-`src/config/site.ts`; there is no separate owner-name environment variable.
+See [Meeting Scheduling](modules/meeting-scheduling.md) for OAuth setup and the
+scheduling request contract. Resend owner notifications are optional and require
+`RESEND_API_KEY`, `MEETING_OWNER_EMAIL`, and `RESEND_FROM_EMAIL` together.
 
 ## Production validation
 
-`npm run build` always runs `npm run env:validate` before project reconciliation
-and compilation. It requires the critical production variables, validates the
-Redis URL and secret strength, and validates the optional Resend group. This
-turns missing deployment configuration into a failed deployment rather than a
-first-request outage.
+`npm run build` runs `npm run env:validate` before project reconciliation and
+compilation. It validates the critical production variables, Redis URL, secret
+strength, and optional Resend group. Runtime guards remain fail closed.
 
 Production deployment order:
 
-1. connect Upstash through the Vercel Marketplace;
-2. configure the required environment variables;
-3. enable BotID;
-4. deploy and verify allowed, blocked, rate-limited, and unavailable responses;
-5. configure Vercel WAF rules and OpenAI spending controls.
+1. apply the Postgres schema;
+2. connect Upstash through the Vercel Marketplace;
+3. configure the required environment variables;
+4. enable BotID;
+5. deploy and verify allowed, blocked, rate-limited, and unavailable responses;
+6. configure Vercel WAF rules and OpenAI spending controls.
 
 ## Commands
 
-| Command                      | Purpose                                                   |
-| ---------------------------- | --------------------------------------------------------- |
-| `npm run setup`              | Install the lockfile and prepare local Redis              |
-| `npm run dev`                | Reconcile project content and start Next.js               |
-| `npm run build`              | Validate production config, reconcile projects, and build |
-| `npm run start`              | Serve a completed production build                        |
-| `npm run projects:sync`      | Refresh the GitHub project snapshot                       |
-| `npm run env:validate`       | Validate production environment groups                    |
-| `npm run services:up`        | Start local Redis                                         |
-| `npm run services:down`      | Stop and remove local Redis                               |
-| `npm run calendar:authorize` | Obtain and store the Google refresh token                 |
-| `npm run format`             | Format supported files                                    |
-| `npm run format:check`       | Check formatting                                          |
-| `npm run lint`               | Run ESLint                                                |
-| `npm run typecheck`          | Generate Next.js types and run TypeScript                 |
-| `npm test`                   | Prepare the neutral fixture and run deterministic tests   |
-| `npm run test:redis`         | Exercise the configured local Redis adapter               |
-| `npm run check`              | Run formatting, lint, type checking, and tests            |
+### Core
 
-`npm test` creates its own `.cache/github-projects.json` from the committed
-neutral fixture, so it works in a fresh clone and does not depend on a previous
-dev server or sync. `npm run test:redis` loads `REDIS_URL` through the same local
-environment precedence as Next.js.
+| Command                 | Purpose                                                            |
+| ----------------------- | ------------------------------------------------------------------ |
+| `npm run setup`         | Install the lockfile, start services, and prepare local data       |
+| `npm run dev`           | Reconcile project content and start Next.js                        |
+| `npm run build`         | Validate config, reconcile projects, and create a production build |
+| `npm run start`         | Serve a completed production build                                 |
+| `npm run services:up`   | Start all services defined in Compose                              |
+| `npm run services:down` | Stop local services without deleting database data                 |
+
+### Database
+
+| Command             | Purpose                                           |
+| ------------------- | ------------------------------------------------- |
+| `npm run db:push`   | Reconcile the configured database with the schema |
+| `npm run db:seed`   | Add missing guestbook demo messages               |
+| `npm run db:studio` | Open Drizzle Studio for the configured database   |
+
+### Project content and integrations
+
+| Command                      | Purpose                                   |
+| ---------------------------- | ----------------------------------------- |
+| `npm run projects:sync`      | Refresh the GitHub project snapshot       |
+| `npm run env:validate`       | Validate production environment groups    |
+| `npm run calendar:authorize` | Obtain and store the Google refresh token |
+
+### Quality
+
+| Command                 | Purpose                                                 |
+| ----------------------- | ------------------------------------------------------- |
+| `npm run check`         | Run formatting, lint, type checking, and tests          |
+| `npm run format`        | Format supported files                                  |
+| `npm run format:check`  | Check formatting without writing                        |
+| `npm run lint`          | Run ESLint                                              |
+| `npm run typecheck`     | Generate Next.js types and run TypeScript               |
+| `npm test`              | Prepare the neutral fixture and run deterministic tests |
+| `npm run test:postgres` | Verify visitor-message persistence in Postgres          |
+| `npm run test:redis`    | Exercise the configured local Redis adapter             |
+
+## Testing
 
 Before publishing a change, run:
 
@@ -166,13 +180,30 @@ npm run format:check
 npm run lint
 npm test
 npm run test:redis
+npm run db:push
+npm run test:postgres
+npm run db:seed
 npm run env:validate
 npm run typecheck
-npm run build
+PROJECTS_SYNC_SKIP=1 npm run build
 docker compose config --quiet
 ```
 
-CI performs this sequence with a Redis service container and fixture-only build.
+`npm test` discovers deterministic `*.test.mjs` files under `tests/` without
+reading or replacing the development snapshot in `.cache/github-projects.json`.
+Tests that need project data read the committed neutral fixture directly, so the
+suite does not depend on a previous sync. Integration modules and runners live
+under `tests/integration/`; `scripts/` is reserved for operational commands.
+`npm run check` aggregates the
+first three quality commands and type checking. The Redis and Postgres integration
+checks require the local services started by `npm run setup` or
+`npm run services:up`; run `db:push` before the Postgres test when the schema is
+not prepared.
+
+CI runs the same quality checks, provisions Redis and Postgres containers,
+exercises both real adapters, pushes and seeds the database, validates Compose,
+and builds the committed GitHub fixture without contacting GitHub. The
+reconciliation workflow is separate and only triggers the Vercel deploy hook.
 
 ## CI/CD
 

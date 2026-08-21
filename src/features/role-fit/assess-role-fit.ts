@@ -1,10 +1,12 @@
 import OpenAI from "openai";
-import { profile, projects } from "@/content/portfolio";
+import { getProjects, profile } from "@/content/portfolio";
 import { MAX_ROLE_DESCRIPTION_LENGTH } from "@/features/role-fit/constants";
 
 export { MAX_ROLE_DESCRIPTION_LENGTH } from "@/features/role-fit/constants";
 
 export const ROLE_FIT_REQUEST_TIMEOUT_MS = 60_000;
+
+const projects = getProjects("en");
 
 const candidateProfile = [
   `${profile.name} is a ${profile.role} based in ${profile.location}.`,

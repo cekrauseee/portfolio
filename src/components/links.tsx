@@ -1,9 +1,9 @@
 import type { ComponentProps } from "react";
 
-type ExternalLinkProps = Omit<ComponentProps<"a">, "rel" | "target">;
+export const focusVisibleClassName =
+  "focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-foreground";
 
-export const linkFocusClassName =
-  "touch-manipulation focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-foreground";
+export const linkFocusClassName = `touch-manipulation ${focusVisibleClassName}`;
 
 export const textLinkClassName = `${linkFocusClassName} underline [text-decoration-skip-ink:auto] [text-decoration-thickness:from-font] underline-offset-[0.28em] hover:decoration-[0.12em]`;
 
@@ -11,9 +11,16 @@ export const actionClassName = `${linkFocusClassName} inline-flex w-fit cursor-p
 
 export const mutedTextLinkClassName = `${linkFocusClassName} text-black/70 underline decoration-black/30 underline-offset-4 hover:text-black dark:text-white/75 dark:decoration-white/30 dark:hover:text-white`;
 
+export const mutedButtonClassName = `${mutedTextLinkClassName} cursor-pointer`;
+
+type ExternalLinkProps = Omit<ComponentProps<"a">, "rel" | "target"> & {
+  newTabLabel?: string;
+};
+
 export function ExternalLink({
   children,
   className,
+  newTabLabel = " (opens in a new tab)",
   ...props
 }: ExternalLinkProps) {
   return (
@@ -24,7 +31,7 @@ export function ExternalLink({
       rel="noreferrer"
     >
       {children}
-      <span className="sr-only"> (opens in a new tab)</span>
+      <span className="sr-only">{newTabLabel}</span>
     </a>
   );
 }

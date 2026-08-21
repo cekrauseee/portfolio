@@ -6,8 +6,8 @@ import {
   resolveMeetingNotificationConfiguration,
 } from "../src/features/meeting-scheduling/meeting-notification.ts";
 import { shouldUseRetryMessage } from "../src/lib/retry-message.ts";
-import { validateProductionEnvironment } from "./validate-production-environment.mjs";
-import { syncGithubProjects } from "./sync-github-projects.mjs";
+import { validateProductionEnvironment } from "../scripts/validate-production-environment.mjs";
+import { syncGithubProjects } from "../scripts/sync-github-projects.mjs";
 
 function restore(name, value) {
   if (value === undefined) {
@@ -20,6 +20,8 @@ function restore(name, value) {
 function productionEnvironment(overrides = {}) {
   return {
     GITHUB_OWNER: "fixture-owner",
+    DATABASE_URL:
+      "postgresql://portfolio:secret@database.example.test/portfolio",
     KV_REST_API_URL: "https://redis.example.test",
     KV_REST_API_TOKEN: "redis-token",
     ANON_SESSION_SECRET: "s".repeat(48),
@@ -93,9 +95,25 @@ test("production environment validation requires complete critical configuration
   assert.throws(
     () =>
       validateProductionEnvironment(
+        productionEnvironment({ DATABASE_URL: "" }),
+      ),
+    /DATABASE_URL is required/,
+  );
+  assert.throws(
+    () =>
+      validateProductionEnvironment(
         productionEnvironment({ ANON_SESSION_SECRET: "short" }),
       ),
     /ANON_SESSION_SECRET must contain at least 32 characters/,
+  );
+  assert.throws(
+    () =>
+      validateProductionEnvironment(
+        productionEnvironment({
+          DATABASE_URL: "https://database.example.test",
+        }),
+      ),
+    /DATABASE_URL must be a valid Postgres URL/,
   );
   assert.throws(
     () =>

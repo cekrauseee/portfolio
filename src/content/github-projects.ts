@@ -8,7 +8,7 @@ export const githubProjectsSnapshotPath = path.join(
   "github-projects.json",
 );
 
-const projectKeys = [
+const legacyProjectKeys = [
   "description",
   "highlights",
   "metaDescription",
@@ -18,6 +18,23 @@ const projectKeys = [
   "slug",
   "summary",
 ] as const;
+
+const localizedProjectKeys = [
+  "name",
+  "repositoryUrl",
+  "slug",
+  "translations",
+] as const;
+
+const translationKeys = [
+  "description",
+  "highlights",
+  "metaDescription",
+  "sections",
+  "summary",
+] as const;
+
+const supportedLocales = ["en", "pt", "ja"] as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -55,17 +72,15 @@ function isSafeRepositoryUrl(value: unknown): value is string {
   }
 }
 
-function parseProject(value: unknown, index: number): Project {
-  if (!isRecord(value) || !hasExactKeys(value, projectKeys)) {
-    throw new Error(`Invalid GitHub project at index ${index}.`);
-  }
-
+function parseTranslation(
+  value: unknown,
+  index: number,
+  locale: string,
+): Project["translations"]["en"] {
   if (
-    typeof value.slug !== "string" ||
-    !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value.slug) ||
-    !nonEmptyString(value.name) ||
+    !isRecord(value) ||
+    !hasExactKeys(value, translationKeys) ||
     !nonEmptyString(value.description) ||
-    !isSafeRepositoryUrl(value.repositoryUrl) ||
     !nonEmptyString(value.metaDescription) ||
     !nonEmptyString(value.summary) ||
     !Array.isArray(value.highlights) ||
@@ -74,7 +89,9 @@ function parseProject(value: unknown, index: number): Project {
     !Array.isArray(value.sections) ||
     value.sections.length === 0
   ) {
-    throw new Error(`Invalid GitHub project at index ${index}.`);
+    throw new Error(
+      `Invalid GitHub project translation at index ${index}.${locale}.`,
+    );
   }
 
   const sections = value.sections.map((section, sectionIndex) => {
@@ -87,25 +104,88 @@ function parseProject(value: unknown, index: number): Project {
       !section.paragraphs.every(nonEmptyString)
     ) {
       throw new Error(
-        `Invalid GitHub project section at index ${index}.${sectionIndex}.`,
+        `Invalid GitHub project section at index ${index}.${locale}.${sectionIndex}.`,
       );
     }
 
-    return {
-      title: section.title,
-      paragraphs: section.paragraphs,
-    };
+    return { title: section.title, paragraphs: section.paragraphs };
   });
 
   return {
-    slug: value.slug,
-    name: value.name,
     description: value.description,
-    repositoryUrl: value.repositoryUrl,
     metaDescription: value.metaDescription,
     summary: value.summary,
     highlights: value.highlights,
     sections,
+  };
+}
+
+function parseProject(value: unknown, index: number): Project {
+  if (!isRecord(value)) {
+    throw new Error(`Invalid GitHub project at index ${index}.`);
+  }
+
+  const isLegacy = hasExactKeys(value, legacyProjectKeys);
+  const isLocalized = hasExactKeys(value, localizedProjectKeys);
+  if (
+    (!isLegacy && !isLocalized) ||
+    typeof value.slug !== "string" ||
+    !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value.slug) ||
+    !nonEmptyString(value.name) ||
+    !isSafeRepositoryUrl(value.repositoryUrl)
+  ) {
+    throw new Error(`Invalid GitHub project at index ${index}.`);
+  }
+
+  if (isLegacy) {
+    return {
+      slug: value.slug,
+      name: value.name,
+      repositoryUrl: value.repositoryUrl,
+      translations: {
+        en: parseTranslation(
+          {
+            description: value.description,
+            highlights: value.highlights,
+            metaDescription: value.metaDescription,
+            sections: value.sections,
+            summary: value.summary,
+          },
+          index,
+          "en",
+        ),
+      },
+    };
+  }
+
+  if (!isRecord(value.translations)) {
+    throw new Error(`Invalid GitHub project translations at index ${index}.`);
+  }
+
+  const translationsRecord = value.translations;
+  const translationLocales = Object.keys(translationsRecord);
+  if (
+    !translationLocales.includes("en") ||
+    translationLocales.some(
+      (locale) =>
+        !supportedLocales.includes(locale as (typeof supportedLocales)[number]),
+    )
+  ) {
+    throw new Error(`Invalid GitHub project translations at index ${index}.`);
+  }
+
+  const translations = Object.fromEntries(
+    translationLocales.map((locale) => [
+      locale,
+      parseTranslation(translationsRecord[locale], index, locale),
+    ]),
+  ) as Project["translations"];
+
+  return {
+    slug: value.slug,
+    name: value.name,
+    repositoryUrl: value.repositoryUrl,
+    translations,
   };
 }
 

@@ -1,5 +1,7 @@
 import { createClient } from "redis";
 
+export const REDIS_COMMAND_TIMEOUT_MS = 1_000;
+
 export type RedisSetOptions = {
   ex?: number;
   nx?: boolean;
@@ -8,13 +10,17 @@ export type RedisSetOptions = {
 export type RedisAdapter = {
   set(key: string, value: unknown, options?: RedisSetOptions): Promise<unknown>;
   get<T>(key: string): Promise<T | null>;
+  incr(key: string): Promise<number>;
   eval<T>(script: string, keys: string[], args: string[]): Promise<T>;
 };
 
 export function createLocalRedisAdapter(url: string) {
   const client = createClient({
     url,
-    socket: { connectTimeout: 1_000, reconnectStrategy: false },
+    socket: {
+      connectTimeout: REDIS_COMMAND_TIMEOUT_MS,
+      reconnectStrategy: false,
+    },
   });
   client.on("error", () => {
     // Command callers convert connection failures into protection responses.
@@ -22,6 +28,12 @@ export function createLocalRedisAdapter(url: string) {
 
   let connection: Promise<typeof client> | undefined;
   const connected = () => {
+    // `socketTimeout` is intentionally not configured: node-redis treats it as
+    // an idle-socket timeout, not a per-command deadline. Reconnect a client
+    // that was closed by an unexpected socket failure.
+    if (!client.isOpen) {
+      connection = undefined;
+    }
     connection ??= client
       .connect()
       .then(() => client)
@@ -59,6 +71,9 @@ export function createLocalRedisAdapter(url: string) {
       } catch {
         return value as T;
       }
+    },
+    async incr(key: string) {
+      return (await connected()).incr(key);
     },
     async eval<T>(script: string, keys: string[], args: string[]) {
       return (await (

@@ -27,7 +27,7 @@ export function loadGithubProjectSyncEnv(
   loadEnvConfig(projectDirectory, mode === "development", console, true);
 }
 
-const PROJECT_KEYS = [
+const LEGACY_PROJECT_KEYS = [
   "description",
   "highlights",
   "metaDescription",
@@ -37,6 +37,20 @@ const PROJECT_KEYS = [
   "slug",
   "summary",
 ];
+const LOCALIZED_PROJECT_KEYS = [
+  "name",
+  "repositoryUrl",
+  "slug",
+  "translations",
+];
+const TRANSLATION_KEYS = [
+  "description",
+  "highlights",
+  "metaDescription",
+  "sections",
+  "summary",
+];
+const SUPPORTED_PROJECT_LOCALES = ["en", "pt", "ja"];
 
 function isRecord(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -65,17 +79,11 @@ function isSafeRepositoryUrl(value) {
   }
 }
 
-function validateProject(value, context) {
-  if (!isRecord(value) || !hasExactKeys(value, PROJECT_KEYS)) {
-    throw new Error(`${context} must contain exactly the Project fields.`);
-  }
-
+function validateTranslation(value, context) {
   if (
-    typeof value.slug !== "string" ||
-    !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value.slug) ||
-    !nonEmptyString(value.name) ||
+    !isRecord(value) ||
+    !hasExactKeys(value, TRANSLATION_KEYS) ||
     !nonEmptyString(value.description) ||
-    !isSafeRepositoryUrl(value.repositoryUrl) ||
     !nonEmptyString(value.metaDescription) ||
     !nonEmptyString(value.summary) ||
     !Array.isArray(value.highlights) ||
@@ -84,7 +92,7 @@ function validateProject(value, context) {
     !Array.isArray(value.sections) ||
     value.sections.length === 0
   ) {
-    throw new Error(`${context} has invalid Project fields.`);
+    throw new Error(`${context} has invalid translation fields.`);
   }
 
   for (const [sectionIndex, section] of value.sections.entries()) {
@@ -101,6 +109,72 @@ function validateProject(value, context) {
   }
 
   return value;
+}
+
+function validateProject(value, context) {
+  if (!isRecord(value)) {
+    throw new Error(`${context} must contain exactly the Project fields.`);
+  }
+
+  const isLegacy = hasExactKeys(value, LEGACY_PROJECT_KEYS);
+  const isLocalized = hasExactKeys(value, LOCALIZED_PROJECT_KEYS);
+  if (!isLegacy && !isLocalized) {
+    throw new Error(`${context} must contain exactly the Project fields.`);
+  }
+  if (
+    typeof value.slug !== "string" ||
+    !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value.slug) ||
+    !nonEmptyString(value.name) ||
+    !isSafeRepositoryUrl(value.repositoryUrl)
+  ) {
+    throw new Error(`${context} has invalid Project fields.`);
+  }
+
+  if (isLegacy) {
+    return {
+      slug: value.slug,
+      name: value.name,
+      repositoryUrl: value.repositoryUrl,
+      translations: {
+        en: validateTranslation(
+          {
+            description: value.description,
+            highlights: value.highlights,
+            metaDescription: value.metaDescription,
+            sections: value.sections,
+            summary: value.summary,
+          },
+          `${context}.translations.en`,
+        ),
+      },
+    };
+  }
+
+  if (!isRecord(value.translations)) {
+    throw new Error(`${context}.translations is invalid.`);
+  }
+  const locales = Object.keys(value.translations);
+  if (
+    !locales.includes("en") ||
+    locales.some((locale) => !SUPPORTED_PROJECT_LOCALES.includes(locale))
+  ) {
+    throw new Error(`${context}.translations has unsupported locales.`);
+  }
+
+  return {
+    slug: value.slug,
+    name: value.name,
+    repositoryUrl: value.repositoryUrl,
+    translations: Object.fromEntries(
+      locales.map((locale) => [
+        locale,
+        validateTranslation(
+          value.translations[locale],
+          `${context}.translations.${locale}`,
+        ),
+      ]),
+    ),
+  };
 }
 
 function apiHeaders(token) {

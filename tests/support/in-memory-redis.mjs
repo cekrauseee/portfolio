@@ -24,6 +24,12 @@ export function createInMemoryRedisAdapter() {
     async get(key) {
       return readEntry(key)?.value ?? null;
     },
+    async incr(key) {
+      const current = readEntry(key);
+      const count = Number(current?.value ?? 0) + 1;
+      values.set(key, { value: count });
+      return count;
+    },
     async eval(script, keys, args) {
       if (script.includes("INCR")) {
         const key = keys[0];
