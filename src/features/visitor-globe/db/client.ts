@@ -24,9 +24,7 @@ export type VisitorMessage = {
   city: string | null;
 };
 
-type Database = NodePgDatabase<{ messages: typeof messages }>;
-
-const schema = { messages };
+type Database = NodePgDatabase;
 
 let instance: Database | undefined;
 let pgPool: Pool | undefined;
@@ -75,10 +73,10 @@ function database(
 
   if (environment.NODE_ENV === "production" || isNeonUrl(url)) {
     const sql = neon(url) as NeonQueryFunction<false, false>;
-    instance = neonDrizzle(sql, { schema }) as unknown as Database;
+    instance = neonDrizzle({ client: sql }) as unknown as Database;
   } else {
     pgPool ??= new Pool({ connectionString: url });
-    instance = pgDrizzle(pgPool, { schema });
+    instance = pgDrizzle({ client: pgPool });
   }
 
   return instance;

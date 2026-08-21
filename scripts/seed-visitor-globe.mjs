@@ -12,7 +12,7 @@ const projectDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 loadEnvConfig(projectDir, process.env.NODE_ENV !== "production");
 
 const databaseUrl =
-  process.env.DATABASE_URL ??
+  process.env.DATABASE_URL?.trim() ||
   "postgres://portfolio:portfolio@127.0.0.1:5433/portfolio";
 
 if (process.argv.includes("--help")) {
@@ -192,7 +192,7 @@ const seedMessages = [
 ];
 
 const pool = new Pool({ connectionString: databaseUrl });
-const db = drizzle(pool, { schema: { messages } });
+const db = drizzle({ client: pool });
 
 let inserted = 0;
 
