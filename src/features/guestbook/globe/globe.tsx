@@ -2,13 +2,14 @@
 
 import {
   type ReactNode,
+  type RefObject,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useThree } from "@react-three/fiber";
 import { Html, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
@@ -50,6 +51,89 @@ const MAX_POLAR_ANGLE = Math.PI - MIN_POLAR_ANGLE;
 const INTERACTION_IDLE_DELAY = 1200;
 const HOVER_EXIT_DELAY = 140;
 const CENTER_ANIMATION_DURATION = 900;
+const TOOLTIP_EDGE_GUTTER = 12;
+const TOOLTIP_VERTICAL_OFFSET = 32;
+const TOOLTIP_MAX_WIDTH = 224;
+const TOOLTIP_MAX_HEIGHT = 88;
+
+function clampPosition(value: number, min: number, max: number) {
+  return THREE.MathUtils.clamp(value, Math.min(min, max), Math.max(min, max));
+}
+
+function calculateTooltipPosition(
+  object: THREE.Object3D,
+  camera: THREE.Camera,
+  size: { width: number; height: number },
+) {
+  const projected = new THREE.Vector3()
+    .setFromMatrixPosition(object.matrixWorld)
+    .project(camera);
+  const projectedX = projected.x * (size.width / 2) + size.width / 2;
+  const projectedY = -projected.y * (size.height / 2) + size.height / 2;
+  const tooltipWidth = Math.min(
+    TOOLTIP_MAX_WIDTH,
+    Math.max(0, size.width - TOOLTIP_EDGE_GUTTER * 2),
+  );
+  const tooltipHalfHeight = TOOLTIP_MAX_HEIGHT / 2;
+
+  return [
+    clampPosition(
+      projectedX,
+      TOOLTIP_EDGE_GUTTER + tooltipWidth / 2,
+      size.width - TOOLTIP_EDGE_GUTTER - tooltipWidth / 2,
+    ),
+    clampPosition(
+      projectedY,
+      TOOLTIP_EDGE_GUTTER + TOOLTIP_VERTICAL_OFFSET + tooltipHalfHeight,
+      size.height -
+        TOOLTIP_EDGE_GUTTER +
+        TOOLTIP_VERTICAL_OFFSET -
+        tooltipHalfHeight,
+    ),
+  ];
+}
+
+function GlobeControls({
+  controlsRef,
+  enableRotate,
+  autoRotate,
+  onStart,
+  onEnd,
+}: {
+  controlsRef: RefObject<OrbitControlsImpl | null>;
+  enableRotate: boolean;
+  autoRotate: boolean;
+  onStart: () => void;
+  onEnd: () => void;
+}) {
+  const events = useThree((state) => state.events);
+  const updatePointer = useCallback(() => {
+    events.update?.();
+  }, [events]);
+
+  return (
+    <OrbitControls
+      ref={controlsRef}
+      enablePan={false}
+      enableZoom={false}
+      enableRotate={enableRotate}
+      enableDamping
+      dampingFactor={0.08}
+      autoRotate={autoRotate}
+      autoRotateSpeed={0.3}
+      rotateSpeed={0.5}
+      minPolarAngle={MIN_POLAR_ANGLE}
+      maxPolarAngle={MAX_POLAR_ANGLE}
+      onChange={updatePointer}
+      onStart={onStart}
+      onEnd={onEnd}
+      touches={{
+        ONE: THREE.TOUCH.ROTATE,
+        TWO: THREE.TOUCH.ROTATE,
+      }}
+    />
+  );
+}
 
 function useMediaQuery(query: string) {
   const [matches, setMatches] = useState(
@@ -95,6 +179,7 @@ export function Globe({
   const centerAnimationRef = useRef<number | undefined>(undefined);
   const interactionTimerRef = useRef<number | undefined>(undefined);
   const hoverExitTimerRef = useRef<number | undefined>(undefined);
+  const tooltipPortalRef = useRef<HTMLDivElement>(null!);
   const messageIndexRef = useRef<HTMLButtonElement>(null);
   const { isDark } = useTheme();
   const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
@@ -369,6 +454,8 @@ export function Globe({
               <Html
                 position={hoveredPoint.position.toArray()}
                 center
+                portal={tooltipPortalRef as RefObject<HTMLElement>}
+                calculatePosition={calculateTooltipPosition}
                 pointerEvents="none"
                 style={{ pointerEvents: "none" }}
                 zIndexRange={[9, 1]}
@@ -381,33 +468,25 @@ export function Globe({
               </Html>
             ) : null}
           </group>
-          <OrbitControls
-            ref={controlsRef}
-            enablePan={false}
-            enableZoom={false}
+          <GlobeControls
+            controlsRef={controlsRef}
             enableRotate={
               isPointerOverGlobe || isDragging || hoveredPoint !== null
             }
-            enableDamping
-            dampingFactor={0.08}
             autoRotate={
               !reduceMotion &&
               !isCentering &&
               !isExploringPoint &&
               !isUserInteracting
             }
-            autoRotateSpeed={0.3}
-            rotateSpeed={0.5}
-            minPolarAngle={MIN_POLAR_ANGLE}
-            maxPolarAngle={MAX_POLAR_ANGLE}
             onStart={markUserInteraction}
             onEnd={markUserInteraction}
-            touches={{
-              ONE: THREE.TOUCH.ROTATE,
-              TWO: THREE.TOUCH.ROTATE,
-            }}
           />
         </Canvas>
+        <div
+          ref={tooltipPortalRef}
+          className="pointer-events-none absolute inset-0 z-10"
+        />
       </div>
 
       <div className="pointer-events-none absolute [inset-inline-start:calc(1rem+env(safe-area-inset-left))] [inset-inline-end:calc(1rem+env(safe-area-inset-right))] bottom-[calc(1rem+env(safe-area-inset-bottom))] z-20 flex items-end justify-between gap-4">

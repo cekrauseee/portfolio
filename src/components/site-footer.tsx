@@ -10,7 +10,7 @@ export function SiteFooter({
   dictionary: Dictionary["navigation"];
 }) {
   return (
-    <footer>
+    <footer className="mt-auto w-full">
       <Preferences locale={locale} dictionary={dictionary} />
     </footer>
   );

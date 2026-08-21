@@ -26,7 +26,7 @@ export function HoverTooltip({
     .join(", ");
 
   return (
-    <div className="bg-background text-foreground pointer-events-none w-max max-w-56 -translate-y-8 px-3 py-2 text-center text-sm leading-5 break-words select-none">
+    <div className="bg-background text-foreground pointer-events-none w-max max-w-[min(14rem,calc(100vw-1.5rem))] -translate-y-8 px-3 py-2 text-center text-sm leading-5 break-words select-none">
       <p className="font-medium text-pretty">
         {point.messages.length === 1
           ? firstMessage.name
