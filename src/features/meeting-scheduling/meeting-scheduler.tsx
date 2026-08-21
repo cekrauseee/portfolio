@@ -1,18 +1,31 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { actionClassName, ExternalLink } from "@/components/links";
+import { retryMessage, shouldUseRetryMessage } from "@/lib/retry-message";
 
 type FieldName = "name" | "email" | "date" | "time";
 type Fields = Record<FieldName, string>;
 type Errors = Partial<Record<FieldName, string>>;
+export type MeetingPayload = {
+  name: string;
+  email: string;
+  start: string;
+  timeZone: string;
+};
+export type IdempotencyState = {
+  fingerprint: string;
+  key: string;
+};
 
 const initialFields: Fields = { name: "", email: "", date: "", time: "" };
 const times = Array.from(
   { length: 24 },
   (_, hour) => `${hour}`.padStart(2, "0") + ":00",
 );
+const IDEMPOTENCY_STORAGE_KEY = "portfolio:meeting-idempotency";
+type IdempotencyStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 
 function localDateString(date: Date) {
   const year = date.getFullYear();
@@ -22,8 +35,7 @@ function localDateString(date: Date) {
 }
 
 function today() {
-  const date = new Date();
-  return localDateString(date);
+  return localDateString(new Date());
 }
 
 function responseValue(data: unknown, key: string) {
@@ -35,6 +47,81 @@ function responseValue(data: unknown, key: string) {
     : undefined;
 }
 
+export async function meetingFingerprint(payload: MeetingPayload) {
+  const encoded = new TextEncoder().encode(JSON.stringify(payload));
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", encoded));
+  return Array.from(digest, (value) =>
+    value.toString(16).padStart(2, "0"),
+  ).join("");
+}
+
+export function readStoredIdempotency(
+  fingerprint: string,
+  storage: IdempotencyStorage = sessionStorage,
+) {
+  try {
+    const value: unknown = JSON.parse(
+      storage.getItem(IDEMPOTENCY_STORAGE_KEY) ?? "null",
+    );
+    if (
+      value &&
+      typeof value === "object" &&
+      "fingerprint" in value &&
+      value.fingerprint === fingerprint &&
+      "key" in value &&
+      typeof value.key === "string" &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        value.key,
+      )
+    ) {
+      return value as IdempotencyState;
+    }
+  } catch {
+    // Storage can be unavailable in restricted browser contexts.
+  }
+  return undefined;
+}
+
+export function storeIdempotency(
+  value: IdempotencyState,
+  storage: IdempotencyStorage = sessionStorage,
+) {
+  try {
+    storage.setItem(IDEMPOTENCY_STORAGE_KEY, JSON.stringify(value));
+  } catch {
+    // The in-memory ref still preserves retries for the current page lifecycle.
+  }
+}
+
+export function removeStoredIdempotency(
+  storage: IdempotencyStorage = sessionStorage,
+) {
+  try {
+    storage.removeItem(IDEMPOTENCY_STORAGE_KEY);
+  } catch {
+    // Storage can be unavailable in restricted browser contexts.
+  }
+}
+
+export async function resolveMeetingIdempotency(
+  payload: MeetingPayload,
+  current?: IdempotencyState,
+  storage: IdempotencyStorage = sessionStorage,
+  createKey: () => string = () => crypto.randomUUID(),
+) {
+  const fingerprint = await meetingFingerprint(payload);
+  if (current?.fingerprint === fingerprint) {
+    return current;
+  }
+
+  const idempotency = readStoredIdempotency(fingerprint, storage) ?? {
+    fingerprint,
+    key: createKey(),
+  };
+  storeIdempotency(idempotency, storage);
+  return idempotency;
+}
+
 export function MeetingScheduler() {
   const [fields, setFields] = useState<Fields>(initialFields);
   const [errors, setErrors] = useState<Errors>({});
@@ -43,6 +130,12 @@ export function MeetingScheduler() {
   const [meetingLink, setMeetingLink] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
   const [minDate] = useState(today);
+  const idempotencyRef = useRef<IdempotencyState | undefined>(undefined);
+
+  function clearIdempotency() {
+    idempotencyRef.current = undefined;
+    removeStoredIdempotency();
+  }
 
   function updateField(field: FieldName, value: string) {
     setFields((current) => ({ ...current, [field]: value }));
@@ -94,36 +187,50 @@ export function MeetingScheduler() {
 
     setSubmitting(true);
     try {
+      const payload: MeetingPayload = {
+        name: fields.name.trim(),
+        email: fields.email.trim().toLowerCase(),
+        start: `${fields.date}T${fields.time}:00`,
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      };
+      const idempotency = await resolveMeetingIdempotency(
+        payload,
+        idempotencyRef.current,
+      );
+      idempotencyRef.current = idempotency;
+
       const response = await fetch("/api/meetings", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: fields.name.trim(),
-          email: fields.email.trim(),
-          start: `${fields.date}T${fields.time}:00`,
-          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        }),
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": idempotency.key,
+        },
+        body: JSON.stringify(payload),
       });
       const data: unknown = await response.json();
       if (!response.ok) {
         if (response.status === 409) {
+          clearIdempotency();
           throw new Error(
-            "That time is no longer available. Choose another time.",
+            responseValue(data, "error") ??
+              "That time is no longer available. Choose another time.",
           );
         }
-        const error = responseValue(data, "error");
+        if (shouldUseRetryMessage(response)) {
+          throw new Error(retryMessage(response));
+        }
         throw new Error(
-          error ??
+          responseValue(data, "error") ??
             "Unable to schedule the meeting. Check your details and try again.",
         );
       }
+
+      clearIdempotency();
       setSuccess(
         "Your meeting is scheduled. Check your email for the calendar invitation.",
       );
       setMeetingLink(
-        responseValue(data, "meetLink") ??
-          responseValue(data, "calendarLink") ??
-          responseValue(data, "meetingUrl"),
+        responseValue(data, "meetLink") ?? responseValue(data, "calendarLink"),
       );
     } catch (caught) {
       setGeneralError(
@@ -179,7 +286,7 @@ export function MeetingScheduler() {
             className={inputClass}
             id="meeting-name"
             name="name"
-            onChange={(e) => updateField("name", e.target.value)}
+            onChange={(event) => updateField("name", event.target.value)}
             value={fields.name}
             aria-invalid={Boolean(errors.name)}
             aria-describedby={errors.name ? "meeting-name-error" : undefined}
@@ -194,7 +301,7 @@ export function MeetingScheduler() {
             id="meeting-email"
             name="email"
             type="email"
-            onChange={(e) => updateField("email", e.target.value)}
+            onChange={(event) => updateField("email", event.target.value)}
             value={fields.email}
             aria-invalid={Boolean(errors.email)}
             aria-describedby={errors.email ? "meeting-email-error" : undefined}
@@ -209,7 +316,7 @@ export function MeetingScheduler() {
             min={minDate}
             name="date"
             type="date"
-            onChange={(e) => updateField("date", e.target.value)}
+            onChange={(event) => updateField("date", event.target.value)}
             value={fields.date}
             aria-invalid={Boolean(errors.date)}
             aria-describedby={
@@ -226,7 +333,7 @@ export function MeetingScheduler() {
               className={`${inputClass} cursor-pointer appearance-none pr-10`}
               id="meeting-time"
               name="time"
-              onChange={(e) => updateField("time", e.target.value)}
+              onChange={(event) => updateField("time", event.target.value)}
               value={fields.time}
               aria-invalid={Boolean(errors.time)}
               aria-describedby={

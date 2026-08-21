@@ -1,9 +1,25 @@
 import {
+  CALENDAR_REQUEST_TIMEOUT_MS,
+  CalendarConfigurationError,
   createMeetingEvent,
-  getCalendarConfig,
+  findMeetingEvent,
+  findMeetingEventWithRetry,
   hasCalendarConflict,
+  type MeetingOperation,
+  MeetingEventMismatchError,
+  validateCalendarConfiguration,
 } from "@/features/meeting-scheduling/google-calendar";
-import { sendMeetingNotification } from "@/features/meeting-scheduling/meeting-notification";
+import {
+  MEETING_NOTIFICATION_TIMEOUT_MS,
+  MeetingNotificationConfigurationError,
+  resolveMeetingNotificationConfiguration,
+  sendMeetingNotification,
+} from "@/features/meeting-scheduling/meeting-notification";
+
+export type { MeetingOperation };
+
+export const MEETING_OPERATION_TIMEOUT_MS =
+  CALENDAR_REQUEST_TIMEOUT_MS * 10 + MEETING_NOTIFICATION_TIMEOUT_MS + 20_000;
 
 export type MeetingRequest = {
   name: string;
@@ -14,6 +30,12 @@ export type MeetingRequest = {
 
 export class MeetingInputError extends Error {}
 export class MeetingConflictError extends Error {}
+export class MeetingConfigurationError extends Error {
+  constructor() {
+    super("Meeting scheduling is not configured.");
+    this.name = "MeetingConfigurationError";
+  }
+}
 
 export function validateMeetingRequest(body: unknown): MeetingRequest {
   if (!body || typeof body !== "object") {
@@ -51,8 +73,7 @@ export function validateMeetingRequest(body: unknown): MeetingRequest {
     throw new MeetingInputError("Provide a valid start time.");
   }
   const utcStart = localToUtc(start, timeZone);
-  const now = Date.now();
-  if (utcStart.getTime() <= now) {
+  if (utcStart.getTime() <= Date.now()) {
     throw new MeetingInputError("Choose a future start time.");
   }
   return {
@@ -63,30 +84,121 @@ export function validateMeetingRequest(body: unknown): MeetingRequest {
   };
 }
 
-export async function scheduleMeeting(request: MeetingRequest) {
+export async function scheduleMeeting(
+  request: MeetingRequest,
+  operation: MeetingOperation,
+) {
+  validateMeetingOperation(operation);
+
+  let calendarConfiguration;
+  let notificationConfiguration;
+  try {
+    calendarConfiguration = validateCalendarConfiguration();
+    notificationConfiguration = resolveMeetingNotificationConfiguration();
+  } catch (error) {
+    if (
+      error instanceof CalendarConfigurationError ||
+      error instanceof MeetingNotificationConfigurationError
+    ) {
+      throw new MeetingConfigurationError();
+    }
+    throw error;
+  }
+
   const startDate = localToUtc(request.start, request.timeZone);
   const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
-  const config = getCalendarConfig();
-  if (await hasCalendarConflict(startDate, endDate, config)) {
-    throw new MeetingConflictError("That time is no longer available.");
-  }
-  const event = await createMeetingEvent({
+  const config = { calendarId: calendarConfiguration.calendarId };
+  const eventInput = {
     ...request,
     start: startDate,
     end: endDate,
+    operation,
     config,
-  });
+  };
+
+  const existing = await findMeetingEvent(eventInput);
+  if (existing.status === "mismatch") {
+    throw new MeetingConflictError("That time is no longer available.");
+  }
+  if (existing.status === "match") {
+    return {
+      id: existing.data.id,
+      meetLink:
+        existing.data.conferenceData?.entryPoints?.find(
+          (entry) => entry.entryPointType === "video",
+        )?.uri ?? undefined,
+      calendarLink: existing.data.htmlLink ?? undefined,
+      replayed: true,
+    };
+  }
+  // Cancelled events are deliberately not replayed. Creation restores the
+  // deterministic organizer event as a fresh booking after conflict checking.
+
+  if (await hasCalendarConflict(startDate, endDate, config)) {
+    const recovered = await findMeetingEventWithRetry(eventInput);
+    if (recovered.status === "match") {
+      return {
+        id: recovered.data.id,
+        meetLink:
+          recovered.data.conferenceData?.entryPoints?.find(
+            (entry) => entry.entryPointType === "video",
+          )?.uri ?? undefined,
+        calendarLink: recovered.data.htmlLink ?? undefined,
+        replayed: true,
+      };
+    }
+    throw new MeetingConflictError("That time is no longer available.");
+  }
+
+  let event;
   try {
-    await sendMeetingNotification({
-      ...request,
-      start: startDate,
-      meetLink: event.meetLink ?? undefined,
-      calendarLink: event.calendarLink ?? undefined,
-    });
+    event = await createMeetingEvent(eventInput);
   } catch (error) {
-    console.error("Meeting owner notification failed", error);
+    if (error instanceof MeetingEventMismatchError) {
+      throw new MeetingConflictError("That time is no longer available.");
+    }
+    throw error;
+  }
+  if (event.replayed) {
+    return event;
+  }
+
+  try {
+    await sendMeetingNotification(
+      {
+        ...request,
+        start: startDate,
+        meetLink: event.meetLink ?? undefined,
+        calendarLink: event.calendarLink ?? undefined,
+      },
+      {
+        idempotencyKey: `meeting-owner/${operation.idempotencyDigest}`,
+        configuration: notificationConfiguration,
+      },
+    );
+  } catch (error) {
+    console.error(
+      JSON.stringify({
+        event: "meeting_owner_notification_failure",
+        kind: error instanceof Error ? error.name : "unknown",
+      }),
+    );
   }
   return event;
+}
+
+export function meetingUtcSlot(request: MeetingRequest) {
+  return localToUtc(request.start, request.timeZone).toISOString();
+}
+
+function validateMeetingOperation(operation: MeetingOperation | undefined) {
+  if (
+    !operation ||
+    !/^[a-f0-9]{64}$/.test(operation.idempotencyDigest) ||
+    !/^[a-f0-9]{64}$/.test(operation.requestDigest)
+  ) {
+    throw new Error("A valid meeting operation identity is required.");
+  }
 }
 
 function isTimeZone(timeZone: string) {

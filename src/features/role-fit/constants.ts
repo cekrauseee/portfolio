@@ -1,0 +1,1 @@
+export const MAX_ROLE_DESCRIPTION_LENGTH = 16_000;

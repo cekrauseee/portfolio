@@ -112,13 +112,18 @@ function parseProject(value: unknown, index: number): Project {
 export function parseGithubProjectsSnapshot(
   value: unknown,
 ): readonly Project[] {
+  const githubOwner = process.env.GITHUB_OWNER?.trim();
+  if (!githubOwner) {
+    throw new Error("GITHUB_OWNER is required to validate project data.");
+  }
+
   if (
     !isRecord(value) ||
     !hasExactKeys(value, ["generatedAt", "owner", "projects", "version"]) ||
     value.version !== 1 ||
     !isIsoTimestamp(value.generatedAt) ||
     !nonEmptyString(value.owner) ||
-    value.owner !== (process.env.GITHUB_OWNER || "cekrauseee") ||
+    value.owner !== githubOwner ||
     !Array.isArray(value.projects)
   ) {
     throw new Error("Invalid GitHub projects snapshot.");
