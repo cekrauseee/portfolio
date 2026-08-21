@@ -26,7 +26,7 @@ npm run dev
 4. verifies that Docker is running;
 5. adds local Redis, Postgres, and anonymous-session values when missing;
 6. replaces the obsolete example database port `5432` with `5433`;
-7. validates the local protection values;
+7. validates the local service and protection values;
 8. starts Redis and Postgres and waits for their health checks;
 9. verifies Redis, pushes the Drizzle schema, and idempotently seeds demo messages.
 

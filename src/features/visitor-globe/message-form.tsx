@@ -2,7 +2,7 @@
 
 import type { FormEvent } from "react";
 import { useState } from "react";
-import { retryMessage } from "@/lib/retry-message";
+import { retryMessage, shouldUseRetryMessage } from "@/lib/retry-message";
 import { actionClassName } from "@/components/links";
 import {
   MAX_MESSAGE_LENGTH,
@@ -81,7 +81,7 @@ export function MessageForm({ onSubmitted }: { onSubmitted?: () => void }) {
       });
       const data: unknown = await response.json();
       if (!response.ok) {
-        if (response.status === 429) {
+        if (shouldUseRetryMessage(response)) {
           throw new Error(retryMessage(response));
         }
         const error = responseValue(data, "error");

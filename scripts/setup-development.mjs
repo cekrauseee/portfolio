@@ -47,7 +47,7 @@ ensureLocalEnvValue("ANON_SESSION_SECRET", () =>
 ensureLocalEnvValue("DATABASE_URL", () => localDatabaseUrl, [
   obsoleteLocalDatabaseUrl,
 ]);
-validateLocalProtectionConfiguration();
+validateLocalConfiguration();
 chmodSync(envPath, 0o600);
 run("npm", ["run", "services:up"]);
 run("npm", ["run", "test:redis"]);
@@ -147,7 +147,7 @@ function ensureLocalEnvValue(name, createValue, replaceValues = []) {
   renameSync(temporaryPath, envPath);
 }
 
-function validateLocalProtectionConfiguration() {
+function validateLocalConfiguration() {
   const redisUrl = localEnvValue("REDIS_URL");
   try {
     const protocol = new URL(redisUrl).protocol;
@@ -162,6 +162,18 @@ function validateLocalProtectionConfiguration() {
   if (!secret || secret.length < minimumSessionSecretLength) {
     throw new Error(
       `ANON_SESSION_SECRET in .env.local must contain at least ${minimumSessionSecretLength} characters.`,
+    );
+  }
+
+  const databaseUrl = localEnvValue("DATABASE_URL");
+  try {
+    const protocol = new URL(databaseUrl).protocol;
+    if (protocol !== "postgres:" && protocol !== "postgresql:") {
+      throw new Error("unsupported protocol");
+    }
+  } catch {
+    throw new Error(
+      "DATABASE_URL in .env.local must be a valid postgres:// URL.",
     );
   }
 }

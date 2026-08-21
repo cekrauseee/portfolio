@@ -2,6 +2,11 @@ import OpenAI from "openai";
 
 export const MAX_NAME_LENGTH = 60;
 export const MAX_MESSAGE_LENGTH = 500;
+export const MODERATION_REQUEST_TIMEOUT_MS = 20_000;
+export const MODERATION_CLIENT_OPTIONS = {
+  timeout: MODERATION_REQUEST_TIMEOUT_MS,
+  maxRetries: 0,
+} as const;
 
 const instructions = `You are a moderation guardrail for a public visitor globe on a personal portfolio website. Visitors submit a short message with their name, and approved messages appear publicly on a 3D globe for anyone to see.
 
@@ -56,13 +61,15 @@ export async function moderateMessage(
   safetyIdentifier?: string,
   dependencies: ModerationDependencies = {},
 ): Promise<ModerationResult | null> {
-  if (!process.env.OPENAI_API_KEY) {
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  if (!apiKey) {
     return null;
   }
 
   try {
     const openai =
-      dependencies.openai ?? new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      dependencies.openai ??
+      new OpenAI({ apiKey, ...MODERATION_CLIENT_OPTIONS });
 
     const response = await openai.responses.create({
       model: "gpt-5.6-luna",
@@ -74,7 +81,13 @@ export async function moderateMessage(
     });
 
     return parseModerationResponse(response.output_text);
-  } catch {
+  } catch (error) {
+    console.error(
+      JSON.stringify({
+        event: "visitor_globe_moderation_failure",
+        kind: error instanceof Error ? error.name : "unknown",
+      }),
+    );
     return null;
   }
 }

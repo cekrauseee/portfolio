@@ -17,6 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GITHUB_OWNER: fixture-owner
+      DATABASE_URL: postgres://portfolio:portfolio@127.0.0.1:5433/portfolio
       KV_REST_API_URL: https://redis.example.test
       KV_REST_API_TOKEN: ci-redis-token
       ANON_SESSION_SECRET: ci-anonymous-session-secret-with-more-than-32-characters

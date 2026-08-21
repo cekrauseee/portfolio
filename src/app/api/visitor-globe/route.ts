@@ -61,7 +61,7 @@ export function createVisitorGlobePost(
       );
     }
 
-    if (!process.env.OPENAI_API_KEY) {
+    if (!process.env.OPENAI_API_KEY?.trim()) {
       return withSession(
         json({ error: "The visitor globe is not configured yet." }, 503),
         protection.sessionCookie,
@@ -107,7 +107,13 @@ export function createVisitorGlobePost(
         Response.json({ ok: true }, { status: 201 }),
         protection.sessionCookie,
       );
-    } catch {
+    } catch (error) {
+      console.error(
+        JSON.stringify({
+          event: "visitor_globe_persistence_failure",
+          kind: error instanceof Error ? error.name : "unknown",
+        }),
+      );
       return withSession(
         json({ error: "Unable to publish your message right now." }, 502),
         protection.sessionCookie,

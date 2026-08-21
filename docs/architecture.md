@@ -63,7 +63,9 @@ misconfiguration.
 ## Visitor globe
 
 Approved visitor messages are persisted in Postgres and returned oldest first.
-A five-minute Redis snapshot caches the global message collection independently
+OpenAI moderation uses a bounded request with automatic retries disabled and
+fails closed before persistence when classification is unavailable. A five-minute
+Redis snapshot caches the global message collection independently
 of the request-specific viewer location. Each Redis cache command has a short
 abortable deadline and does not retry, so a degraded cache cannot hold a
 visitor request indefinitely. Successful inserts advance a generation key, so
@@ -124,9 +126,9 @@ exists.
 ## Production configuration
 
 The `prebuild` lifecycle validates all critical production environment variables,
-secret strength, URLs, and optional groups before project synchronization or
-compilation. Runtime guards remain fail closed, but ordinary deployment mistakes
-are rejected during the build.
+including the Postgres connection, secret strength, URLs, and optional groups
+before project synchronization or compilation. Runtime guards remain fail closed,
+but ordinary deployment mistakes are rejected during the build.
 
 Node.js is pinned through `.nvmrc`, `package.json`, `.npmrc`, CI, and matching
 Node type definitions. Local setup uses `npm ci`, so dependency installation is

@@ -46,8 +46,8 @@ commands, and operating details.
 
 ## Production
 
-A production build fails before compiling when critical configuration is absent
-or malformed. Configure:
+A production build fails before compiling when critical configuration, including
+the Postgres connection, is absent or malformed. Configure:
 
 - `GITHUB_OWNER` and, optionally, `GITHUB_TOKEN`;
 - `DATABASE_URL` with the Neon pooled connection string, then run `npm run db:push`;

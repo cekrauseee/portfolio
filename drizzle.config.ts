@@ -4,7 +4,7 @@ import { defineConfig } from "drizzle-kit";
 loadEnvConfig(process.cwd(), process.env.NODE_ENV !== "production");
 
 const databaseUrl =
-  process.env.DATABASE_URL ??
+  process.env.DATABASE_URL?.trim() ||
   "postgres://portfolio:portfolio@127.0.0.1:5433/portfolio";
 
 export default defineConfig({

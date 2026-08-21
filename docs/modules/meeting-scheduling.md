@@ -21,7 +21,7 @@ supports the local loopback flow. For a web OAuth client, add this authorized
 redirect URI:
 
 ```text
-http://127.0.0.1:53682/oauth2callback
+http://localhost:53682/oauth2callback
 ```
 
 Authorize the calendar owner:

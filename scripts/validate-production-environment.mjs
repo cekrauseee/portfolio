@@ -9,6 +9,7 @@ export const MIN_ANON_SESSION_SECRET_LENGTH = 32;
 
 const REQUIRED_PRODUCTION_VALUES = [
   "GITHUB_OWNER",
+  "DATABASE_URL",
   "KV_REST_API_URL",
   "KV_REST_API_TOKEN",
   "ANON_SESSION_SECRET",
@@ -35,6 +36,11 @@ export function validateProductionEnvironment(environment = process.env) {
   const owner = environment.GITHUB_OWNER?.trim();
   if (owner && !/^[A-Za-z0-9_.-]+$/.test(owner)) {
     errors.push("GITHUB_OWNER contains unsupported characters.");
+  }
+
+  const databaseUrl = environment.DATABASE_URL?.trim();
+  if (databaseUrl && !hasProtocol(databaseUrl, ["postgres:", "postgresql:"])) {
+    errors.push("DATABASE_URL must be a valid Postgres URL.");
   }
 
   const redisUrl = environment.KV_REST_API_URL?.trim();

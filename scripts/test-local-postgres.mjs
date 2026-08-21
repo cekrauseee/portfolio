@@ -3,19 +3,24 @@
 import { spawnSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import nextEnv from "@next/env";
 
-const projectDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const { loadEnvConfig } = nextEnv;
+const projectDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+loadEnvConfig(projectDirectory, true, console, true);
+
+const databaseUrl =
+  process.env.DATABASE_URL?.trim() ||
+  "postgres://portfolio:portfolio@127.0.0.1:5433/portfolio";
 const result = spawnSync(
   process.execPath,
   ["--import", "tsx", "--test", "scripts/local-postgres.integration.mjs"],
   {
-    cwd: projectDir,
+    cwd: projectDirectory,
     env: {
       ...process.env,
       NODE_ENV: "test",
-      DATABASE_URL:
-        process.env.DATABASE_URL ||
-        "postgres://portfolio:portfolio@127.0.0.1:5433/portfolio",
+      DATABASE_URL: databaseUrl,
       REDIS_URL: "",
       KV_REST_API_URL: "",
       KV_REST_API_TOKEN: "",
