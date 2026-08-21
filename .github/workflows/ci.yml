@@ -73,11 +73,12 @@ jobs:
         run: npm run test:redis
       - name: Validate production environment
         run: npm run env:validate
-      - name: Prepare and seed Postgres
+      - name: Test Postgres persistence
         env:
           DATABASE_URL: postgres://portfolio:portfolio@127.0.0.1:5433/portfolio
         run: |
           npm run db:push
+          npm run test:postgres
           npm run db:seed
       - name: Validate Docker Compose
         run: docker compose config --quiet

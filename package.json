@@ -21,6 +21,7 @@
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "node scripts/run-tests.mjs",
+    "test:postgres": "node scripts/test-local-postgres.mjs",
     "test:redis": "node scripts/test-local-redis.mjs",
     "services:up": "docker compose up -d --wait",
     "services:down": "docker compose down",

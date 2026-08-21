@@ -152,15 +152,16 @@ Production deployment order:
 
 ### Quality
 
-| Command                | Purpose                                                 |
-| ---------------------- | ------------------------------------------------------- |
-| `npm run check`        | Run formatting, lint, type checking, and tests          |
-| `npm run format`       | Format supported files                                  |
-| `npm run format:check` | Check formatting without writing                        |
-| `npm run lint`         | Run ESLint                                              |
-| `npm run typecheck`    | Generate Next.js types and run TypeScript               |
-| `npm test`             | Prepare the neutral fixture and run deterministic tests |
-| `npm run test:redis`   | Exercise the configured local Redis adapter             |
+| Command                 | Purpose                                                 |
+| ----------------------- | ------------------------------------------------------- |
+| `npm run check`         | Run formatting, lint, type checking, and tests          |
+| `npm run format`        | Format supported files                                  |
+| `npm run format:check`  | Check formatting without writing                        |
+| `npm run lint`          | Run ESLint                                              |
+| `npm run typecheck`     | Generate Next.js types and run TypeScript               |
+| `npm test`              | Prepare the neutral fixture and run deterministic tests |
+| `npm run test:postgres` | Verify visitor-message persistence in Postgres          |
+| `npm run test:redis`    | Exercise the configured local Redis adapter             |
 
 ## Testing
 
@@ -172,6 +173,7 @@ npm run lint
 npm test
 npm run test:redis
 npm run db:push
+npm run test:postgres
 npm run db:seed
 npm run env:validate
 npm run typecheck
@@ -180,13 +182,16 @@ docker compose config --quiet
 ```
 
 `npm test` creates `.cache/github-projects.json` from the committed neutral
-fixture, so it does not depend on a previous sync. The Redis and database checks
-require the local services started by `npm run setup` or `npm run services:up`.
+fixture, so it does not depend on a previous sync. `npm run check` aggregates the
+first three quality commands and type checking. The Redis and Postgres integration
+checks require the local services started by `npm run setup` or
+`npm run services:up`; run `db:push` before the Postgres test when the schema is
+not prepared.
 
-CI runs the same quality checks, provisions Redis and Postgres containers, pushes
-and seeds the database, validates Compose, and builds the committed GitHub fixture
-without contacting GitHub. The reconciliation workflow is separate and only
-triggers the Vercel deploy hook.
+CI runs the same quality checks, provisions Redis and Postgres containers,
+exercises both real adapters, pushes and seeds the database, validates Compose,
+and builds the committed GitHub fixture without contacting GitHub. The
+reconciliation workflow is separate and only triggers the Vercel deploy hook.
 
 ## CI/CD
 
