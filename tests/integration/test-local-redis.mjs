@@ -6,25 +6,31 @@ import { fileURLToPath } from "node:url";
 import nextEnv from "@next/env";
 
 const { loadEnvConfig } = nextEnv;
-const projectDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const projectDirectory = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "../..",
+);
 loadEnvConfig(projectDirectory, true, console, true);
 
-const databaseUrl =
-  process.env.DATABASE_URL?.trim() ||
-  "postgres://portfolio:portfolio@127.0.0.1:5433/portfolio";
+const redisUrl = process.env.REDIS_URL?.trim();
+if (!redisUrl) {
+  console.error(
+    "REDIS_URL is required. Run npm run setup or npm run services:up after configuring .env.local.",
+  );
+  process.exit(1);
+}
+
 const result = spawnSync(
   process.execPath,
-  ["--import", "tsx", "--test", "scripts/local-postgres.integration.mjs"],
+  [
+    "--import",
+    "tsx",
+    "--test",
+    "tests/integration/local-redis.integration.mjs",
+  ],
   {
     cwd: projectDirectory,
-    env: {
-      ...process.env,
-      NODE_ENV: "test",
-      DATABASE_URL: databaseUrl,
-      REDIS_URL: "",
-      KV_REST_API_URL: "",
-      KV_REST_API_TOKEN: "",
-    },
+    env: { ...process.env, REDIS_URL: redisUrl },
     stdio: "inherit",
   },
 );

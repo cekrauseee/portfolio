@@ -9,8 +9,11 @@ code lives under `src/features`. Site identity is canonical in
 social links, and the validated project snapshot.
 
 The home page and project case studies are React Server Components. Interactive
-forms and the visitor globe cross client boundaries. Project synchronization runs
-at development startup or build time and never during visitor requests.
+forms and the guestbook globe cross client boundaries. The guestbook keeps
+serializable message contracts in `src/features/guestbook/message.ts`; persistence,
+cache, geolocation, moderation, and HTTP orchestration stay under
+`src/features/guestbook/server`. Project synchronization runs at development
+startup or build time and never during visitor requests.
 
 ## Components
 
@@ -20,7 +23,7 @@ at development startup or build time and never during visitor requests.
 | `src/components`                        | Shared page shell, navigation, project list, and link primitives |
 | `src/features/role-fit`                 | Role-fit form, input parsing, prompt context, and OpenAI request |
 | `src/features/meeting-scheduling`       | Scheduling form, validation, calendar access, and notification   |
-| `src/features/visitor-globe`            | Moderated guestbook persistence, shared cache, and globe UI      |
+| `src/features/guestbook`                | Shared guestbook contracts, server integrations, and globe UI    |
 | `src/content/portfolio.ts`              | Profile, social links, and normalized project contract           |
 | `src/content/project.ts`                | Shared `Project` and `ProjectSection` types                      |
 | `src/content/github-projects.ts`        | Validated build-time snapshot loader                             |
@@ -60,10 +63,12 @@ is called. Temporary protection responses carry `Retry-After`; configuration
 errors do not, allowing the UI to distinguish retryable outages from deployment
 misconfiguration.
 
-## Visitor globe
+## Guestbook and globe
 
-Approved visitor messages are persisted in Postgres and returned oldest first.
-OpenAI moderation uses a bounded request with automatic retries disabled and
+Approved guestbook messages are persisted in Postgres and returned oldest first.
+`/api/guestbook` is the canonical Route Handler; `/api/visitor-globe` remains a
+thin compatibility adapter. The globe controller, scene primitives, geometry
+calculations, and message overlays live in separate cohesive modules. OpenAI moderation uses a bounded request with automatic retries disabled and
 fails closed before persistence when classification is unavailable. A five-minute
 Redis snapshot caches the global message collection independently
 of the request-specific viewer location. Each Redis cache command has a short
@@ -74,7 +79,9 @@ remains authoritative: cache read and fill failures fall back to the database
 and never turn a committed message into a failed response. If cache
 invalidation fails after a successful insert, readers can continue serving the
 old snapshot until its five-minute TTL expires; the committed message is then
-included when that snapshot is replaced.
+included when that snapshot is replaced. The deployed Redis cache prefix and
+`visitorGlobe` abuse operation remain legacy identifiers intentionally, avoiding
+cache and rate-limit migrations during the bounded-context rename.
 
 ## Role-fit assessment
 
@@ -143,7 +150,7 @@ reproducible from the committed lockfile.
 - Shared UI belongs in `src/components`; capability-specific UI and integration
   code belong in `src/features`.
 - Protected operations never continue without shared Redis storage.
-- Visitor message caching fails open and keeps Postgres as its source of truth.
+- Guestbook message caching fails open and keeps Postgres as its source of truth.
 - Calendar replay requires the original operation metadata and never authorizes
   access based only on a slot or attendee email.
 - External work has deadlines shorter than the locks that serialize it.

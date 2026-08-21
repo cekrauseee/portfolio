@@ -5,11 +5,11 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
-import { syncGithubProjects } from "./sync-github-projects.mjs";
+import { syncGithubProjects } from "../scripts/sync-github-projects.mjs";
 
 const fixedDate = new Date("2026-08-18T12:00:00.000Z");
 const syncScriptPath = fileURLToPath(
-  new URL("./sync-github-projects.mjs", import.meta.url),
+  new URL("../scripts/sync-github-projects.mjs", import.meta.url),
 );
 
 function project(slug, overrides = {}) {

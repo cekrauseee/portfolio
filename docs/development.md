@@ -49,7 +49,7 @@ load `.env.local` with Next.js environment precedence and otherwise use the loca
 Compose connection on port `5433`.
 
 Run `npm run db:push` after changing
-`src/features/visitor-globe/db/schema.ts`. Run `npm run db:seed` to add missing
+`src/features/guestbook/server/db/schema.ts`. Run `npm run db:seed` to add missing
 demo records. The seed is idempotent and does not delete visitor data.
 `npm run db:studio` opens Drizzle Studio for the configured database.
 
@@ -80,7 +80,7 @@ public-only sync with its production `GITHUB_OWNER` and optional `GITHUB_TOKEN`.
 
 Local development uses `REDIS_URL`. Production ignores it and accepts only
 `KV_REST_API_URL` with `KV_REST_API_TOKEN`. The public `POST /api/fit`,
-`POST /api/meetings`, and `POST /api/visitor-globe` routes have no in-memory
+`POST /api/meetings`, `POST /api/guestbook`, and legacy `POST /api/visitor-globe` routes have no in-memory
 runtime fallback and return `503` before external work when BotID, the signed
 session, or shared storage is unavailable.
 
@@ -139,7 +139,7 @@ Production deployment order:
 | Command             | Purpose                                           |
 | ------------------- | ------------------------------------------------- |
 | `npm run db:push`   | Reconcile the configured database with the schema |
-| `npm run db:seed`   | Add missing visitor-globe demo messages           |
+| `npm run db:seed`   | Add missing guestbook demo messages               |
 | `npm run db:studio` | Open Drizzle Studio for the configured database   |
 
 ### Project content and integrations
@@ -181,8 +181,10 @@ PROJECTS_SYNC_SKIP=1 npm run build
 docker compose config --quiet
 ```
 
-`npm test` creates `.cache/github-projects.json` from the committed neutral
-fixture, so it does not depend on a previous sync. `npm run check` aggregates the
+`npm test` discovers deterministic `*.test.mjs` files under `tests/` and creates `.cache/github-projects.json` from the committed neutral
+fixture, so it does not depend on a previous sync. Integration modules and
+runners live under `tests/integration/`; `scripts/` is reserved for operational
+commands. `npm run check` aggregates the
 first three quality commands and type checking. The Redis and Postgres integration
 checks require the local services started by `npm run setup` or
 `npm run services:up`; run `db:push` before the Postgres test when the schema is

@@ -34,10 +34,10 @@ writeFileSync(
   "utf8",
 );
 
-const testFiles = readdirSync(path.join(projectDirectory, "scripts"))
+const testFiles = readdirSync(path.join(projectDirectory, "tests"))
   .filter((name) => name.endsWith(".test.mjs"))
   .sort()
-  .map((name) => path.join("scripts", name));
+  .map((name) => path.join("tests", name));
 const result = spawnSync(
   process.execPath,
   ["--import", "tsx", "--test", ...testFiles],

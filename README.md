@@ -80,7 +80,9 @@ Git deployments so the tested workflow is the sole production trigger.
 
 - `src/app` contains routes, metadata files, and global styles.
 - `src/components` contains reusable UI.
-- `src/features` groups role-fit, meeting-scheduling, and visitor-globe code by capability.
+- `src/features` groups role-fit, meeting-scheduling, and guestbook code by capability.
+- `src/features/guestbook/server` owns persistence, cache, geolocation, moderation, and HTTP orchestration; `src/features/guestbook/globe` owns the client globe.
+- `tests/` contains deterministic tests and integration helpers; `scripts/` contains operational commands.
 - `src/config/site.ts` is the canonical public identity and site configuration.
 - `src/content/portfolio.ts` contains profile details, social links, and project loading.
 - `src/content/github-projects.ts` validates the build-time GitHub snapshot.

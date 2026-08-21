@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { MessageForm } from "@/features/visitor-globe/message-form";
+import { MessageForm } from "@/features/guestbook/message-form";
 
 export function NewMessage() {
   const router = useRouter();

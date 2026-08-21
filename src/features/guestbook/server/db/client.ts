@@ -9,20 +9,14 @@ import { env } from "node:process";
 import {
   advanceMessageCacheGeneration,
   fetchCachedMessages,
-} from "@/features/visitor-globe/message-cache";
-import { messages } from "@/features/visitor-globe/db/schema";
+} from "@/features/guestbook/server/message-cache";
+import { messages } from "@/features/guestbook/server/db/schema";
+import type { GuestbookMessage } from "@/features/guestbook/message";
 
-export type { Message, NewMessage } from "@/features/visitor-globe/db/schema";
-
-export type VisitorMessage = {
-  id: string;
-  name: string;
-  message: string;
-  latitude: number;
-  longitude: number;
-  country: string | null;
-  city: string | null;
-};
+export type {
+  Message,
+  NewMessage,
+} from "@/features/guestbook/server/db/schema";
 
 type Database = NodePgDatabase;
 
@@ -96,7 +90,7 @@ export async function closeDatabase() {
   instance = undefined;
 }
 
-async function fetchMessagesFromDatabase(): Promise<VisitorMessage[]> {
+async function fetchMessagesFromDatabase(): Promise<GuestbookMessage[]> {
   const db = database();
   if (!db) {
     return [];
@@ -122,7 +116,7 @@ async function fetchMessagesFromDatabase(): Promise<VisitorMessage[]> {
 }
 
 /** Fetch every visitor message, oldest first, through the shared Redis cache. */
-export async function fetchMessages(): Promise<VisitorMessage[]> {
+export async function fetchMessages(): Promise<GuestbookMessage[]> {
   return fetchCachedMessages(fetchMessagesFromDatabase);
 }
 

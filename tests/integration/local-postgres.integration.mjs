@@ -3,7 +3,7 @@ import test from "node:test";
 import { Pool } from "pg";
 
 const { closeDatabase, createMessage, fetchMessages } =
-  await import("../src/features/visitor-globe/db/client.ts");
+  await import("../../src/features/guestbook/server/db/client.ts");
 
 const databaseUrl = process.env.DATABASE_URL;
 assert.ok(
@@ -17,7 +17,7 @@ test("visitor messages round-trip through Postgres", async () => {
   const marker = crypto.randomUUID();
   const input = {
     name: `Postgres integration ${marker}`,
-    message: "Persisted by the real visitor-globe database client.",
+    message: "Persisted by the real guestbook database client.",
     latitude: -30.0346,
     longitude: -51.2177,
     country: "Brazil",

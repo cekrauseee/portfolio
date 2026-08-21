@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-const { createLocalRedisAdapter } = await import("../src/lib/local-redis.ts");
+const { createLocalRedisAdapter } =
+  await import("../../src/lib/local-redis.ts");
 
 test("local Redis adapter supports values, locks, and Lua scripts", async () => {
   const redis = createLocalRedisAdapter(process.env.REDIS_URL);

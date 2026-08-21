@@ -1,9 +1,10 @@
-import type { VisitorMessage } from "@/features/visitor-globe/db/client";
+import type { GuestbookMessage } from "@/features/guestbook/message";
 import { REDIS_COMMAND_TIMEOUT_MS, type RedisAdapter } from "@/lib/local-redis";
 import { redis } from "@/lib/redis";
 
 export const MESSAGE_CACHE_TTL_SECONDS = 5 * 60;
 
+// Keep the legacy Redis key stable to avoid an unnecessary cache migration.
 const CACHE_PREFIX = "portfolio:visitor-globe:messages:v1";
 const GENERATION_KEY = `${CACHE_PREFIX}:generation`;
 
@@ -20,7 +21,7 @@ function parseGeneration(value: unknown) {
     : undefined;
 }
 
-function isVisitorMessage(value: unknown): value is VisitorMessage {
+function isGuestbookMessage(value: unknown): value is GuestbookMessage {
   if (!value || typeof value !== "object") {
     return false;
   }
@@ -39,8 +40,8 @@ function isVisitorMessage(value: unknown): value is VisitorMessage {
   );
 }
 
-function isMessageSnapshot(value: unknown): value is VisitorMessage[] {
-  return Array.isArray(value) && value.every(isVisitorMessage);
+function isMessageSnapshot(value: unknown): value is GuestbookMessage[] {
+  return Array.isArray(value) && value.every(isGuestbookMessage);
 }
 
 async function withRedisCommandDeadline<T>(operation: Promise<T>): Promise<T> {
@@ -67,9 +68,9 @@ async function withRedisCommandDeadline<T>(operation: Promise<T>): Promise<T> {
  * Redis is absent, unavailable, or contains an invalid value.
  */
 export async function fetchCachedMessages(
-  loadMessages: () => Promise<VisitorMessage[]>,
+  loadMessages: () => Promise<GuestbookMessage[]>,
   store: RedisAdapter | null | undefined = redis(),
-): Promise<VisitorMessage[]> {
+): Promise<GuestbookMessage[]> {
   if (!store) {
     return loadMessages();
   }

@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createVisitorGlobePost } from "../src/app/api/visitor-globe/route.ts";
+import { createGuestbookPost } from "../src/features/guestbook/server/handler.ts";
 import {
   MODERATION_CLIENT_OPTIONS,
   MODERATION_REQUEST_TIMEOUT_MS,
   moderateMessage,
-} from "../src/features/visitor-globe/moderate-message.ts";
+} from "../src/features/guestbook/server/moderate-message.ts";
 
 function restore(name, value) {
   if (value === undefined) {
@@ -16,7 +16,7 @@ function restore(name, value) {
 }
 
 function request() {
-  return new Request("http://localhost/api/visitor-globe", {
+  return new Request("http://localhost/api/guestbook", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name: "Ada", message: "Hello from the test." }),
@@ -42,7 +42,7 @@ function dependencies(overrides = {}) {
   };
 }
 
-test("visitor moderation is bounded, non-retrying, and privacy-safe", async () => {
+test("guestbook moderation is bounded, non-retrying, and privacy-safe", async () => {
   assert.deepEqual(MODERATION_CLIENT_OPTIONS, {
     timeout: MODERATION_REQUEST_TIMEOUT_MS,
     maxRetries: 0,
@@ -77,11 +77,11 @@ test("visitor moderation is bounded, non-retrying, and privacy-safe", async () =
   }
 });
 
-test("visitor endpoint distinguishes missing configuration from temporary failure", async () => {
+test("guestbook endpoint distinguishes missing configuration from temporary failure", async () => {
   const previousApiKey = process.env.OPENAI_API_KEY;
   try {
     process.env.OPENAI_API_KEY = "   ";
-    const unconfigured = await createVisitorGlobePost(
+    const unconfigured = await createGuestbookPost(
       dependencies({
         moderateMessage: async () => {
           throw new Error("must not moderate");
@@ -96,7 +96,7 @@ test("visitor endpoint distinguishes missing configuration from temporary failur
     );
 
     process.env.OPENAI_API_KEY = "test-openai-key";
-    const unavailable = await createVisitorGlobePost(
+    const unavailable = await createGuestbookPost(
       dependencies({ moderateMessage: async () => null }),
     )(request());
     assert.equal(unavailable.status, 503);

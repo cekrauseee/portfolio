@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createInMemoryRedisAdapter } from "./in-memory-redis.mjs";
+import { createInMemoryRedisAdapter } from "./support/in-memory-redis.mjs";
 
 process.env.NODE_ENV = "test";
 
@@ -8,9 +8,9 @@ const {
   MESSAGE_CACHE_TTL_SECONDS,
   advanceMessageCacheGeneration,
   fetchCachedMessages,
-} = await import("../src/features/visitor-globe/message-cache.ts");
+} = await import("../src/features/guestbook/server/message-cache.ts");
 const databaseClient =
-  await import("../src/features/visitor-globe/db/client.ts");
+  await import("../src/features/guestbook/server/db/client.ts");
 const { setRedisAdapterForTests } = await import("../src/lib/redis.ts");
 const { REDIS_COMMAND_TIMEOUT_MS } = await import("../src/lib/local-redis.ts");
 

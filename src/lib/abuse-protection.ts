@@ -9,6 +9,7 @@ export {
   setRedisAdapterForTests,
 } from "@/lib/redis";
 
+// Keep the visitorGlobe operation key stable for existing Redis rate-limit buckets.
 export const LIMITS = {
   fit: {
     session: { window: 5, day: 20 },

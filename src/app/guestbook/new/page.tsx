@@ -3,7 +3,7 @@ import Link from "next/link";
 import { mutedTextLinkClassName } from "@/components/links";
 import { PageShell } from "@/components/page-shell";
 import { site } from "@/config/site";
-import { NewMessage } from "@/features/visitor-globe/new-message";
+import { NewMessage } from "@/features/guestbook/new-message";
 
 const path = "/guestbook/new";
 const title = "Leave a message";

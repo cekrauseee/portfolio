@@ -6,8 +6,8 @@ import {
   resolveMeetingNotificationConfiguration,
 } from "../src/features/meeting-scheduling/meeting-notification.ts";
 import { shouldUseRetryMessage } from "../src/lib/retry-message.ts";
-import { validateProductionEnvironment } from "./validate-production-environment.mjs";
-import { syncGithubProjects } from "./sync-github-projects.mjs";
+import { validateProductionEnvironment } from "../scripts/validate-production-environment.mjs";
+import { syncGithubProjects } from "../scripts/sync-github-projects.mjs";
 
 function restore(name, value) {
   if (value === undefined) {

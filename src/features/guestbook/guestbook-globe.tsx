@@ -4,12 +4,15 @@ import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { actionClassName } from "@/components/links";
-import type { VisitorMessage } from "@/features/visitor-globe/db/client";
-import { COUNTRIES_GEOJSON_URL } from "@/features/visitor-globe/globe-data";
-import type { GeoCoordinates } from "@/features/visitor-globe/geo";
+import type {
+  GeoCoordinates,
+  GuestbookMessage,
+} from "@/features/guestbook/message";
+import { COUNTRIES_GEOJSON_URL } from "@/features/guestbook/globe-data";
+import type { GeoJSON } from "@/features/guestbook/globe/geometry";
 
 const Globe = dynamic(
-  () => import("@/features/visitor-globe/globe").then((m) => m.Globe),
+  () => import("@/features/guestbook/globe/globe").then((m) => m.Globe),
   {
     ssr: false,
     loading: () => null,
@@ -29,24 +32,11 @@ function GlobePlaceholder({ hidden }: { hidden: boolean }) {
   );
 }
 
-type GeoFeature = {
-  type: "Feature";
-  geometry: {
-    type: "Polygon" | "MultiPolygon";
-    coordinates: number[][][] | number[][][][];
-  };
-};
-
-type GeoJSON = {
-  type: "FeatureCollection";
-  features: GeoFeature[];
-};
-
-export function VisitorGlobe({
+export function GuestbookGlobe({
   messages,
   viewerLocation,
 }: {
-  messages: VisitorMessage[];
+  messages: GuestbookMessage[];
   viewerLocation: GeoCoordinates;
 }) {
   const [geojson, setGeojson] = useState<GeoJSON | null | undefined>(undefined);
@@ -55,7 +45,7 @@ export function VisitorGlobe({
   useEffect(() => {
     // Start both large resources together instead of waiting for the map before
     // requesting the WebGL bundle.
-    void import("@/features/visitor-globe/globe");
+    void import("@/features/guestbook/globe/globe");
     fetch(COUNTRIES_GEOJSON_URL)
       .then((response) => {
         if (!response.ok) {

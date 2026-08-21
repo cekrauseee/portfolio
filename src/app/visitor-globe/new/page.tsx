@@ -1,5 +1,5 @@
 import { permanentRedirect } from "next/navigation";
 
-export default function NewMessagePage() {
+export default function LegacyNewMessagePage() {
   permanentRedirect("/guestbook/new");
 }

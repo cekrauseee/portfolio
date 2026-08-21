@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import nextEnv from "@next/env";
 import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
-import { messages } from "../src/features/visitor-globe/db/schema.ts";
+import { messages } from "../src/features/guestbook/server/db/schema.ts";
 
 const { loadEnvConfig } = nextEnv;
 const projectDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -16,7 +16,7 @@ const databaseUrl =
   "postgres://portfolio:portfolio@127.0.0.1:5433/portfolio";
 
 if (process.argv.includes("--help")) {
-  console.log(`Seed the visitor globe with demo messages.
+  console.log(`Seed the guestbook with demo messages. The messages are presented on the visitor globe.
 
 Usage:
   npm run db:seed

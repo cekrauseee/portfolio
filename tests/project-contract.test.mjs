@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { parseGithubProjectsSnapshot } from "../src/content/github-projects.ts";
-import { syncGithubProjects } from "./sync-github-projects.mjs";
+import { syncGithubProjects } from "../scripts/sync-github-projects.mjs";
 
 function projectWithSlug(slug) {
   return {

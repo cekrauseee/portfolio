@@ -7,7 +7,7 @@ import { actionClassName } from "@/components/links";
 import {
   MAX_MESSAGE_LENGTH,
   MAX_NAME_LENGTH,
-} from "@/features/visitor-globe/moderate-message";
+} from "@/features/guestbook/message";
 
 type FieldName = "name" | "message";
 type Fields = Record<FieldName, string>;
@@ -71,7 +71,7 @@ export function MessageForm({ onSubmitted }: { onSubmitted?: () => void }) {
 
     setSubmitting(true);
     try {
-      const response = await fetch("/api/visitor-globe", {
+      const response = await fetch("/api/guestbook", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

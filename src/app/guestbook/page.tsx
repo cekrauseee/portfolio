@@ -3,10 +3,10 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { linkFocusClassName } from "@/components/links";
 import { site } from "@/config/site";
-import { fetchMessages } from "@/features/visitor-globe/db/client";
-import { resolveGeoFromHeaders } from "@/features/visitor-globe/geo";
-import { COUNTRIES_GEOJSON_URL } from "@/features/visitor-globe/globe-data";
-import { VisitorGlobe } from "@/features/visitor-globe/visitor-globe";
+import { fetchMessages } from "@/features/guestbook/server/db/client";
+import { resolveGeoFromHeaders } from "@/features/guestbook/server/geo";
+import { COUNTRIES_GEOJSON_URL } from "@/features/guestbook/globe-data";
+import { GuestbookGlobe } from "@/features/guestbook/guestbook-globe";
 
 const path = "/guestbook";
 const title = "Visitor guestbook";
@@ -44,7 +44,7 @@ export default async function GuestbookPage() {
         as="fetch"
         crossOrigin="anonymous"
       />
-      <VisitorGlobe messages={messages} viewerLocation={viewerLocation} />
+      <GuestbookGlobe messages={messages} viewerLocation={viewerLocation} />
 
       <Link
         href="/"

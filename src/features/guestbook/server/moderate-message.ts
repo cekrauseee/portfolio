@@ -1,7 +1,4 @@
 import OpenAI from "openai";
-
-export const MAX_NAME_LENGTH = 60;
-export const MAX_MESSAGE_LENGTH = 500;
 export const MODERATION_REQUEST_TIMEOUT_MS = 20_000;
 export const MODERATION_CLIENT_OPTIONS = {
   timeout: MODERATION_REQUEST_TIMEOUT_MS,
@@ -90,26 +87,4 @@ export async function moderateMessage(
     );
     return null;
   }
-}
-
-export function validateSubmission(body: unknown): {
-  name?: string;
-  message?: string;
-} {
-  if (!body || typeof body !== "object") {
-    return {};
-  }
-  const record = body as Record<string, unknown>;
-  const name = typeof record.name === "string" ? record.name.trim() : undefined;
-  const message =
-    typeof record.message === "string" ? record.message.trim() : undefined;
-
-  const result: { name?: string; message?: string } = {};
-  if (name && name.length <= MAX_NAME_LENGTH) {
-    result.name = name;
-  }
-  if (message && message.length <= MAX_MESSAGE_LENGTH) {
-    result.message = message;
-  }
-  return result;
 }

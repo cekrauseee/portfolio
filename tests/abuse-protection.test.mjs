@@ -12,7 +12,8 @@ process.env.NODE_ENV = "test";
 process.env.ANON_SESSION_SECRET = "test-only-secret";
 process.env.GITHUB_OWNER ||= fixture.owner;
 const protection = await import("../src/lib/abuse-protection.ts");
-const { createInMemoryRedisAdapter } = await import("./in-memory-redis.mjs");
+const { createInMemoryRedisAdapter } =
+  await import("./support/in-memory-redis.mjs");
 const resetInMemoryRedis = () =>
   protection.setRedisAdapterForTests(createInMemoryRedisAdapter());
 resetInMemoryRedis();

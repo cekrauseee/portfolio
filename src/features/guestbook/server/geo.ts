@@ -1,11 +1,8 @@
+import type { GeoCoordinates } from "@/features/guestbook/message";
+
 type GeoEnvironment = Record<string, string | undefined>;
 
-export type GeoCoordinates = {
-  latitude: number;
-  longitude: number;
-  country: string | null;
-  city: string | null;
-};
+export type { GeoCoordinates };
 
 type GeoHeaders = Pick<Headers, "get">;
 
