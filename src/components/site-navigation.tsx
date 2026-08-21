@@ -1,7 +1,7 @@
 import { Fragment } from "react";
 import { profile, socialLinks } from "@/content/portfolio";
 import { ExternalLink } from "@/components/links";
-import { LanguageSwitcher } from "@/components/language-switcher";
+import { PreferencesMenu } from "@/components/preferences-menu";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionary";
 
@@ -13,7 +13,7 @@ export function SiteNavigation({
   dictionary: Dictionary["navigation"];
 }) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+    <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
       <nav
         className="flex flex-wrap gap-x-2"
         aria-label={dictionary.primaryLinks}
@@ -33,11 +33,7 @@ export function SiteNavigation({
         ))}
       </nav>
 
-      <LanguageSwitcher
-        locale={locale}
-        labels={dictionary.languages}
-        label={dictionary.languageNavigation}
-      />
+      <PreferencesMenu key={locale} locale={locale} dictionary={dictionary} />
     </div>
   );
 }

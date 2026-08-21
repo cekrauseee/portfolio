@@ -1,7 +1,9 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
   --background: #fafafa;
   --foreground: #262626;
 }
@@ -14,11 +16,10 @@
     sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #070707;
-    --foreground: #e8e8e8;
-  }
+:root.dark {
+  color-scheme: dark;
+  --background: #070707;
+  --foreground: #e8e8e8;
 }
 
 body {

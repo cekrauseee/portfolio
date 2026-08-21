@@ -11,9 +11,12 @@ export const pt: Dictionary = {
   },
   navigation: {
     primaryLinks: "Links principais",
+    preferencesNavigation: "Preferências",
     languageNavigation: "Idioma",
+    appearanceNavigation: "Aparência",
     externalLinkNewTab: " (abre em uma nova aba)",
-    languages: { en: "EN", pt: "PT", ja: "日本語" },
+    languages: { en: "English", pt: "Português", ja: "日本語" },
+    appearance: { system: "Sistema", light: "Claro", dark: "Escuro" },
   },
   home: {
     assessFit: "Avaliar compatibilidade",

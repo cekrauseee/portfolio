@@ -9,11 +9,7 @@ export default async function NotFound() {
   const dictionary = await getDictionary(locale);
 
   return (
-    <PageShell
-      locale={locale}
-      navigation={dictionary.navigation}
-      size="compact"
-    >
+    <PageShell locale={locale} navigation={dictionary.navigation}>
       <section aria-labelledby="not-found-heading">
         <p className="text-black/55 dark:text-white/65">404</p>
         <h1

@@ -1,12 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Canvas } from "@react-three/fiber";
 import { Html, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { mutedButtonClassName } from "@/components/links";
 import { localeTag, type Locale } from "@/i18n/config";
+import { useTheme } from "@/theme/theme-provider";
 import type { Dictionary } from "@/i18n/dictionary";
 import type {
   GeoCoordinates,
@@ -67,6 +75,7 @@ export function Globe({
   onReady,
   locale,
   dictionary,
+  primaryAction,
 }: {
   messages: GuestbookMessage[];
   geojson?: GeoJSON;
@@ -74,6 +83,7 @@ export function Globe({
   onReady: () => void;
   locale: Locale;
   dictionary: Dictionary["guestbook"]["globe"];
+  primaryAction: ReactNode;
 }) {
   const [hoveredPoint, setHoveredPoint] = useState<GlobePoint | null>(null);
   const [selectedPoint, setSelectedPoint] = useState<GlobePoint | null>(null);
@@ -85,7 +95,7 @@ export function Globe({
   const centerAnimationRef = useRef<number | undefined>(undefined);
   const interactionTimerRef = useRef<number | undefined>(undefined);
   const hoverExitTimerRef = useRef<number | undefined>(undefined);
-  const isDark = useMediaQuery("(prefers-color-scheme: dark)");
+  const { isDark } = useTheme();
   const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const initialCameraPosition = useMemo(
     () =>
@@ -391,31 +401,36 @@ export function Globe({
         </Canvas>
       </div>
 
-      <button
-        type="button"
-        className={`${mutedButtonClassName} absolute bottom-[calc(1rem+env(safe-area-inset-bottom))] left-[calc(1rem+env(safe-area-inset-left))] z-10 inline-flex min-h-10 items-center gap-2 text-sm motion-safe:transition-transform motion-safe:active:scale-[0.96]`}
-        onClick={centerOnViewer}
-      >
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="size-4"
-        >
-          <circle cx="12" cy="12" r="3" />
-          <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
-        </svg>
-        {isCentering ? dictionary.centering : dictionary.myLocation}
-      </button>
+      <div className="pointer-events-none absolute inset-x-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-10 flex justify-center">
+        <div className="bg-background/85 pointer-events-auto flex max-w-full flex-wrap items-center justify-center gap-2 p-2 shadow-[0_8px_32px_rgb(0_0_0/0.14)] outline outline-black/10 backdrop-blur-md dark:shadow-[0_8px_32px_rgb(0_0_0/0.5)] dark:outline-white/15">
+          <button
+            type="button"
+            className={`${mutedButtonClassName} inline-flex min-h-10 items-center gap-2 px-2 text-sm motion-safe:transition-transform motion-safe:active:scale-[0.96]`}
+            onClick={centerOnViewer}
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="size-4"
+            >
+              <circle cx="12" cy="12" r="3" />
+              <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+            </svg>
+            {isCentering ? dictionary.centering : dictionary.myLocation}
+          </button>
+          {primaryAction}
+        </div>
+      </div>
 
       {messages.length > 0 ? (
         <button
           type="button"
-          className={`${mutedButtonClassName} absolute top-[calc(3.5rem+env(safe-area-inset-top))] right-[calc(1rem+env(safe-area-inset-right))] z-10 text-sm`}
+          className={`${mutedButtonClassName} absolute top-[calc(1rem+env(safe-area-inset-top))] left-1/2 z-20 inline-flex min-h-8 -translate-x-1/2 items-center text-sm`}
           onClick={() => setSelectedPoint(allMessages)}
         >
           {(messages.length === 1

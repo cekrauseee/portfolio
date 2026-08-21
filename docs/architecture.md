@@ -21,10 +21,10 @@ The site supports `en`, `pt-BR`, and `ja` while keeping stable, unprefixed URLs
 for every route. Locale is request state, not URL state. A valid explicit
 preference in the one-year, `SameSite=Lax` `portfolio-locale` cookie wins over
 the trusted deployment country (`JP` or a configured Portuguese-speaking
-country), then supported `Accept-Language`, then English. The compact language
-control submits a Server Action that validates the locale and sets the `HttpOnly`
-cookie. Next.js then re-renders the current route in the same roundtrip. There are
-no locale paths, Proxy, locale API, or `localStorage` state.
+country), then supported `Accept-Language`, then English. The shared preferences
+panel submits a Server Action that validates the locale and sets the `HttpOnly`
+cookie. Next.js then re-renders the current route in the same roundtrip. There
+are no locale paths, Proxy, locale API, or `localStorage` state.
 
 Each request resolves a locale on the server and loads its typed, server-only
 dictionary. The layout sets `<html lang>` and route metadata from that locale;
@@ -38,24 +38,33 @@ Canonical metadata and the sitemap emit one URL per route. They do not emit
 `hreflang` variants because language is stateful rather than represented by
 separate URLs.
 
+## Theme
+
+Theme defaults to `system` and persists in the readable, one-year
+`portfolio-theme` cookie. The head script applies the effective `dark` class
+before paint; client preference changes and live system changes update the
+browser theme color immediately. Existing dark utilities and WebGL colors follow
+that effective theme.
+
 ## Components
 
-| Path                                    | Responsibility                                                                             |
-| --------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `src/app`                               | Pages, Route Handlers, metadata, and global styles                                         |
-| `src/components`                        | Shared page shell, navigation, compact language control, project list, and link primitives |
-| `src/i18n`                              | Request locale resolution, typed server dictionaries, and locale metadata                  |
-| `src/features/role-fit`                 | Role-fit form, input parsing, prompt context, and OpenAI request                           |
-| `src/features/meeting-scheduling`       | Scheduling form, validation, calendar access, and notification                             |
-| `src/features/guestbook`                | Shared guestbook contracts, server integrations, and globe UI                              |
-| `src/content/portfolio.ts`              | Profile, social links, and normalized project contract                                     |
-| `src/content/project.ts`                | Shared `Project` and `ProjectSection` types                                                |
-| `src/content/github-projects.ts`        | Validated build-time snapshot loader                                                       |
-| `src/lib/redis.ts`                      | Shared local and production Redis client selection                                         |
-| `src/lib/abuse-protection.ts`           | Bot checks, identities, rate limits, locks, and deduplication                              |
-| `scripts/sync-github-projects.mjs`      | Paginated GitHub reconciliation and atomic snapshot writer                                 |
-| `src/config/site.ts`                    | Site identity and canonical URL configuration                                              |
-| `scripts/authorize-google-calendar.mjs` | Local Google Calendar OAuth authorization                                                  |
+| Path                                    | Responsibility                                                                            |
+| --------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `src/app`                               | Pages, Route Handlers, metadata, and global styles                                        |
+| `src/components`                        | Shared 36rem page shell, navigation, preferences panel, project list, and link primitives |
+| `src/i18n`                              | Request locale resolution, typed server dictionaries, and locale metadata                 |
+| `src/theme`                             | Theme preference, effective class, browser color, persistence, and live updates           |
+| `src/features/role-fit`                 | Role-fit form, input parsing, prompt context, and OpenAI request                          |
+| `src/features/meeting-scheduling`       | Scheduling form, validation, calendar access, and notification                            |
+| `src/features/guestbook`                | Shared guestbook contracts, server integrations, and globe UI                             |
+| `src/content/portfolio.ts`              | Profile, social links, and normalized project contract                                    |
+| `src/content/project.ts`                | Shared `Project` and `ProjectSection` types                                               |
+| `src/content/github-projects.ts`        | Validated build-time snapshot loader                                                      |
+| `src/lib/redis.ts`                      | Shared local and production Redis client selection                                        |
+| `src/lib/abuse-protection.ts`           | Bot checks, identities, rate limits, locks, and deduplication                             |
+| `scripts/sync-github-projects.mjs`      | Paginated GitHub reconciliation and atomic snapshot writer                                |
+| `src/config/site.ts`                    | Site identity and canonical URL configuration                                             |
+| `scripts/authorize-google-calendar.mjs` | Local Google Calendar OAuth authorization                                                 |
 
 ## Build-time project content
 
@@ -182,6 +191,8 @@ reproducible from the committed lockfile.
 - Visitor requests never call GitHub.
 - Locale selection never changes a public URL; each route has one canonical and sitemap URL, with no `hreflang` variants.
 - The explicit language preference is the `portfolio-locale` cookie; locale state is not stored in `localStorage`.
+- Theme defaults to `system`; `portfolio-theme` is a readable one-year cookie.
+- Theme class application happens before paint, system preference changes update live, and dark utilities plus WebGL use the effective theme.
 - The home page remains a Server Component and does not require hydration.
 - Content changes belong in `src/content/portfolio.ts`, not duplicated across
   components or prompts.
@@ -199,5 +210,6 @@ reproducible from the committed lockfile.
 - Internal navigation uses Next.js `Link`; external navigation uses safe native anchors.
 - Cards remain fully clickable and keyboard focus remains visible.
 - Mobile layout preserves keyboard focus, safe-area insets, and no horizontal overflow.
+- Non-globe pages share one responsive 36rem maximum-width shell.
 - Component styling uses Tailwind utilities; global CSS stays limited to
   application-wide tokens and defaults.

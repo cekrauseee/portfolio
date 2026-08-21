@@ -10,9 +10,16 @@ export type Dictionary = {
   };
   navigation: {
     primaryLinks: string;
+    preferencesNavigation: string;
     languageNavigation: string;
+    appearanceNavigation: string;
     externalLinkNewTab: string;
     languages: Record<Locale, string>;
+    appearance: {
+      system: string;
+      light: string;
+      dark: string;
+    };
   };
   home: {
     assessFit: string;

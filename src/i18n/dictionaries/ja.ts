@@ -11,9 +11,12 @@ export const ja: Dictionary = {
   },
   navigation: {
     primaryLinks: "主なリンク",
+    preferencesNavigation: "設定",
     languageNavigation: "言語",
+    appearanceNavigation: "表示",
     externalLinkNewTab: "（新しいタブで開きます）",
-    languages: { en: "EN", pt: "PT", ja: "日本語" },
+    languages: { en: "English", pt: "Português", ja: "日本語" },
+    appearance: { system: "システム", light: "ライト", dark: "ダーク" },
   },
   home: {
     assessFit: "適性を確認",

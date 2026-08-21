@@ -41,7 +41,6 @@ export default async function Home() {
     <PageShell
       locale={locale}
       navigation={dictionary.navigation}
-      size="compact"
       disableTextSelection
     >
       <script

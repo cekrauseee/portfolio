@@ -82,6 +82,14 @@ export function GuestbookGlobe({
             onReady={() => setGlobeReady(true)}
             locale={locale}
             dictionary={dictionary.globe}
+            primaryAction={
+              <Link
+                href="/guestbook/new"
+                className={`${actionClassName} min-h-10 py-2.5`}
+              >
+                {dictionary.globe.leaveMessage}
+              </Link>
+            }
           />
         ) : null}
       </div>
@@ -94,13 +102,6 @@ export function GuestbookGlobe({
           {dictionary.globe.loadBordersError}
         </p>
       ) : null}
-
-      <Link
-        href="/guestbook/new"
-        className={`${actionClassName} absolute right-[calc(1rem+env(safe-area-inset-right))] bottom-[calc(1rem+env(safe-area-inset-bottom))] py-2.5`}
-      >
-        {dictionary.globe.leaveMessage}
-      </Link>
     </div>
   );
 }
