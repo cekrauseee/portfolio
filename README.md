@@ -78,8 +78,10 @@ database, verifies the live schema, and only then triggers the Vercel Deploy Hoo
 Configure the direct Neon connection as `DATABASE_URL_UNPOOLED` and the hook as
 `VERCEL_DEPLOY_HOOK_URL` in the protected GitHub `production` environment.
 Scheduled project reconciliation uses the same migration-before-deploy gate.
-`vercel.json` disables automatic Git deployments so these workflows are the sole
-production triggers.
+`vercel.json` disables automatic Git deployments. These workflows are the approved
+production delivery path; do not deploy through the Vercel dashboard, CLI, API, or
+direct Deploy Hook, because those methods bypass the migration and schema-verification
+gate.
 
 ## Structure
 
