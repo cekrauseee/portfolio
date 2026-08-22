@@ -30,13 +30,14 @@ exits with an error so stale demo messages are not silently left visible.`);
 }
 
 const pool = new Pool({ connectionString: databaseUrl });
+const client = await pool.connect();
 let removed = 0;
 
 try {
-  await pool.query("BEGIN");
+  await client.query("BEGIN");
   try {
     for (const msg of seedMessages) {
-      const result = await pool.query(
+      const result = await client.query(
         `DELETE FROM messages
          WHERE name = $1
            AND message = $2
@@ -55,28 +56,29 @@ try {
       );
       removed += result.rowCount ?? 0;
     }
-    await pool.query("COMMIT");
+    await client.query("COMMIT");
   } catch (error) {
-    await pool.query("ROLLBACK");
+    await client.query("ROLLBACK");
     throw error;
   }
 } finally {
+  client.release();
   await pool.end();
 }
 
 const cache = redis();
 if (cache) {
-  const invalidated = await advanceMessageCacheGeneration(cache);
-  if (!invalidated) {
+  try {
+    const invalidated = await advanceMessageCacheGeneration(cache);
+    if (!invalidated) {
+      throw new Error(
+        "Guestbook messages were removed, but Redis cache invalidation failed.",
+      );
+    }
+  } finally {
     if (typeof cache.close === "function") {
       await cache.close();
     }
-    throw new Error(
-      "Guestbook messages were removed, but Redis cache invalidation failed.",
-    );
-  }
-  if (typeof cache.close === "function") {
-    await cache.close();
   }
   console.log("Guestbook message cache invalidated.");
 } else {

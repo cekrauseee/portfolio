@@ -116,7 +116,10 @@ session, or shared storage is unavailable.
 The guestbook also uses Redis for a five-minute global message snapshot. Cache
 commands have a short abortable deadline and do not retry. Read and fill failures
 fall back to Postgres. Failed invalidation can leave the old snapshot available
-until its TTL expires.
+until its TTL expires. The seed and unseed commands mutate Postgres in a
+transaction, then advance the shared cache generation after the commit. When a
+cache is configured, an invalidation failure makes the command fail after the
+database change; both commands are safe to rerun.
 
 `ANON_SESSION_SECRET` must contain at least 32 characters. `npm run setup`
 generates a longer local value. Redis keys contain HMAC-derived identities rather
@@ -175,7 +178,7 @@ Production deployment order:
 | `npm run db:migrate`                   | Apply pending migrations to the configured database      |
 | `npm run db:check`                     | Validate migration history and schema coverage           |
 | `npm run db:verify`                    | Compare the configured database with the schema          |
-| `npm run db:seed`                      | Add missing guestbook demo messages                      |
+| `npm run db:seed`                      | Add demo messages and invalidate the message cache       |
 | `npm run db:unseed`                    | Remove only guestbook demo messages and invalidate cache |
 | `npm run db:studio`                    | Open Drizzle Studio for the configured database          |
 
