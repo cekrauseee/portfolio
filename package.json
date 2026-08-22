@@ -30,6 +30,7 @@
     "db:check": "node scripts/check-database.mjs migrations",
     "db:verify": "node scripts/check-database.mjs schema",
     "db:seed": "node --import tsx scripts/seed-guestbook.mjs",
+    "db:unseed": "node --import tsx scripts/unseed-guestbook.mjs",
     "db:studio": "drizzle-kit studio",
     "projects:sync": "node scripts/sync-github-projects.mjs",
     "calendar:authorize": "node scripts/authorize-google-calendar.mjs"

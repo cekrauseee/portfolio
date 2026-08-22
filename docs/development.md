@@ -169,14 +169,15 @@ Production deployment order:
 
 ### Database
 
-| Command                                | Purpose                                             |
-| -------------------------------------- | --------------------------------------------------- |
-| `npm run db:generate -- --name=<name>` | Generate a reviewed migration from schema changes   |
-| `npm run db:migrate`                   | Apply pending migrations to the configured database |
-| `npm run db:check`                     | Validate migration history and schema coverage      |
-| `npm run db:verify`                    | Compare the configured database with the schema     |
-| `npm run db:seed`                      | Add missing guestbook demo messages                 |
-| `npm run db:studio`                    | Open Drizzle Studio for the configured database     |
+| Command                                | Purpose                                                  |
+| -------------------------------------- | -------------------------------------------------------- |
+| `npm run db:generate -- --name=<name>` | Generate a reviewed migration from schema changes        |
+| `npm run db:migrate`                   | Apply pending migrations to the configured database      |
+| `npm run db:check`                     | Validate migration history and schema coverage           |
+| `npm run db:verify`                    | Compare the configured database with the schema          |
+| `npm run db:seed`                      | Add missing guestbook demo messages                      |
+| `npm run db:unseed`                    | Remove only guestbook demo messages and invalidate cache |
+| `npm run db:studio`                    | Open Drizzle Studio for the configured database          |
 
 ### Project content and integrations
 
