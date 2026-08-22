@@ -31,8 +31,9 @@ npm run dev
 ```
 
 `npm run setup` runs `npm ci`, generates missing local service and protection
-values, starts Redis and Postgres, verifies Redis, pushes the Drizzle schema, and
-idempotently seeds demo visitor messages. Open
+values, starts Redis and Postgres, verifies Redis, applies the committed Drizzle
+migrations, verifies the resulting schema, and idempotently seeds demo visitor
+messages. Open
 [http://localhost:3000](http://localhost:3000).
 
 The static portfolio needs no hosted services. `/fit` and guestbook moderation
@@ -50,7 +51,7 @@ A production build fails before compiling when critical configuration, including
 the Postgres connection, is absent or malformed. Configure:
 
 - `GITHUB_OWNER` and, optionally, `GITHUB_TOKEN`;
-- `DATABASE_URL` with the Neon pooled connection string, then run `npm run db:push`;
+- `DATABASE_URL` with the Neon pooled connection string in Vercel;
 - `KV_REST_API_URL` and the write-capable `KV_REST_API_TOKEN` from the Vercel Marketplace;
 - an `ANON_SESSION_SECRET` of at least 32 characters;
 - `OPENAI_API_KEY`;
@@ -72,9 +73,13 @@ formatting, lint, deterministic tests, a real Redis adapter check, production
 environment validation, TypeScript, Docker Compose validation, and a fixture-backed
 production build on every push and pull request.
 
-A passing push to `main` triggers the Vercel Deploy Hook stored in the
-`VERCEL_DEPLOY_HOOK_URL` GitHub Actions secret. `vercel.json` disables automatic
-Git deployments so the tested workflow is the sole production trigger.
+A passing push to `main` applies all pending migrations to the production
+database, verifies the live schema, and only then triggers the Vercel Deploy Hook.
+Configure the direct Neon connection as `DATABASE_URL_UNPOOLED` and the hook as
+`VERCEL_DEPLOY_HOOK_URL` in the protected GitHub `production` environment.
+Scheduled project reconciliation uses the same migration-before-deploy gate.
+`vercel.json` disables automatic Git deployments so these workflows are the sole
+production triggers.
 
 ## Structure
 
