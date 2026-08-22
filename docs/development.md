@@ -28,7 +28,8 @@ npm run dev
 6. replaces the obsolete example database port `5432` with `5433`;
 7. validates the local service and protection values;
 8. starts Redis and Postgres and waits for their health checks;
-9. verifies Redis, pushes the Drizzle schema, and idempotently seeds demo messages.
+9. verifies Redis, applies the committed Drizzle migrations, verifies the live
+   schema, and idempotently seeds demo messages.
 
 The script preserves custom values, writes `.env.local` atomically, refuses to
 follow a symlink, and applies mode `0600`. Exported shell variables do not replace
@@ -48,14 +49,34 @@ The guestbook stores approved messages in Postgres. Standalone database commands
 load `.env.local` with Next.js environment precedence and otherwise use the local
 Compose connection on port `5433`.
 
-Run `npm run db:push` after changing
-`src/features/guestbook/server/db/schema.ts`. Run `npm run db:seed` to add missing
-demo records. The seed is idempotent and does not delete visitor data.
+After changing `src/features/guestbook/server/db/schema.ts`, run
+`npm run db:generate -- --name=<migration-name>` and review the generated SQL and
+snapshot under `drizzle/`. Apply it locally with `npm run db:migrate`, then run
+`npm run db:verify`. `npm run db:check` rejects invalid migration history or a
+schema change that has no committed migration. Run `npm run db:seed` to add
+missing demo records. The seed is idempotent and does not delete visitor data.
 `npm run db:studio` opens Drizzle Studio for the configured database.
 
-In production, set `DATABASE_URL` to the Neon pooled connection string and run
-`npm run db:push` before deploying code that depends on a schema change. Do not
-seed production unless the demo messages are intentionally wanted there.
+The initial migration uses `IF NOT EXISTS` so databases prepared by the previous
+`db:push` workflow can be enrolled without deleting their messages. The required
+schema verification immediately after migration still rejects incompatible
+tables, columns, or indexes. Missing objects are created, but a divergent existing
+schema is not repaired automatically: `db:verify` must fail before deployment and
+the difference requires an audited migration. The new versioned workflow uses the project-specific
+`drizzle.__portfolio_migrations` log, isolating it from abandoned local migration
+history created before migrations became part of this repository.
+
+In production, keep the pooled Neon connection as `DATABASE_URL` in Vercel and
+store the direct connection as `DATABASE_URL_UNPOOLED` in the protected GitHub
+`production` environment. Neon recommends direct connections for ORM schema
+migrations. The production workflows apply pending migrations and verify the live
+schema before invoking their Deploy Hook. Do not seed production unless the demo
+messages are intentionally wanted there.
+
+Because migrations run while the previous Vercel deployment is still serving
+traffic, each migration must remain compatible with that deployed code. Use an
+expand-and-contract sequence across separate releases for column renames,
+required columns, and destructive changes.
 
 ### Project content
 
@@ -122,12 +143,16 @@ strength, and optional Resend group. Runtime guards remain fail closed.
 
 Production deployment order:
 
-1. apply the Postgres schema;
+1. configure the GitHub `production` environment secrets
+   `DATABASE_URL_UNPOOLED` and `VERCEL_DEPLOY_HOOK_URL`;
 2. connect Upstash through the Vercel Marketplace;
 3. configure the required environment variables;
 4. enable BotID;
-5. deploy and verify allowed, blocked, rate-limited, and unavailable responses;
-6. configure Vercel WAF rules and OpenAI spending controls.
+5. merge only after CI validates the committed migrations;
+6. let the production workflow migrate and verify Postgres before its Vercel Deploy
+   Hook runs;
+7. verify allowed, blocked, rate-limited, and unavailable responses;
+8. configure Vercel WAF rules and OpenAI spending controls.
 
 ## Commands
 
@@ -144,11 +169,14 @@ Production deployment order:
 
 ### Database
 
-| Command             | Purpose                                           |
-| ------------------- | ------------------------------------------------- |
-| `npm run db:push`   | Reconcile the configured database with the schema |
-| `npm run db:seed`   | Add missing guestbook demo messages               |
-| `npm run db:studio` | Open Drizzle Studio for the configured database   |
+| Command                                | Purpose                                             |
+| -------------------------------------- | --------------------------------------------------- |
+| `npm run db:generate -- --name=<name>` | Generate a reviewed migration from schema changes   |
+| `npm run db:migrate`                   | Apply pending migrations to the configured database |
+| `npm run db:check`                     | Validate migration history and schema coverage      |
+| `npm run db:verify`                    | Compare the configured database with the schema     |
+| `npm run db:seed`                      | Add missing guestbook demo messages                 |
+| `npm run db:studio`                    | Open Drizzle Studio for the configured database     |
 
 ### Project content and integrations
 
@@ -180,7 +208,9 @@ npm run format:check
 npm run lint
 npm test
 npm run test:redis
-npm run db:push
+npm run db:check
+npm run db:migrate
+npm run db:verify
 npm run test:postgres
 npm run db:seed
 npm run env:validate
@@ -197,13 +227,13 @@ under `tests/integration/`; `scripts/` is reserved for operational commands.
 `npm run check` aggregates the
 first three quality commands and type checking. The Redis and Postgres integration
 checks require the local services started by `npm run setup` or
-`npm run services:up`; run `db:push` before the Postgres test when the schema is
-not prepared.
+`npm run services:up`; run `db:migrate` before the Postgres test when the schema
+is not prepared.
 
 CI runs the same quality checks, provisions Redis and Postgres containers,
-exercises both real adapters, pushes and seeds the database, validates Compose,
-and builds the committed GitHub fixture without contacting GitHub. The
-reconciliation workflow is separate and only triggers the Vercel deploy hook.
+checks the committed migration history, migrates and verifies Postgres, exercises
+both real adapters, seeds the database, validates Compose, and builds the
+committed GitHub fixture without contacting GitHub.
 
 ## CI/CD
 
@@ -211,10 +241,16 @@ The CI fixture uses `fixture-owner`, not a repository owner or personal account,
 so forks run the same deterministic checks. Actions use `.nvmrc` rather than an
 independent Node version literal.
 
-After quality checks pass on `main`, GitHub Actions calls the Vercel Deploy Hook.
-`vercel.json` disables Git-based automatic deployments; keep the repository
-connection because Deploy Hooks depend on it.
+After quality checks pass on `main`, one serialized production job installs the
+committed lockfile, applies pending migrations, verifies the live schema, and
+calls the Vercel Deploy Hook. The protected GitHub `production` environment must
+provide `DATABASE_URL_UNPOOLED` and `VERCEL_DEPLOY_HOOK_URL`; Vercel keeps the
+pooled runtime `DATABASE_URL` because Actions secrets are not forwarded to builds.
+`vercel.json` disables Git-based automatic deployments. This gate covers delivery
+initiated by the repository's production workflows; dashboard, CLI, API, and direct
+Deploy Hook deployments bypass it and are operationally prohibited. Keep the
+repository connection because the approved Deploy Hooks depend on it.
 
-The scheduled reconciliation workflow triggers the same deploy hook daily. The
-Vercel build then performs the authoritative project sync using its production
-`GITHUB_OWNER` and optional `GITHUB_TOKEN`.
+The scheduled reconciliation workflow uses the same serialized
+migration-before-deploy sequence. The Vercel build then performs the authoritative
+project sync using its production `GITHUB_OWNER` and optional `GITHUB_TOKEN`.

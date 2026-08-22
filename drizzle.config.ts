@@ -9,8 +9,14 @@ const databaseUrl =
 
 export default defineConfig({
   schema: "./src/features/guestbook/server/db/schema.ts",
+  out: "./drizzle",
   dialect: "postgresql",
+  schemaFilter: ["public"],
   dbCredentials: { url: databaseUrl },
+  migrations: {
+    schema: "drizzle",
+    table: "__portfolio_migrations",
+  },
   verbose: true,
   strict: true,
 });

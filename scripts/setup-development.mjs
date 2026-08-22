@@ -32,7 +32,8 @@ Usage:
 
 Requires Node.js 22.23.2, Docker with Compose, and GITHUB_OWNER in .env.local.
 Installs the exact lockfile, writes missing local service values, starts Redis
-and Postgres, verifies Redis, pushes the database schema, and seeds demo messages.`);
+and Postgres, verifies Redis, applies database migrations, verifies the schema,
+and seeds demo messages.`);
   process.exit(0);
 }
 
@@ -51,7 +52,8 @@ validateLocalConfiguration();
 chmodSync(envPath, 0o600);
 run("npm", ["run", "services:up"]);
 run("npm", ["run", "test:redis"]);
-run("npm", ["run", "db:push"]);
+run("npm", ["run", "db:migrate"]);
+run("npm", ["run", "db:verify"]);
 run("npm", ["run", "db:seed"]);
 
 console.log("\nDevelopment setup complete.");

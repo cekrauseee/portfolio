@@ -183,6 +183,15 @@ including the Postgres connection, secret strength, URLs, and optional groups
 before project synchronization or compilation. Runtime guards remain fail closed,
 but ordinary deployment mistakes are rejected during the build.
 
+Drizzle schema changes are represented by reviewed SQL and snapshots under
+`drizzle/`. CI rejects schema changes without a committed migration. Both the
+main-branch and scheduled production workflows serialize delivery, apply pending
+migrations, verify the live schema, and only then invoke the Vercel Deploy Hook.
+The database records applied migrations in the project-specific
+`drizzle.__portfolio_migrations` log. This guarantee applies to delivery initiated
+by these workflows; Vercel dashboard, CLI, API, and direct Deploy Hook deployments
+bypass the gate and are operationally prohibited.
+
 Node.js is pinned through `.nvmrc`, `package.json`, `.npmrc`, CI, and matching
 Node type definitions. Local setup uses `npm ci`, so dependency installation is
 reproducible from the committed lockfile.
