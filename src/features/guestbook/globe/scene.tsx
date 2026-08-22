@@ -51,20 +51,27 @@ function useCountryBorders(radius: number, geojson?: GeoJSON) {
 
 export function GlobeSphere({
   isDark,
+  isEmpty,
   onPointerOver,
   onPointerOut,
 }: {
   isDark: boolean;
+  isEmpty: boolean;
   onPointerOver: () => void;
   onPointerOut: () => void;
 }) {
+  const color = isDark
+    ? isEmpty
+      ? "#0a0a0a"
+      : "#0d0d0d"
+    : isEmpty
+      ? "#f7f7f7"
+      : "#f3f3f3";
+
   return (
     <mesh onPointerOver={onPointerOver} onPointerOut={onPointerOut}>
       <sphereGeometry args={[GLOBE_RADIUS, 48, 48]} />
-      <meshBasicMaterial
-        color={isDark ? "#0d0d0d" : "#f3f3f3"}
-        side={THREE.FrontSide}
-      />
+      <meshBasicMaterial color={color} side={THREE.FrontSide} />
     </mesh>
   );
 }
@@ -72,9 +79,11 @@ export function GlobeSphere({
 export function CountryBorders({
   geojson,
   isDark,
+  isEmpty,
 }: {
   geojson?: GeoJSON;
   isDark: boolean;
+  isEmpty: boolean;
 }) {
   const geometry = useCountryBorders(GLOBE_RADIUS, geojson);
 
@@ -87,7 +96,7 @@ export function CountryBorders({
       <lineBasicMaterial
         color={isDark ? "#666666" : "#9a9a9a"}
         transparent
-        opacity={0.8}
+        opacity={isEmpty ? 0.35 : 0.8}
       />
     </lineSegments>
   );
@@ -238,14 +247,20 @@ export function ViewerLocationMarker({
   );
 }
 
-export function AtmosphereGlow({ isDark }: { isDark: boolean }) {
+export function AtmosphereGlow({
+  isDark,
+  isEmpty,
+}: {
+  isDark: boolean;
+  isEmpty: boolean;
+}) {
   return (
     <mesh scale={GLOBE_RADIUS * 1.08}>
       <sphereGeometry args={[GLOBE_RADIUS, 32, 32]} />
       <meshBasicMaterial
         color={isDark ? "#ffffff" : "#000000"}
         transparent
-        opacity={0.04}
+        opacity={isEmpty ? 0.02 : 0.04}
         side={THREE.BackSide}
       />
     </mesh>

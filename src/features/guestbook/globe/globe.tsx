@@ -451,6 +451,7 @@ export function Globe({
   const isExploringPoint = hoveredPoint !== null || selectedPoint !== null;
   const hasLocationError =
     locationRequest === "denied" || locationRequest === "unavailable";
+  const isEmpty = messages.length === 0;
 
   const closeMessages = useCallback(() => {
     const restoreMessageIndexFocus = selectedPoint?.id === "all-messages";
@@ -490,7 +491,7 @@ export function Globe({
   return (
     <div className="relative h-full w-full">
       <div
-        className="absolute top-1/2 left-1/2 size-[min(100vmin,60rem)] -translate-x-1/2 -translate-y-1/2"
+        className={`absolute top-1/2 left-1/2 size-[min(100vmin,60rem)] -translate-x-1/2 -translate-y-1/2 ${isEmpty ? "opacity-70" : "opacity-100"} motion-safe:transition-opacity motion-safe:duration-500 motion-safe:ease-out`}
         style={{
           cursor: isDragging
             ? "grabbing"
@@ -519,11 +520,16 @@ export function Globe({
           <group>
             <GlobeSphere
               isDark={isDark}
+              isEmpty={isEmpty}
               onPointerOver={() => setIsPointerOverGlobe(true)}
               onPointerOut={() => setIsPointerOverGlobe(false)}
             />
-            <CountryBorders geojson={geojson} isDark={isDark} />
-            <AtmosphereGlow isDark={isDark} />
+            <CountryBorders
+              geojson={geojson}
+              isDark={isDark}
+              isEmpty={isEmpty}
+            />
+            <AtmosphereGlow isDark={isDark} isEmpty={isEmpty} />
             <MessagePoints
               points={points}
               isDark={isDark}
@@ -644,9 +650,9 @@ export function Globe({
         />
       ) : null}
 
-      {messages.length === 0 ? (
+      {isEmpty ? (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <p className="text-sm text-black/50 dark:text-white/50">
+          <p className="text-sm text-black/45 dark:text-white/45">
             {dictionary.empty}
           </p>
         </div>
