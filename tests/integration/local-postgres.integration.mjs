@@ -26,7 +26,7 @@ test("visitor messages round-trip through Postgres", async () => {
   let id;
 
   try {
-    id = await createMessage(input);
+    ({ id } = await createMessage(input));
 
     const persisted = await pool.query(
       `SELECT id, name, message, latitude, longitude, country, city

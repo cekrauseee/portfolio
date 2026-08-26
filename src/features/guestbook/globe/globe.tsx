@@ -17,6 +17,7 @@ import { mutedButtonClassName } from "@/components/links";
 import { localeTag, type Locale } from "@/i18n/config";
 import { useTheme } from "@/theme/theme-provider";
 import type { Dictionary } from "@/i18n/dictionary";
+import { resolveDeviceLocation } from "@/features/guestbook/device-location";
 import type {
   GeoCoordinates,
   GuestbookMessage,
@@ -326,36 +327,35 @@ export function Globe({
     }
   }, [centerOnLocation, viewerLocationState]);
 
-  const requestCurrentLocation = useCallback(() => {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const location: GeoCoordinates = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          country: null,
-          city: null,
-        };
-        setViewerLocationState(location);
-        setLocationRequest("idle");
-        centerOnLocation(location);
-      },
-      (error) => {
-        setLocationRequest(error.code === 1 ? "denied" : "unavailable");
-      },
-      { enableHighAccuracy: false, timeout: 10_000, maximumAge: 300_000 },
-    );
-  }, [centerOnLocation]);
+  const applyDeviceLocation = useCallback(
+    (location: Pick<GeoCoordinates, "latitude" | "longitude">) => {
+      const viewerLocation: GeoCoordinates = {
+        ...location,
+        country: null,
+        city: null,
+      };
+      setViewerLocationState(viewerLocation);
+      setLocationRequest("idle");
+      centerOnLocation(viewerLocation);
+    },
+    [centerOnLocation],
+  );
+
+  const requestCurrentLocation = useCallback(async () => {
+    const result = await resolveDeviceLocation("request");
+    if (result.status === "available") {
+      applyDeviceLocation(result.location);
+      return;
+    }
+    setLocationRequest(result.status === "denied" ? "denied" : "unavailable");
+  }, [applyDeviceLocation]);
 
   const requestViewerLocation = useCallback(() => {
     if (locationRequest === "requesting") {
       return;
     }
-    if (!navigator.geolocation) {
-      setLocationRequest("unavailable");
-      return;
-    }
     setLocationRequest("requesting");
-    requestCurrentLocation();
+    void requestCurrentLocation();
   }, [locationRequest, requestCurrentLocation]);
 
   useEffect(() => {
@@ -363,30 +363,18 @@ export function Globe({
       return;
     }
 
-    if (!navigator.permissions?.query || !navigator.geolocation) {
-      return;
-    }
-
+    automaticLocationCheckRef.current = true;
     let cancelled = false;
-    void Promise.resolve()
-      .then(() => navigator.permissions.query({ name: "geolocation" }))
-      .then((permission) => {
-        if (
-          !cancelled &&
-          permission.state === "granted" &&
-          !automaticLocationCheckRef.current
-        ) {
-          automaticLocationCheckRef.current = true;
-          setLocationRequest("requesting");
-          requestCurrentLocation();
-        }
-      })
-      .catch(() => undefined);
+    void resolveDeviceLocation("granted-only").then((result) => {
+      if (!cancelled && result.status === "available") {
+        applyDeviceLocation(result.location);
+      }
+    });
 
     return () => {
       cancelled = true;
     };
-  }, [requestCurrentLocation, viewerLocationState]);
+  }, [applyDeviceLocation, viewerLocationState]);
 
   const handleWheel = useCallback(
     (event: React.WheelEvent<HTMLDivElement>) => {

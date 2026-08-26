@@ -125,12 +125,34 @@ database change; both commands are safe to rerun.
 generates a longer local value. Redis keys contain HMAC-derived identities rather
 than raw cookies, IP addresses, role descriptions, or meeting data.
 
+### Structured logs
+
+Sensitive operations emit one Pino wide event after completion:
+`guestbook_submission`, `fit_assessment`, or `meeting_scheduling`. Search
+production Runtime Logs by `operation_id`, or by the Vercel `request_id` when
+present. Events contain terminal stage, outcome, duration, and safe integration
+metadata. They do not contain visitor names, messages, role descriptions, email
+addresses, coordinates, meeting times or links, raw IP addresses, cookies,
+idempotency values, or anonymous safety identities. Guestbook records only
+`device`, `vercel`, or `unavailable` as its location source. Production output
+remains structured JSON; `pino-pretty` formats the same records locally.
+
+Public request bodies, operation error payloads, and OpenAI guardrail decisions
+are validated with Zod schemas. Extend the existing feature schema instead of
+adding parallel `typeof` and cast-based validators.
+
+TypeScript linting uses the project service and rejects references marked
+`@deprecated`. Prefer the documented replacement instead of suppressing the rule
+unless compatibility with an external contract makes the deprecated API
+unavoidable and the exception is documented inline.
+
 ### Role-fit assessment and moderation
 
 Set `OPENAI_API_KEY` to enable `/fit` and visitor-message moderation. The role-fit
 endpoint accepts at most 16,000 characters, disables OpenAI response storage,
-sends a privacy-safe safety identifier, and uses a bounded upstream request with
-no SDK retries. Its Redis lock outlives that request deadline.
+sends a privacy-safe safety identifier, and runs a 20-second input guardrail
+before the 60-second evaluator. Neither call retries automatically. The Redis
+lock outlives their combined deadline.
 
 ### Meeting scheduling
 
@@ -238,6 +260,11 @@ CI runs the same quality checks, provisions Redis and Postgres containers,
 checks the committed migration history, migrates and verifies Postgres, exercises
 both real adapters, seeds the database, validates Compose, and builds the
 committed GitHub fixture without contacting GitHub.
+
+Dependabot checks npm packages and GitHub Actions every Monday. It groups
+production and development patch/minor updates separately; major updates remain
+individual pull requests so their migration and compatibility requirements stay
+visible. Every update must pass the existing CI before merge.
 
 ## CI/CD
 

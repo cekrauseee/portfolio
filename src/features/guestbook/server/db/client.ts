@@ -1,5 +1,8 @@
-import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
-import { drizzle as neonDrizzle } from "drizzle-orm/neon-http";
+import { neon } from "@neondatabase/serverless";
+import {
+  drizzle as neonDrizzle,
+  type NeonHttpDatabase,
+} from "drizzle-orm/neon-http";
 import {
   drizzle as pgDrizzle,
   type NodePgDatabase,
@@ -18,7 +21,7 @@ export type {
   NewMessage,
 } from "@/features/guestbook/server/db/schema";
 
-type Database = NodePgDatabase;
+type Database = NeonHttpDatabase | NodePgDatabase;
 
 let instance: Database | undefined;
 let pgPool: Pool | undefined;
@@ -66,8 +69,7 @@ function database(
   }
 
   if (environment.NODE_ENV === "production" || isNeonUrl(url)) {
-    const sql = neon(url) as NeonQueryFunction<false, false>;
-    instance = neonDrizzle({ client: sql }) as unknown as Database;
+    instance = neonDrizzle({ client: neon(url) });
   } else {
     pgPool ??= new Pool({ connectionString: url });
     instance = pgDrizzle({ client: pgPool });
@@ -130,7 +132,7 @@ export async function createMessage(input: {
   longitude: number;
   country: string | null;
   city: string | null;
-}): Promise<string> {
+}): Promise<{ id: string; cacheInvalidated: boolean }> {
   const db = database();
   if (!db) {
     throw new Error("Database is not available.");
@@ -145,8 +147,10 @@ export async function createMessage(input: {
       country: input.country,
       city: input.city,
     })
-    .returning({ id: messages.id });
+    .returning();
 
-  await advanceMessageCacheGeneration();
-  return row.id;
+  const cacheInvalidated = await advanceMessageCacheGeneration(undefined, {
+    logFailure: false,
+  });
+  return { id: row.id, cacheInvalidated };
 }

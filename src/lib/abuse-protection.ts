@@ -2,6 +2,7 @@ import { checkBotId } from "botid/server";
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import type { RedisAdapter } from "@/lib/local-redis";
 import { redis } from "@/lib/redis";
+import { safeErrorDetails, type SafeErrorDetails } from "@/lib/safe-error";
 
 export {
   resolveRedisConfiguration,
@@ -126,6 +127,16 @@ export type Protection = {
   sessionCookie?: string;
 };
 
+export type ProtectionDiagnostic = {
+  outcome: "allowed" | "denied" | "rate_limited" | "unavailable";
+  stage: "bot_id" | "identity" | "rate_limit";
+  reason?: string;
+  retry_after_seconds?: number;
+  error?: SafeErrorDetails;
+};
+
+export type ProtectionObserver = (diagnostic: ProtectionDiagnostic) => void;
+
 const RATE_LIMIT_SCRIPT = `
 local count = redis.call('INCR', KEYS[1])
 local ttl = redis.call('TTL', KEYS[1])
@@ -184,6 +195,7 @@ async function consumeRateLimits(
 export async function protect(
   operation: Operation,
   request: Request,
+  observe?: ProtectionObserver,
 ): Promise<Protection | Response> {
   const secret = sessionSecret();
   const suppliedSession = cookieValue(request);
@@ -206,20 +218,45 @@ export async function protect(
   let bot;
   try {
     bot = await checkBotId({ developmentOptions: { bypass: "ALLOWED" } });
-  } catch {
+  } catch (error) {
+    observe?.({
+      outcome: "unavailable",
+      stage: "bot_id",
+      reason: "check_failed",
+      error: safeErrorDetails(error),
+    });
     return finalize(unavailable());
   }
   if (bot.isBot) {
+    observe?.({ outcome: "denied", stage: "bot_id", reason: "bot_detected" });
     return finalize(json({ error: "Request denied." }, 403));
   }
 
   const ip = clientIp(request);
-  if (!ip || !session) {
+  if (!ip) {
+    observe?.({
+      outcome: "unavailable",
+      stage: "identity",
+      reason: "trusted_ip_missing",
+    });
+    return finalize(unavailable());
+  }
+  if (!session) {
+    observe?.({
+      outcome: "unavailable",
+      stage: "identity",
+      reason: "session_secret_missing",
+    });
     return finalize(unavailable());
   }
 
   const store = redis();
   if (!store) {
+    observe?.({
+      outcome: "unavailable",
+      stage: "rate_limit",
+      reason: "storage_unconfigured",
+    });
     return finalize(unavailable());
   }
 
@@ -234,6 +271,11 @@ export async function protect(
     const ipRetry = await consumeRateLimits(store, operation, "ip", digest(ip));
     const retryAfter = Math.max(sessionRetry, ipRetry);
     if (retryAfter) {
+      observe?.({
+        outcome: "rate_limited",
+        stage: "rate_limit",
+        retry_after_seconds: retryAfter,
+      });
       return finalize(
         json(
           { error: "Too many requests. Please try again later." },
@@ -243,19 +285,35 @@ export async function protect(
       );
     }
   } catch (error) {
-    console.error(
-      JSON.stringify({
-        event: "abuse_storage_failure",
-        operation,
-        kind: error instanceof Error ? error.name : "unknown",
-      }),
-    );
+    const diagnostic: ProtectionDiagnostic = {
+      outcome: "unavailable",
+      stage: "rate_limit",
+      reason: "storage_failed",
+      error: safeErrorDetails(error),
+    };
+    observe?.(diagnostic);
+    if (!observe) {
+      console.error(
+        JSON.stringify({
+          event: "abuse_storage_failure",
+          operation,
+          kind: diagnostic.error?.kind ?? "UnknownError",
+        }),
+      );
+    }
     return finalize(unavailable());
   }
 
-  console.info(
-    JSON.stringify({ event: "abuse_decision", operation, outcome: "allowed" }),
-  );
+  observe?.({ outcome: "allowed", stage: "rate_limit" });
+  if (!observe) {
+    console.info(
+      JSON.stringify({
+        event: "abuse_decision",
+        operation,
+        outcome: "allowed",
+      }),
+    );
+  }
   return {
     identity,
     sessionCookie: suppliedSessionIsValid ? undefined : session,

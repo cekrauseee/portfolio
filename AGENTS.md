@@ -7,3 +7,13 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+# Technology Usage
+
+- Prefer current first-party, typed capabilities over reproducing the same
+  contract in prompts or manual parsing. For example, enforce structured model
+  output with the SDK schema instead of prose formatting instructions.
+- Before adding or changing integration code, check the installed version and
+  its current official documentation. Do not introduce deprecated APIs.
+- Add another message, abstraction, or dependency only when it creates a clear
+  boundary, removes duplication, or improves a verified behavior.

@@ -9,11 +9,9 @@ import { MessageForm } from "@/features/guestbook/message-form";
 export function NewMessage({
   locale,
   dictionary,
-  retry,
 }: {
   locale: Locale;
   dictionary: Dictionary["guestbook"]["form"];
-  retry: Dictionary["retry"];
 }) {
   const router = useRouter();
   const [submitted, setSubmitted] = useState(false);
@@ -35,7 +33,6 @@ export function NewMessage({
     <MessageForm
       locale={locale}
       dictionary={dictionary}
-      retry={retry}
       onSubmitted={handleSubmitted}
     />
   );

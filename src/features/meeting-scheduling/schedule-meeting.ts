@@ -15,18 +15,27 @@ import {
   resolveMeetingNotificationConfiguration,
   sendMeetingNotification,
 } from "@/features/meeting-scheduling/meeting-notification";
+import {
+  MeetingRequestSchema,
+  type MeetingRequest,
+} from "@/features/meeting-scheduling/validation";
+import { safeErrorDetails, type SafeErrorDetails } from "@/lib/safe-error";
 
-export type { MeetingOperation };
+export type { MeetingOperation, MeetingRequest };
 
 export const MEETING_OPERATION_TIMEOUT_MS =
   CALENDAR_REQUEST_TIMEOUT_MS * 10 + MEETING_NOTIFICATION_TIMEOUT_MS + 20_000;
 
-export type MeetingRequest = {
-  name: string;
-  email: string;
-  start: string;
-  timeZone: string;
+export type MeetingScheduleDiagnostic = {
+  owner_notification?: {
+    outcome: "disabled" | "failed" | "not_applicable" | "sent";
+    error?: SafeErrorDetails;
+  };
 };
+
+export type MeetingScheduleObserver = (
+  diagnostic: MeetingScheduleDiagnostic,
+) => void;
 
 export class MeetingInputError extends Error {}
 export class MeetingConflictError extends Error {}
@@ -38,28 +47,11 @@ export class MeetingConfigurationError extends Error {
 }
 
 export function validateMeetingRequest(body: unknown): MeetingRequest {
-  if (!body || typeof body !== "object") {
-    throw new MeetingInputError("Provide meeting details as JSON.");
+  const parsed = MeetingRequestSchema.safeParse(body);
+  if (!parsed.success) {
+    throw new MeetingInputError("Provide valid meeting details.");
   }
-  const value = body as Record<string, unknown>;
-  const name = typeof value.name === "string" ? value.name.trim() : "";
-  const email =
-    typeof value.email === "string" ? value.email.trim().toLowerCase() : "";
-  const start = typeof value.start === "string" ? value.start.trim() : "";
-  const timeZone =
-    typeof value.timeZone === "string" ? value.timeZone.trim() : "";
-  if (name.length < 2 || name.length > 120) {
-    throw new MeetingInputError("Provide a valid name.");
-  }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
-    throw new MeetingInputError("Provide a valid email.");
-  }
-  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:00(?::00)?$/.test(start)) {
-    throw new MeetingInputError("Start must be a local whole-hour time.");
-  }
-  if (!isTimeZone(timeZone)) {
-    throw new MeetingInputError("Provide a valid IANA time zone.");
-  }
+  const { name, email, start, timeZone } = parsed.data;
   const [datePart, timePart] = start.split("T");
   const [year, month, day] = datePart.split("-").map(Number);
   const [hour] = timePart.split(":").map(Number);
@@ -87,6 +79,7 @@ export function validateMeetingRequest(body: unknown): MeetingRequest {
 export async function scheduleMeeting(
   request: MeetingRequest,
   operation: MeetingOperation,
+  observe?: MeetingScheduleObserver,
 ) {
   validateMeetingOperation(operation);
 
@@ -121,6 +114,7 @@ export async function scheduleMeeting(
     throw new MeetingConflictError("That time is no longer available.");
   }
   if (existing.status === "match") {
+    observe?.({ owner_notification: { outcome: "not_applicable" } });
     return {
       id: existing.data.id,
       meetLink:
@@ -137,6 +131,7 @@ export async function scheduleMeeting(
   if (await hasCalendarConflict(startDate, endDate, config)) {
     const recovered = await findMeetingEventWithRetry(eventInput);
     if (recovered.status === "match") {
+      observe?.({ owner_notification: { outcome: "not_applicable" } });
       return {
         id: recovered.data.id,
         meetLink:
@@ -160,11 +155,12 @@ export async function scheduleMeeting(
     throw error;
   }
   if (event.replayed) {
+    observe?.({ owner_notification: { outcome: "not_applicable" } });
     return event;
   }
 
   try {
-    await sendMeetingNotification(
+    const sent = await sendMeetingNotification(
       {
         ...request,
         start: startDate,
@@ -176,13 +172,16 @@ export async function scheduleMeeting(
         configuration: notificationConfiguration,
       },
     );
+    observe?.({
+      owner_notification: { outcome: sent ? "sent" : "disabled" },
+    });
   } catch (error) {
-    console.error(
-      JSON.stringify({
-        event: "meeting_owner_notification_failure",
-        kind: error instanceof Error ? error.name : "unknown",
-      }),
-    );
+    observe?.({
+      owner_notification: {
+        outcome: "failed",
+        error: safeErrorDetails(error),
+      },
+    });
   }
   return event;
 }
@@ -198,15 +197,6 @@ function validateMeetingOperation(operation: MeetingOperation | undefined) {
     !/^[a-f0-9]{64}$/.test(operation.requestDigest)
   ) {
     throw new Error("A valid meeting operation identity is required.");
-  }
-}
-
-function isTimeZone(timeZone: string) {
-  try {
-    new Intl.DateTimeFormat("en-US", { timeZone }).format();
-    return true;
-  } catch {
-    return false;
   }
 }
 

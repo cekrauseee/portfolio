@@ -11,6 +11,7 @@ const {
 } = await import("../src/features/guestbook/server/message-cache.ts");
 const databaseClient =
   await import("../src/features/guestbook/server/db/client.ts");
+const { logger } = await import("../src/lib/logger.ts");
 const { setRedisAdapterForTests } = await import("../src/lib/redis.ts");
 const { REDIS_COMMAND_TIMEOUT_MS } = await import("../src/lib/local-redis.ts");
 
@@ -75,41 +76,50 @@ test("missing or failed Redis falls back to the database", async () => {
 
   assert.deepEqual(await fetchCachedMessages(load, null), [firstMessage]);
 
-  const originalError = console.error;
-  console.error = () => {};
-  try {
-    const failedStore = {
-      async get() {
-        throw new Error("Redis unavailable");
-      },
-    };
-    assert.deepEqual(await fetchCachedMessages(load, failedStore), [
-      firstMessage,
-    ]);
-  } finally {
-    console.error = originalError;
-  }
+  const failedStore = {
+    async get() {
+      throw new Error("Redis unavailable");
+    },
+  };
+  assert.deepEqual(await fetchCachedMessages(load, failedStore), [
+    firstMessage,
+  ]);
   assert.equal(loads, 2);
+});
+
+test("cache failures emit one structured privacy-safe event", async () => {
+  const events = [];
+  const originalWarn = logger.warn;
+  logger.warn = (fields, message) => events.push({ fields, message });
+  try {
+    await fetchCachedMessages(async () => [firstMessage], {
+      async get() {
+        throw new Error("redis-provider-secret");
+      },
+    });
+  } finally {
+    logger.warn = originalWarn;
+  }
+
+  assert.equal(events.length, 1);
+  assert.equal(events[0].fields.event, "guestbook_message_cache_failure");
+  assert.equal(events[0].fields.stage, "read");
+  assert.equal(events[0].fields.error.kind, "Error");
+  assert.doesNotMatch(JSON.stringify(events[0]), /redis-provider-secret/);
 });
 
 test(
   "a stalled Redis read falls back to the database",
   { timeout: REDIS_COMMAND_TIMEOUT_MS + 500 },
   async () => {
-    const originalError = console.error;
-    console.error = () => {};
-    try {
-      assert.deepEqual(
-        await fetchCachedMessages(async () => [firstMessage], {
-          async get() {
-            return new Promise(() => {});
-          },
-        }),
-        [firstMessage],
-      );
-    } finally {
-      console.error = originalError;
-    }
+    assert.deepEqual(
+      await fetchCachedMessages(async () => [firstMessage], {
+        async get() {
+          return new Promise(() => {});
+        },
+      }),
+      [firstMessage],
+    );
   },
 );
 
@@ -178,18 +188,12 @@ test("generation changes prevent a concurrent stale fill from becoming visible",
 });
 
 test("cache invalidation failures remain non-fatal", async () => {
-  const originalError = console.error;
-  console.error = () => {};
-  try {
-    const failedStore = {
-      async incr() {
-        throw new Error("Redis unavailable");
-      },
-    };
-    assert.equal(await advanceMessageCacheGeneration(failedStore), false);
-  } finally {
-    console.error = originalError;
-  }
+  const failedStore = {
+    async incr() {
+      throw new Error("Redis unavailable");
+    },
+  };
+  assert.equal(await advanceMessageCacheGeneration(failedStore), false);
 });
 
 test(
@@ -219,10 +223,8 @@ test(
       },
     });
 
-    const originalError = console.error;
-    console.error = () => {};
     try {
-      assert.equal(
+      assert.deepEqual(
         await databaseClient.createMessage({
           name: firstMessage.name,
           message: firstMessage.message,
@@ -231,11 +233,10 @@ test(
           country: firstMessage.country,
           city: firstMessage.city,
         }),
-        id,
+        { id, cacheInvalidated: false },
       );
       assert.equal(invalidations, 1);
     } finally {
-      console.error = originalError;
       databaseClient.setDatabaseForTests();
       setRedisAdapterForTests();
     }
