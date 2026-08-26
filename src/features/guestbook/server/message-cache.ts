@@ -1,6 +1,8 @@
 import type { GuestbookMessage } from "@/features/guestbook/message";
+import { logger } from "@/lib/logger";
 import { REDIS_COMMAND_TIMEOUT_MS, type RedisAdapter } from "@/lib/local-redis";
 import { redis } from "@/lib/redis";
+import { safeErrorDetails } from "@/lib/safe-error";
 
 export const MESSAGE_CACHE_TTL_SECONDS = 5 * 60;
 
@@ -42,6 +44,20 @@ function isGuestbookMessage(value: unknown): value is GuestbookMessage {
 
 function isMessageSnapshot(value: unknown): value is GuestbookMessage[] {
   return Array.isArray(value) && value.every(isGuestbookMessage);
+}
+
+function logCacheFailure(
+  stage: "fill" | "invalidate" | "read",
+  error: unknown,
+) {
+  logger.warn(
+    {
+      event: "guestbook_message_cache_failure",
+      stage,
+      error: safeErrorDetails(error),
+    },
+    "Guestbook message cache failed",
+  );
 }
 
 async function withRedisCommandDeadline<T>(operation: Promise<T>): Promise<T> {
@@ -91,7 +107,7 @@ export async function fetchCachedMessages(
       store.get<unknown>(snapshotKey(generation)),
     );
   } catch (error) {
-    console.error("Unable to read the visitor message cache.", error);
+    logCacheFailure("read", error);
     return loadMessages();
   }
 
@@ -107,7 +123,7 @@ export async function fetchCachedMessages(
       }),
     );
   } catch (error) {
-    console.error("Unable to populate the visitor message cache.", error);
+    logCacheFailure("fill", error);
   }
   return messages;
 }
@@ -118,6 +134,7 @@ export async function fetchCachedMessages(
  */
 export async function advanceMessageCacheGeneration(
   store: RedisAdapter | null | undefined = redis(),
+  options: { logFailure?: boolean } = {},
 ) {
   if (!store) {
     return false;
@@ -127,7 +144,9 @@ export async function advanceMessageCacheGeneration(
     await withRedisCommandDeadline(store.incr(GENERATION_KEY));
     return true;
   } catch (error) {
-    console.error("Unable to invalidate the visitor message cache.", error);
+    if (options.logFailure !== false) {
+      logCacheFailure("invalidate", error);
+    }
     return false;
   }
 }

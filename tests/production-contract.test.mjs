@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { ROLE_FIT_OPERATION_TIMEOUT_MS } from "../src/app/api/fit/route.ts";
+import { ROLE_FIT_REQUEST_TIMEOUT_MS } from "../src/features/role-fit/assess-role-fit.ts";
+import { ROLE_FIT_GUARDRAIL_TIMEOUT_MS } from "../src/features/role-fit/guard-role-description.ts";
 import {
   CALENDAR_REQUEST_TIMEOUT_MS,
   findMeetingEvent,
@@ -70,5 +73,12 @@ test("meeting lock budget exceeds bounded integration work", () => {
   assert.ok(
     MEETING_OPERATION_TIMEOUT_MS >
       CALENDAR_REQUEST_TIMEOUT_MS + MEETING_NOTIFICATION_TIMEOUT_MS,
+  );
+});
+
+test("fit operation budget includes guardrail and evaluator deadlines", () => {
+  assert.equal(
+    ROLE_FIT_OPERATION_TIMEOUT_MS,
+    ROLE_FIT_GUARDRAIL_TIMEOUT_MS + ROLE_FIT_REQUEST_TIMEOUT_MS,
   );
 });

@@ -1,9 +1,18 @@
+import { z } from "zod";
+
 export const MAX_NAME_LENGTH = 60;
 export const MAX_MESSAGE_LENGTH = 500;
 
-export type GeoCoordinates = {
-  latitude: number;
-  longitude: number;
+export const SubmittedGeoCoordinatesSchema = z.object({
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
+});
+
+export type SubmittedGeoCoordinates = z.infer<
+  typeof SubmittedGeoCoordinatesSchema
+>;
+
+export type GeoCoordinates = SubmittedGeoCoordinates & {
   country: string | null;
   city: string | null;
 };
@@ -18,26 +27,35 @@ export type GuestbookMessage = {
   city: string | null;
 };
 
-export type GuestbookSubmission = {
-  name?: string;
-  message?: string;
-};
+export const GuestbookSubmissionSchema = z
+  .object({
+    name: z
+      .string()
+      .trim()
+      .min(1)
+      .max(MAX_NAME_LENGTH)
+      .optional()
+      .catch(undefined),
+    message: z
+      .string()
+      .trim()
+      .min(1)
+      .max(MAX_MESSAGE_LENGTH)
+      .optional()
+      .catch(undefined),
+    location: SubmittedGeoCoordinatesSchema.optional().catch(undefined),
+  })
+  .catch({});
+
+export type GuestbookSubmission = z.infer<typeof GuestbookSubmissionSchema>;
+
+export function validateSubmittedGeoCoordinates(
+  value: unknown,
+): SubmittedGeoCoordinates | undefined {
+  const parsed = SubmittedGeoCoordinatesSchema.safeParse(value);
+  return parsed.success ? parsed.data : undefined;
+}
 
 export function validateSubmission(body: unknown): GuestbookSubmission {
-  if (!body || typeof body !== "object") {
-    return {};
-  }
-  const record = body as Record<string, unknown>;
-  const name = typeof record.name === "string" ? record.name.trim() : undefined;
-  const message =
-    typeof record.message === "string" ? record.message.trim() : undefined;
-
-  const result: GuestbookSubmission = {};
-  if (name && name.length <= MAX_NAME_LENGTH) {
-    result.name = name;
-  }
-  if (message && message.length <= MAX_MESSAGE_LENGTH) {
-    result.message = message;
-  }
-  return result;
+  return GuestbookSubmissionSchema.parse(body);
 }

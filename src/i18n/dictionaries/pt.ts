@@ -40,6 +40,15 @@ export const pt: Dictionary = {
       assessmentReady: "A avaliação de compatibilidade está pronta.",
       emptyDescription:
         "Cole uma descrição de vaga antes de avaliar a compatibilidade.",
+      invalidDescription:
+        "Cole uma descrição de vaga com no máximo 16.000 caracteres.",
+      descriptionRejected:
+        "Este conteúdo não pode ser avaliado como uma oportunidade profissional. Cole apenas a descrição da vaga ou do projeto.",
+      rateLimited:
+        "Muitas tentativas de avaliação. Aguarde um momento e tente novamente.",
+      requestDenied: "Não foi possível avaliar esta vaga.",
+      serviceUnavailable:
+        "A avaliação de compatibilidade está temporariamente indisponível. Tente novamente em instantes.",
       unableToAssess:
         "Não foi possível avaliar a compatibilidade. Tente novamente.",
       connectionError:
@@ -65,6 +74,7 @@ export const pt: Dictionary = {
         "Todas as datas estão disponíveis. Os horários seguem seu fuso horário local.",
       timeHint: "Uma hora, começando no horário selecionado.",
       enterName: "Digite seu nome.",
+      validName: "Use entre 2 e 120 caracteres no nome.",
       enterEmail: "Digite seu endereço de e-mail.",
       validEmail: "Digite um endereço de e-mail válido.",
       chooseDate: "Escolha uma data.",
@@ -72,6 +82,11 @@ export const pt: Dictionary = {
       chooseTimeError: "Escolha um horário.",
       futureTime: "Escolha um horário futuro.",
       conflict: "Esse horário não está mais disponível. Escolha outro.",
+      rateLimited:
+        "Muitas tentativas de agendamento. Aguarde um momento e tente novamente.",
+      requestDenied: "Não foi possível agendar esta reunião.",
+      serviceUnavailable:
+        "O agendamento está temporariamente indisponível. Tente novamente em instantes.",
       unableToSchedule:
         "Não foi possível agendar a reunião. Confira seus dados e tente novamente.",
       connectionError:
@@ -100,9 +115,18 @@ export const pt: Dictionary = {
       namePlaceholder: "Alex Morgan",
       messagePlaceholder: "Gostaria de saber mais sobre seu trabalho.",
       enterName: "Digite seu nome.",
-      nameTooLong: "Seu nome deve ter menos de {max} caracteres.",
+      nameTooLong: "Use no máximo {max} caracteres no nome.",
       writeMessage: "Escreva uma mensagem.",
-      messageTooLong: "Sua mensagem deve ter menos de {max} caracteres.",
+      messageTooLong: "Use no máximo {max} caracteres na mensagem.",
+      contentRejected:
+        "Esta mensagem não pode ser publicada. Revise o nome e a mensagem e tente novamente.",
+      locationUnavailable:
+        "Não foi possível determinar onde colocar sua mensagem no globo. Tente novamente mais tarde.",
+      rateLimited:
+        "Muitas tentativas de publicação. Aguarde um momento e tente novamente.",
+      requestDenied: "Não foi possível publicar esta mensagem.",
+      serviceUnavailable:
+        "A publicação está temporariamente indisponível. Tente novamente em instantes.",
       unableToPublish:
         "Não foi possível publicar sua mensagem. Tente novamente mais tarde.",
       connectionError:
@@ -145,9 +169,5 @@ export const pt: Dictionary = {
     title: "Página não encontrada",
     description: "Não há nada neste endereço.",
     home: "Voltar ao portfólio",
-  },
-  retry: {
-    waitMoment: "Antes de tentar novamente, aguarde um momento.",
-    waitSeconds: "Antes de tentar novamente, aguarde {count} segundo{plural}.",
   },
 };

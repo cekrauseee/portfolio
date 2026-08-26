@@ -1,13 +1,13 @@
 "use client";
 
-import type { FormEvent } from "react";
+import type { SubmitEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { actionClassName, focusVisibleClassName } from "@/components/links";
+import { fitErrorMessage, parseFitErrorCode } from "@/features/role-fit/errors";
 import { localeTag, type Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionary";
 import { MAX_ROLE_DESCRIPTION_LENGTH } from "@/features/role-fit/constants";
-import { retryMessage, shouldUseRetryMessage } from "@/lib/retry-message";
 
 const WORD_INTERVAL_MS = 24;
 
@@ -28,17 +28,16 @@ function interpolate(
 export function RoleFitForm({
   locale,
   dictionary,
-  retry,
 }: {
   locale: Locale;
   dictionary: RoleFitDictionary;
-  retry: Dictionary["retry"];
 }) {
   const [description, setDescription] = useState("");
   const [answer, setAnswer] = useState("");
   const [visibleWordCount, setVisibleWordCount] = useState(0);
   const [status, setStatus] = useState<Status>("idle");
-  const [error, setError] = useState("");
+  const [fieldError, setFieldError] = useState("");
+  const [generalError, setGeneralError] = useState("");
   const revealTimer = useRef<number | undefined>(undefined);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -108,12 +107,13 @@ export function RoleFitForm({
     revealNextWord();
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const input = description.trim();
     if (!input) {
-      setError(dictionary.emptyDescription);
+      setFieldError(dictionary.emptyDescription);
+      setGeneralError("");
       setStatus("error");
       textareaRef.current?.focus();
       return;
@@ -122,7 +122,8 @@ export function RoleFitForm({
     clearRevealTimer();
     setAnswer("");
     setVisibleWordCount(0);
-    setError("");
+    setFieldError("");
+    setGeneralError("");
     setStatus("loading");
 
     try {
@@ -131,14 +132,20 @@ export function RoleFitForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ description: input }),
       });
-      const data: unknown = await response.json();
+      const data: unknown = await response.json().catch(() => undefined);
 
       if (!response.ok) {
-        setError(
-          shouldUseRetryMessage(response)
-            ? retryMessage(response, retry)
-            : dictionary.unableToAssess,
-        );
+        const code = parseFitErrorCode(data);
+        if (code === "invalid_description" || code === "description_rejected") {
+          setFieldError(
+            code === "description_rejected"
+              ? dictionary.descriptionRejected
+              : dictionary.invalidDescription,
+          );
+          textareaRef.current?.focus();
+        } else {
+          setGeneralError(fitErrorMessage(code, dictionary));
+        }
         setStatus("error");
         return;
       }
@@ -149,14 +156,14 @@ export function RoleFitForm({
         !("answer" in data) ||
         typeof data.answer !== "string"
       ) {
-        setError(dictionary.unableToAssess);
+        setGeneralError(dictionary.unableToAssess);
         setStatus("error");
         return;
       }
 
       revealAnswer(data.answer);
     } catch {
-      setError(dictionary.connectionError);
+      setGeneralError(dictionary.connectionError);
       setStatus("error");
     }
   }
@@ -167,24 +174,30 @@ export function RoleFitForm({
     <div>
       <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
         <div className="flex flex-col gap-2">
-          <label className="font-medium" htmlFor="role-description">
+          <label
+            className={`font-medium ${fieldError ? "text-red-700 dark:text-red-400" : ""}`}
+            htmlFor="role-description"
+          >
             {dictionary.roleDescription}
           </label>
           <textarea
             aria-describedby={
-              error ? "role-description-error" : "role-description-hint"
+              fieldError ? "role-description-error" : "role-description-hint"
             }
-            aria-invalid={Boolean(error)}
-            className={`min-h-52 w-full resize-y border border-black/20 bg-transparent px-3 py-3 text-base leading-6 outline-none placeholder:text-black/45 focus:border-black dark:border-white/25 dark:placeholder:text-white/45 dark:focus:border-white ${focusVisibleClassName}`}
+            aria-invalid={Boolean(fieldError)}
+            className={`min-h-52 w-full resize-y border bg-transparent px-3 py-3 text-base leading-6 outline-none placeholder:text-black/45 dark:placeholder:text-white/45 ${focusVisibleClassName} ${
+              fieldError
+                ? "border-red-700 focus:border-red-700 dark:border-red-400 dark:focus:border-red-400"
+                : "border-black/20 focus:border-black dark:border-white/25 dark:focus:border-white"
+            }`}
             disabled={isBusy}
             id="role-description"
             maxLength={MAX_ROLE_DESCRIPTION_LENGTH}
             name="role-description"
             onChange={(event) => {
               setDescription(event.target.value);
-              if (error) {
-                setError("");
-              }
+              setFieldError("");
+              setGeneralError("");
             }}
             placeholder={dictionary.placeholder}
             ref={textareaRef}
@@ -196,15 +209,19 @@ export function RoleFitForm({
           >
             {characterCount}
           </p>
+          {fieldError ? (
+            <p
+              className="text-red-700 dark:text-red-400"
+              id="role-description-error"
+            >
+              {fieldError}
+            </p>
+          ) : null}
         </div>
 
-        {error ? (
-          <p
-            className="text-black/70 dark:text-white/75"
-            id="role-description-error"
-            role="alert"
-          >
-            {error}
+        {generalError ? (
+          <p className="text-red-700 dark:text-red-400" role="alert">
+            {generalError}
           </p>
         ) : null}
 

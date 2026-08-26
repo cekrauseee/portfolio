@@ -38,6 +38,8 @@ expire after seven days.
 ## Request contract
 
 `POST /api/meetings` accepts JSON `{ "name", "email", "start", "timeZone" }`.
+Names contain 2–120 characters and email addresses contain at most 254
+characters; client and server import the same validation contract.
 `start` must be a future local whole-hour value such as
 `2026-08-20T14:00`. The request also requires an `Idempotency-Key` header.
 
@@ -46,3 +48,7 @@ and replaces it after success, a real conflict, or a payload change. Calendar
 events carry private application, schema, request, and idempotency digests. Only
 an exact metadata match can return existing event links. Cancelled deterministic
 events are restored as fresh bookings rather than replayed.
+
+Errors return stable codes plus an opaque operation ID. `Retry-After` remains an
+HTTP signal for clients, while the portfolio UI uses non-numeric localized retry
+guidance.

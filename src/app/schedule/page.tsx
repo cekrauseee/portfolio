@@ -38,7 +38,6 @@ export default async function SchedulePage() {
           <MeetingScheduler
             locale={locale}
             dictionary={dictionary.schedule.form}
-            retry={dictionary.retry}
           />
         </div>
 

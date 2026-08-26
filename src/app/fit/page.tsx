@@ -35,11 +35,7 @@ export default async function FitPage() {
         </header>
 
         <div className="mt-10">
-          <RoleFitForm
-            locale={locale}
-            dictionary={dictionary.fit.form}
-            retry={dictionary.retry}
-          />
+          <RoleFitForm locale={locale} dictionary={dictionary.fit.form} />
         </div>
 
         <footer className="mt-12 [@media(max-height:42rem)]:mt-9">

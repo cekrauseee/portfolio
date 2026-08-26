@@ -37,6 +37,14 @@ export const ja: Dictionary = {
       assessment: "適性の評価",
       assessmentReady: "適性の評価が完了しました。",
       emptyDescription: "適性を確認する前に、募集内容を貼り付けてください。",
+      invalidDescription: "募集内容は16,000文字以内で入力してください。",
+      descriptionRejected:
+        "この内容は仕事の機会として評価できません。募集またはプロジェクトの説明のみを入力してください。",
+      rateLimited:
+        "適性確認の試行回数が多すぎます。少し待ってからもう一度お試しください。",
+      requestDenied: "この募集内容の適性を確認できませんでした。",
+      serviceUnavailable:
+        "現在、適性を確認できません。しばらくしてからもう一度お試しください。",
       unableToAssess: "適性を確認できませんでした。もう一度お試しください。",
       connectionError:
         "適性を確認できませんでした。接続を確認して、もう一度お試しください。",
@@ -60,6 +68,7 @@ export const ja: Dictionary = {
         "すべての日付を選択できます。時刻はお使いのタイムゾーンで表示されます。",
       timeHint: "選択した時刻から1時間です。",
       enterName: "名前を入力してください。",
+      validName: "名前は2文字以上120文字以内で入力してください。",
       enterEmail: "メールアドレスを入力してください。",
       validEmail: "有効なメールアドレスを入力してください。",
       chooseDate: "日付を選択してください。",
@@ -68,6 +77,11 @@ export const ja: Dictionary = {
       futureTime: "現在より後の時刻を選択してください。",
       conflict:
         "その時刻は利用できなくなりました。別の時刻を選択してください。",
+      rateLimited:
+        "予約の試行回数が多すぎます。少し待ってからもう一度お試しください。",
+      requestDenied: "この面談を予約できませんでした。",
+      serviceUnavailable:
+        "現在、面談を予約できません。しばらくしてからもう一度お試しください。",
       unableToSchedule:
         "面談を予約できませんでした。入力内容を確認して、もう一度お試しください。",
       connectionError:
@@ -95,9 +109,18 @@ export const ja: Dictionary = {
       namePlaceholder: "Alex Morgan",
       messagePlaceholder: "あなたの仕事についてもっと知りたいです。",
       enterName: "名前を入力してください。",
-      nameTooLong: "名前は{max}文字未満で入力してください。",
+      nameTooLong: "名前は{max}文字以内で入力してください。",
       writeMessage: "メッセージを入力してください。",
-      messageTooLong: "メッセージは{max}文字未満で入力してください。",
+      messageTooLong: "メッセージは{max}文字以内で入力してください。",
+      contentRejected:
+        "このメッセージは公開できません。名前とメッセージを見直して、もう一度お試しください。",
+      locationUnavailable:
+        "メッセージを地球儀のどこに表示するか判定できませんでした。しばらくしてからもう一度お試しください。",
+      rateLimited:
+        "公開の試行回数が多すぎます。少し待ってからもう一度お試しください。",
+      requestDenied: "このメッセージを公開できませんでした。",
+      serviceUnavailable:
+        "現在、メッセージを公開できません。しばらくしてからもう一度お試しください。",
       unableToPublish:
         "メッセージを公開できませんでした。しばらくしてからもう一度お試しください。",
       connectionError:
@@ -140,9 +163,5 @@ export const ja: Dictionary = {
     title: "ページが見つかりません",
     description: "このアドレスには何もありません。",
     home: "ポートフォリオに戻る",
-  },
-  retry: {
-    waitMoment: "もう一度試す前に、しばらくお待ちください。",
-    waitSeconds: "もう一度試す前に、{count}秒お待ちください。",
   },
 };

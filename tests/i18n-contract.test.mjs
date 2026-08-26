@@ -19,7 +19,6 @@ import {
   PORTUGUESE_COUNTRIES,
   resolveLocale,
 } from "../src/i18n/locale.ts";
-import { retryMessage } from "../src/lib/retry-message.ts";
 
 const dictionaries = { en, pt, ja };
 
@@ -56,13 +55,6 @@ function interpolationTokens(value) {
 
 function difference(left, right) {
   return [...left].filter((value) => !right.has(value)).sort();
-}
-
-function responseWithRetryAfter(value) {
-  return new Response(null, {
-    status: 429,
-    headers: value === undefined ? {} : { "Retry-After": value },
-  });
 }
 
 test("locale constants expose the supported locales and deployment tags", () => {
@@ -197,12 +189,9 @@ test("all locale dictionaries have the same string structure and interpolation c
     for (const path of englishPaths) {
       const expectedTokens = interpolationTokens(englishEntries.get(path));
       const actualTokens = interpolationTokens(entries.get(path));
-      const allowedMissing =
-        locale === "ja" && path === "retry.waitSeconds" ? ["plural"] : [];
-
       assert.deepEqual(
         difference(expectedTokens, actualTokens),
-        allowedMissing,
+        [],
         `${locale}.${path} is missing interpolation tokens`,
       );
       assert.deepEqual(
@@ -244,23 +233,4 @@ test("Portuguese and Japanese dictionaries contain translated copy", () => {
       `${locale} should not be an English placeholder dictionary`,
     );
   }
-});
-
-test("retry interpolation uses localized Portuguese and Japanese copy", () => {
-  assert.equal(
-    retryMessage(responseWithRetryAfter("12"), pt.retry),
-    "Antes de tentar novamente, aguarde 12 segundos.",
-  );
-  assert.equal(
-    retryMessage(responseWithRetryAfter("1"), pt.retry),
-    "Antes de tentar novamente, aguarde 1 segundo.",
-  );
-  assert.equal(
-    retryMessage(responseWithRetryAfter("12"), ja.retry),
-    "もう一度試す前に、12秒お待ちください。",
-  );
-  assert.equal(
-    retryMessage(responseWithRetryAfter(undefined), ja.retry),
-    ja.retry.waitMoment,
-  );
 });

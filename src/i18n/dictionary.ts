@@ -40,6 +40,11 @@ export type Dictionary = {
       assessment: string;
       assessmentReady: string;
       emptyDescription: string;
+      invalidDescription: string;
+      descriptionRejected: string;
+      rateLimited: string;
+      requestDenied: string;
+      serviceUnavailable: string;
       unableToAssess: string;
       connectionError: string;
       characterCount: string;
@@ -61,6 +66,7 @@ export type Dictionary = {
       dateHint: string;
       timeHint: string;
       enterName: string;
+      validName: string;
       enterEmail: string;
       validEmail: string;
       chooseDate: string;
@@ -68,6 +74,9 @@ export type Dictionary = {
       chooseTimeError: string;
       futureTime: string;
       conflict: string;
+      rateLimited: string;
+      requestDenied: string;
+      serviceUnavailable: string;
       unableToSchedule: string;
       connectionError: string;
       booking: string;
@@ -94,6 +103,11 @@ export type Dictionary = {
       nameTooLong: string;
       writeMessage: string;
       messageTooLong: string;
+      contentRejected: string;
+      locationUnavailable: string;
+      rateLimited: string;
+      requestDenied: string;
+      serviceUnavailable: string;
       unableToPublish: string;
       connectionError: string;
       publishing: string;
@@ -133,9 +147,5 @@ export type Dictionary = {
     title: string;
     description: string;
     home: string;
-  };
-  retry: {
-    waitMoment: string;
-    waitSeconds: string;
   };
 };

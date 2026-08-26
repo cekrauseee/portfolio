@@ -94,7 +94,7 @@ dependence on prior local commands.
 
 ## Shared protection
 
-BotID runs before both sensitive POST operations. A canonical signed anonymous
+BotID runs before every sensitive POST operation. A canonical signed anonymous
 cookie and trusted Vercel client IP are HMACed into privacy-safe identities.
 Separate per-session and higher aggregate per-IP buckets limit ten-minute bursts
 and daily usage.
@@ -105,16 +105,33 @@ Vercel Marketplace `KV_REST_API_URL` and `KV_REST_API_TOKEN`; local development
 uses the loopback `REDIS_URL`. There is no in-memory runtime fallback.
 
 Missing or failed protection dependencies return `503` before OpenAI or Calendar
-is called. Temporary protection responses carry `Retry-After`; configuration
-errors do not, allowing the UI to distinguish retryable outages from deployment
-misconfiguration.
+is called. Temporary protection responses can carry `Retry-After` as an HTTP
+signal. Each UI maps stable error codes to localized guidance and never displays
+the header's numeric value.
+
+Zod schemas define the request and error-response boundaries for guestbook,
+role-fit, and meeting scheduling. The same meeting name and email schemas are
+used by client-side guidance and server validation. OpenAI guardrail decisions
+use that same approach through the SDK's Zod-backed Structured Outputs parser;
+prompts describe classification policy while the schema alone owns response
+serialization.
 
 ## Guestbook and globe
 
 Approved guestbook messages are persisted in Postgres and returned oldest first.
 `/api/guestbook` is the canonical Route Handler; `/api/visitor-globe` remains a
 thin compatibility adapter. The globe controller, scene primitives, geometry
-calculations, and message overlays live in separate cohesive modules. OpenAI moderation uses a bounded request with automatic retries disabled and
+calculations, and message overlays live in separate cohesive modules. When
+browser geolocation permission is already granted, the message form submits
+validated device coordinates. The server prefers those coordinates, falls back
+to trusted Vercel IP-geolocation headers, and rejects the submission only when
+neither source is valid. Device coordinates do not imply country or city labels,
+so both remain null. A `prompt` permission state never triggers an automatic
+browser prompt. The globe and message form share one consent-aware device
+location module for permission policy, browser access, request options, and
+coordinate validation.
+
+OpenAI moderation uses a bounded request with automatic retries disabled and
 fails closed before persistence when classification is unavailable. A five-minute
 Redis snapshot caches the global message collection independently
 of the request-specific viewer location. Each Redis cache command has a short
@@ -125,9 +142,21 @@ remains authoritative: cache read and fill failures fall back to the database
 and never turn a committed message into a failed response. If cache
 invalidation fails after a successful insert, readers can continue serving the
 old snapshot until its five-minute TTL expires; the committed message is then
-included when that snapshot is replaced. The deployed Redis cache prefix and
-`visitorGlobe` abuse operation remain legacy identifiers intentionally, avoiding
-cache and rate-limit migrations during the bounded-context rename.
+included when that snapshot is replaced. Cache failures emit structured Pino
+events containing only a stage and sanitized error metadata. The deployed Redis
+cache prefix and `visitorGlobe` abuse operation remain legacy identifiers
+intentionally, avoiding cache and rate-limit migrations during the bounded-context
+rename.
+
+Guestbook failures return a stable error code and opaque operation ID instead of
+internal exception text. Every submission emits one `guestbook_submission` wide
+event after completion. The event records the terminal stage, outcome, status,
+total and stage durations, protection and moderation decisions, safe provider
+metadata, and cache invalidation state. It never records the submitted name or
+message, coordinates, cookies, raw IP addresses, or safety identity. The event
+records only `device`, `vercel`, or `unavailable` as its location source. Pino
+emits structured JSON in production; local development uses `pino-pretty` for
+the same event.
 
 ## Role-fit assessment
 
@@ -136,10 +165,21 @@ server treats the job description as untrusted input and builds candidate contex
 from the same project records rendered by the site. OpenAI response storage is
 disabled and only the HMACed identity is sent as a safety identifier.
 
-The OpenAI client has an explicit deadline and disables automatic SDK retries.
-The per-identity Redis lock is derived from that deadline with an additional
-margin, preventing a lock from expiring while the bounded operation is still
-running.
+Role-fit uses two independent `gpt-5.6-luna` Responses API calls. A 20-second
+input guardrail first accepts genuine professional opportunities and rejects
+prompt injection, task diversion, unrelated spam, and content without a
+discernible opportunity. Only approved input reaches the 60-second evaluator,
+which compares it with the published candidate profile. Both calls disable
+response storage and automatic SDK retries and receive only the HMACed safety
+identifier. The per-identity Redis lock covers both deadlines plus a margin.
+Field validation and guardrail rejection remain distinct from operational
+failures.
+
+Each request returns stable error codes and an opaque operation ID. One
+`fit_assessment` wide event records the terminal stage, outcome, protection and
+lock decisions, separate guardrail and evaluator durations, and safe OpenAI
+status, code, and request ID metadata. It never records the role description or
+anonymous identity.
 
 ## Meeting scheduling
 
@@ -152,6 +192,12 @@ The server HMACs the idempotency key and canonical request, then acquires locks
 for the operation, anonymous identity, and UTC slot. Lock TTL is derived from a
 conservative upper bound for all bounded Calendar requests, conference polling,
 and optional notification work.
+
+Client and server share the same name and email validation limits. Responses use
+stable error codes and non-numeric retry guidance. One `meeting_scheduling` wide
+event records the terminal stage, outcome, lock cleanup, replay and dedupe state,
+Calendar duration, and owner-notification outcome without names, email addresses,
+meeting times, links, or idempotency values.
 
 Google Calendar receives a deterministic event ID, deterministic conference
 request ID, and private application, schema, operation, and request metadata.
@@ -188,7 +234,9 @@ Drizzle schema changes are represented by reviewed SQL and snapshots under
 main-branch and scheduled production workflows serialize delivery, apply pending
 migrations, verify the live schema, and only then invoke the Vercel Deploy Hook.
 The database records applied migrations in the project-specific
-`drizzle.__portfolio_migrations` log. This guarantee applies to delivery initiated
+`drizzle.__portfolio_migrations` log. Runtime database access preserves the
+native Neon HTTP and node-postgres driver types behind their shared query API.
+This guarantee applies to delivery initiated
 by these workflows; Vercel dashboard, CLI, API, and direct Deploy Hook deployments
 bypass the gate and are operationally prohibited.
 

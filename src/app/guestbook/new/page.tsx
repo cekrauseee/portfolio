@@ -35,11 +35,7 @@ export default async function NewMessagePage() {
         </header>
 
         <div className="mt-10 max-w-[32rem]">
-          <NewMessage
-            locale={locale}
-            dictionary={dictionary.guestbook.form}
-            retry={dictionary.retry}
-          />
+          <NewMessage locale={locale} dictionary={dictionary.guestbook.form} />
         </div>
 
         <footer className="mt-12 [@media(max-height:42rem)]:mt-9">

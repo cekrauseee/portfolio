@@ -1,15 +1,24 @@
 "use client";
 
-import type { FormEvent } from "react";
+import type { SubmitEvent } from "react";
 import { useRef, useState } from "react";
 import {
   actionClassName,
   ExternalLink,
   focusVisibleClassName,
 } from "@/components/links";
+import {
+  meetingErrorMessage,
+  parseMeetingErrorCode,
+} from "@/features/meeting-scheduling/errors";
+import {
+  isValidMeetingEmail,
+  isValidMeetingName,
+  MAX_MEETING_EMAIL_LENGTH,
+  MAX_MEETING_NAME_LENGTH,
+} from "@/features/meeting-scheduling/validation";
 import { localeTag, type Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionary";
-import { retryMessage, shouldUseRetryMessage } from "@/lib/retry-message";
 
 type FieldName = "name" | "email" | "date" | "time";
 type Fields = Record<FieldName, string>;
@@ -131,11 +140,9 @@ export async function resolveMeetingIdempotency(
 export function MeetingScheduler({
   locale,
   dictionary,
-  retry,
 }: {
   locale: Locale;
   dictionary: Dictionary["schedule"]["form"];
-  retry: Dictionary["retry"];
 }) {
   const [fields, setFields] = useState<Fields>(initialFields);
   const [errors, setErrors] = useState<Errors>({});
@@ -163,10 +170,12 @@ export function MeetingScheduler({
     const nextErrors: Errors = {};
     if (!fields.name.trim()) {
       nextErrors.name = dictionary.enterName;
+    } else if (!isValidMeetingName(fields.name)) {
+      nextErrors.name = dictionary.validName;
     }
     if (!fields.email.trim()) {
       nextErrors.email = dictionary.enterEmail;
-    } else if (!/^\S+@\S+\.\S+$/.test(fields.email.trim())) {
+    } else if (!isValidMeetingEmail(fields.email)) {
       nextErrors.email = dictionary.validEmail;
     }
     if (!fields.date) {
@@ -182,7 +191,7 @@ export function MeetingScheduler({
     return nextErrors;
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     const nextErrors = validate();
     setErrors(nextErrors);
@@ -221,15 +230,14 @@ export function MeetingScheduler({
         },
         body: JSON.stringify(payload),
       });
-      const data: unknown = await response.json();
+      const data: unknown = await response.json().catch(() => undefined);
       if (!response.ok) {
-        if (response.status === 409) {
+        const code = parseMeetingErrorCode(data);
+        if (code === "conflict" || response.status === 409) {
           clearIdempotency();
           setGeneralError(dictionary.conflict);
-        } else if (shouldUseRetryMessage(response)) {
-          setGeneralError(retryMessage(response, retry));
         } else {
-          setGeneralError(dictionary.unableToSchedule);
+          setGeneralError(meetingErrorMessage(code, dictionary));
         }
         return;
       }
@@ -251,32 +259,42 @@ export function MeetingScheduler({
     label: string,
     control: React.ReactNode,
     hint?: string,
-  ) => (
-    <div className="flex flex-col gap-2">
-      <label className="font-medium" htmlFor={`meeting-${name}`}>
-        {label}
-      </label>
-      {control}
-      {hint ? (
-        <p
-          className="text-black/60 dark:text-white/65"
-          id={`meeting-${name}-hint`}
+  ) => {
+    const error = errors[name];
+    return (
+      <div className="flex flex-col gap-2">
+        <label
+          className={`font-medium ${error ? "text-red-700 dark:text-red-400" : ""}`}
+          htmlFor={`meeting-${name}`}
         >
-          {hint}
-        </p>
-      ) : null}
-      {errors[name] ? (
-        <p
-          className="text-black/70 dark:text-white/75"
-          id={`meeting-${name}-error`}
-        >
-          {errors[name]}
-        </p>
-      ) : null}
-    </div>
-  );
+          {label}
+        </label>
+        {control}
+        {error ? (
+          <p
+            className="text-red-700 dark:text-red-400"
+            id={`meeting-${name}-error`}
+          >
+            {error}
+          </p>
+        ) : hint ? (
+          <p
+            className="text-black/60 dark:text-white/65"
+            id={`meeting-${name}-hint`}
+          >
+            {hint}
+          </p>
+        ) : null}
+      </div>
+    );
+  };
 
-  const inputClass = `w-full border border-black/20 bg-transparent px-3 py-3 text-base leading-6 outline-none placeholder:text-black/45 focus:border-black dark:border-white/25 dark:placeholder:text-white/45 dark:focus:border-white ${focusVisibleClassName}`;
+  const inputClass = (name: FieldName) =>
+    `w-full border bg-transparent px-3 py-3 text-base leading-6 outline-none placeholder:text-black/45 dark:placeholder:text-white/45 ${focusVisibleClassName} ${
+      errors[name]
+        ? "border-red-700 focus:border-red-700 dark:border-red-400 dark:focus:border-red-400"
+        : "border-black/20 focus:border-black dark:border-white/25 dark:focus:border-white"
+    }`;
   return (
     <div lang={localeTag(locale)}>
       <form className="flex flex-col gap-5" onSubmit={handleSubmit} noValidate>
@@ -285,8 +303,9 @@ export function MeetingScheduler({
           dictionary.name,
           <input
             autoComplete="name"
-            className={inputClass}
+            className={inputClass("name")}
             id="meeting-name"
+            maxLength={MAX_MEETING_NAME_LENGTH}
             name="name"
             onChange={(event) => updateField("name", event.target.value)}
             placeholder={dictionary.namePlaceholder}
@@ -300,10 +319,12 @@ export function MeetingScheduler({
           dictionary.email,
           <input
             autoComplete="email"
-            className={inputClass}
+            className={inputClass("email")}
             id="meeting-email"
+            maxLength={MAX_MEETING_EMAIL_LENGTH}
             name="email"
             type="email"
+            spellCheck={false}
             onChange={(event) => updateField("email", event.target.value)}
             placeholder={dictionary.emailPlaceholder}
             value={fields.email}
@@ -315,7 +336,7 @@ export function MeetingScheduler({
           "date",
           dictionary.date,
           <input
-            className={`${inputClass} cursor-pointer`}
+            className={`${inputClass("date")} cursor-pointer`}
             id="meeting-date"
             min={minDate}
             name="date"
@@ -334,7 +355,7 @@ export function MeetingScheduler({
           dictionary.time,
           <div className="relative">
             <select
-              className={`${inputClass} cursor-pointer appearance-none pr-10`}
+              className={`${inputClass("time")} cursor-pointer appearance-none pr-10`}
               id="meeting-time"
               name="time"
               onChange={(event) => updateField("time", event.target.value)}
@@ -369,7 +390,7 @@ export function MeetingScheduler({
           dictionary.timeHint,
         )}
         {generalError ? (
-          <p className="text-black/70 dark:text-white/75" role="alert">
+          <p className="text-red-700 dark:text-red-400" role="alert">
             {generalError}
           </p>
         ) : null}

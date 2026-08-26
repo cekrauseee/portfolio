@@ -37,6 +37,14 @@ export const en: Dictionary = {
       assessment: "Fit assessment",
       assessmentReady: "Fit assessment ready.",
       emptyDescription: "Paste a role description before assessing the fit.",
+      invalidDescription:
+        "Paste a role description of up to 16,000 characters.",
+      descriptionRejected:
+        "This content can’t be assessed as a professional opportunity. Paste only the role or project description.",
+      rateLimited: "Too many assessment attempts. Wait a moment and try again.",
+      requestDenied: "Unable to assess this role.",
+      serviceUnavailable:
+        "Fit assessment is temporarily unavailable. Try again shortly.",
       unableToAssess: "Unable to assess fit. Try again.",
       connectionError:
         "Unable to assess fit. Check your connection and try again.",
@@ -60,6 +68,7 @@ export const en: Dictionary = {
       dateHint: "All dates are available. Times use your local time zone.",
       timeHint: "One hour, starting at the selected time.",
       enterName: "Enter your name.",
+      validName: "Use between 2 and 120 characters for your name.",
       enterEmail: "Enter your email address.",
       validEmail: "Enter a valid email address.",
       chooseDate: "Choose a date.",
@@ -67,6 +76,10 @@ export const en: Dictionary = {
       chooseTimeError: "Choose a time.",
       futureTime: "Choose a future time.",
       conflict: "That time is no longer available. Choose another time.",
+      rateLimited: "Too many scheduling attempts. Wait a moment and try again.",
+      requestDenied: "Unable to schedule this meeting.",
+      serviceUnavailable:
+        "Meeting scheduling is temporarily unavailable. Try again shortly.",
       unableToSchedule:
         "Unable to schedule the meeting. Check your details and try again.",
       connectionError:
@@ -94,9 +107,17 @@ export const en: Dictionary = {
       namePlaceholder: "Alex Morgan",
       messagePlaceholder: "I would love to learn more about your work.",
       enterName: "Enter your name.",
-      nameTooLong: "Keep your name under {max} characters.",
+      nameTooLong: "Use {max} characters or fewer for your name.",
       writeMessage: "Write a message.",
-      messageTooLong: "Keep your message under {max} characters.",
+      messageTooLong: "Use {max} characters or fewer for your message.",
+      contentRejected:
+        "This message can’t be published. Review the name and message, then try again.",
+      locationUnavailable:
+        "Unable to determine where to place your message. Try again later.",
+      rateLimited: "Too many publishing attempts. Wait a moment and try again.",
+      requestDenied: "Unable to publish this message.",
+      serviceUnavailable:
+        "Publishing is temporarily unavailable. Try again shortly.",
       unableToPublish: "Unable to publish your message. Try again later.",
       connectionError:
         "Unable to publish your message. Check your connection and try again.",
@@ -138,9 +159,5 @@ export const en: Dictionary = {
     title: "Page not found",
     description: "There is nothing at this address.",
     home: "Return to portfolio",
-  },
-  retry: {
-    waitMoment: "Please wait a moment before trying again.",
-    waitSeconds: "Please wait {count} second{plural} before trying again.",
   },
 };

@@ -1,8 +1,16 @@
-import type { GeoCoordinates } from "@/features/guestbook/message";
+import {
+  validateSubmittedGeoCoordinates,
+  type GeoCoordinates,
+  type SubmittedGeoCoordinates,
+} from "@/features/guestbook/message";
 
 export type { GeoCoordinates };
 
 type GeoHeaders = Pick<Headers, "get">;
+
+export type ResolvedGeoCoordinates = GeoCoordinates & {
+  source: "device" | "vercel";
+};
 
 /**
  * Resolve visitor coordinates from Vercel's trusted IP geolocation headers.
@@ -14,8 +22,22 @@ type GeoHeaders = Pick<Headers, "get">;
  * The IP address itself is never stored. Only the derived coordinates and
  * region labels are persisted.
  */
-export function resolveGeo(request: Request): GeoCoordinates | null {
-  return resolveGeoFromHeaders(request.headers);
+export function resolveGeo(
+  request: Request,
+  submittedLocation?: SubmittedGeoCoordinates,
+): ResolvedGeoCoordinates | null {
+  const deviceLocation = validateSubmittedGeoCoordinates(submittedLocation);
+  if (deviceLocation) {
+    return {
+      ...deviceLocation,
+      country: null,
+      city: null,
+      source: "device",
+    };
+  }
+
+  const vercelLocation = resolveGeoFromHeaders(request.headers);
+  return vercelLocation ? { ...vercelLocation, source: "vercel" } : null;
 }
 
 export function resolveGeoFromHeaders(

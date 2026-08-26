@@ -5,7 +5,6 @@ import {
   MeetingNotificationConfigurationError,
   resolveMeetingNotificationConfiguration,
 } from "../src/features/meeting-scheduling/meeting-notification.ts";
-import { shouldUseRetryMessage } from "../src/lib/retry-message.ts";
 import { validateProductionEnvironment } from "../scripts/validate-production-environment.mjs";
 import { syncGithubProjects } from "../scripts/sync-github-projects.mjs";
 
@@ -147,22 +146,5 @@ test("Resend is optional but must be configured as a complete group", () => {
   assert.deepEqual(
     validateProductionEnvironment(productionEnvironment(configured)),
     { meetingNotificationEnabled: true },
-  );
-});
-
-test("Retry-After UI handling distinguishes temporary outages from missing configuration", () => {
-  assert.equal(
-    shouldUseRetryMessage(new Response(null, { status: 429 })),
-    true,
-  );
-  assert.equal(
-    shouldUseRetryMessage(
-      new Response(null, { status: 503, headers: { "Retry-After": "30" } }),
-    ),
-    true,
-  );
-  assert.equal(
-    shouldUseRetryMessage(new Response(null, { status: 503 })),
-    false,
   );
 });
