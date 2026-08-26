@@ -79,6 +79,7 @@ jobs:
       - name: Test Postgres persistence
         env:
           DATABASE_URL: postgres://portfolio:portfolio@127.0.0.1:5433/portfolio
+          REDIS_URL: redis://127.0.0.1:6379
         run: |
           npm run db:migrate
           npm run db:verify
