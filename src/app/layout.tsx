@@ -12,6 +12,7 @@ import {
 import { getThemePreference } from "@/theme/server";
 import { ThemeProvider } from "@/theme/theme-provider";
 import { ThemeScript } from "@/theme/theme-script";
+import { InteractionSounds } from "@/components/interaction-sounds";
 import { localeDetails } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getRequestLocale } from "@/i18n/request-locale";
@@ -112,6 +113,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="bg-background text-foreground min-h-full min-w-0 overscroll-none font-sans text-sm leading-5 antialiased">
         <ThemeProvider initialPreference={preference}>
+          <InteractionSounds />
           {children}
           <Analytics />
           <SpeedInsights />

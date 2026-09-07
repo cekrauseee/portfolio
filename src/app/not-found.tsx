@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { mutedTextLinkClassName } from "@/components/links";
+import { linkSoundProps, mutedTextLinkClassName } from "@/components/links";
 import { PageShell } from "@/components/page-shell";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getRequestLocale } from "@/i18n/request-locale";
@@ -22,6 +22,7 @@ export default async function NotFound() {
           {dictionary.notFound.description}
         </p>
         <Link
+          {...linkSoundProps}
           className={`${mutedTextLinkClassName} mt-5 inline-block`}
           href="/"
         >

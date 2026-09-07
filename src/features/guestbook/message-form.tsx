@@ -2,7 +2,11 @@
 
 import type { SubmitEvent } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { actionClassName, focusVisibleClassName } from "@/components/links";
+import {
+  actionClassName,
+  actionSoundProps,
+  focusVisibleClassName,
+} from "@/components/links";
 import { resolveDeviceLocation } from "@/features/guestbook/device-location";
 import {
   guestbookErrorMessage,
@@ -15,6 +19,7 @@ import {
   MAX_NAME_LENGTH,
   type SubmittedGeoCoordinates,
 } from "@/features/guestbook/message";
+import { playInteractionSound } from "@/lib/interaction-sounds";
 
 type FieldName = "name" | "message";
 type Fields = Record<FieldName, string>;
@@ -110,6 +115,7 @@ export function MessageForm({
     setGeneralError("");
     setSuccess("");
     if (Object.keys(nextErrors).length) {
+      playInteractionSound("error");
       const first = (Object.keys(initialFields) as FieldName[]).find(
         (field) => nextErrors[field],
       );
@@ -120,6 +126,7 @@ export function MessageForm({
     }
 
     setSubmitting(true);
+    playInteractionSound("loading");
     try {
       const location = await resolvePreferredLocation();
       const response = await fetch("/api/guestbook", {
@@ -136,13 +143,16 @@ export function MessageForm({
         setGeneralError(
           guestbookErrorMessage(parseGuestbookErrorCode(payload), dictionary),
         );
+        playInteractionSound("error");
         return;
       }
       setSuccess(dictionary.success);
       setFields(initialFields);
+      playInteractionSound("success");
       onSubmitted?.();
     } catch {
       setGeneralError(dictionary.connectionError);
+      playInteractionSound("error");
     } finally {
       setSubmitting(false);
     }
@@ -221,6 +231,7 @@ export function MessageForm({
           </p>
         ) : null}
         <button
+          {...actionSoundProps}
           className={`${actionClassName} transition-transform active:scale-[0.96] disabled:cursor-not-allowed disabled:bg-black/45 dark:disabled:bg-white/45`}
           disabled={submitting}
           type="submit"

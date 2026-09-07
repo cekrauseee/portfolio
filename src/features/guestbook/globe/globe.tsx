@@ -13,7 +13,7 @@ import { Canvas, useThree } from "@react-three/fiber";
 import { Html, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import { mutedButtonClassName } from "@/components/links";
+import { actionSoundProps, mutedButtonClassName } from "@/components/links";
 import { localeTag, type Locale } from "@/i18n/config";
 import { useTheme } from "@/theme/theme-provider";
 import type { Dictionary } from "@/i18n/dictionary";
@@ -573,6 +573,7 @@ export function Globe({
       <div className="pointer-events-none absolute [inset-inline-start:calc(1rem+env(safe-area-inset-left))] [inset-inline-end:calc(1rem+env(safe-area-inset-right))] bottom-[calc(1rem+env(safe-area-inset-bottom))] z-20 flex items-end justify-between gap-4">
         <div className="pointer-events-auto flex min-w-0 flex-col items-start gap-1">
           <button
+            {...actionSoundProps}
             type="button"
             className={`${mutedButtonClassName} inline-flex min-h-10 items-center text-sm disabled:cursor-wait disabled:opacity-60`}
             onClick={
@@ -614,6 +615,7 @@ export function Globe({
 
       {messages.length > 0 && !selectedPoint && !hasLocationError ? (
         <button
+          {...actionSoundProps}
           ref={messageIndexRef}
           type="button"
           className={`${mutedButtonClassName} absolute bottom-[calc(4.5rem+env(safe-area-inset-bottom))] left-1/2 z-20 inline-flex min-h-10 -translate-x-1/2 items-center text-sm [@media(min-width:40rem)]:bottom-[calc(1rem+env(safe-area-inset-bottom))]`}

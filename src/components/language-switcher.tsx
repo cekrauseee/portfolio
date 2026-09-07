@@ -1,4 +1,5 @@
 import { preferenceOptionClassName } from "@/components/preference-option";
+import { toggleSoundProps } from "@/components/links";
 import { setLocalePreference } from "@/i18n/actions";
 import { locales, type Locale } from "@/i18n/config";
 
@@ -20,6 +21,7 @@ export function LanguageSwitcher({
       >
         {locales.map((candidate) => (
           <button
+            {...toggleSoundProps}
             className={`${preferenceOptionClassName} ${candidate === locale ? "font-medium underline" : ""}`}
             type="submit"
             name="locale"

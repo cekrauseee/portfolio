@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ExternalLink, mutedTextLinkClassName } from "@/components/links";
+import {
+  ExternalLink,
+  linkSoundProps,
+  mutedTextLinkClassName,
+} from "@/components/links";
 import { PageShell } from "@/components/page-shell";
 import { site } from "@/config/site";
 import { getProject, projects } from "@/content/portfolio";
@@ -174,7 +178,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
         </div>
 
         <footer className="mt-12 [@media(max-height:42rem)]:mt-9">
-          <Link className={mutedTextLinkClassName} href="/">
+          <Link {...linkSoundProps} className={mutedTextLinkClassName} href="/">
             {dictionary.projects.back}
           </Link>
         </footer>

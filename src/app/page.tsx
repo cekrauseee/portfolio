@@ -1,5 +1,10 @@
 import Link from "next/link";
-import { actionClassName, textLinkClassName } from "@/components/links";
+import {
+  actionClassName,
+  actionSoundProps,
+  linkSoundProps,
+  textLinkClassName,
+} from "@/components/links";
 import { PageShell } from "@/components/page-shell";
 import { ProjectList } from "@/components/project-list";
 import { site } from "@/config/site";
@@ -56,22 +61,34 @@ export default async function Home() {
             .replace("{role}", dictionary.site.role)
             .replace("{location}", dictionary.site.location)}
         </p>
-        <a className={textLinkClassName} href={`mailto:${profile.email}`}>
+        <a
+          {...linkSoundProps}
+          className={textLinkClassName}
+          href={`mailto:${profile.email}`}
+        >
           {profile.email}
         </a>
       </header>
 
       <div className="flex flex-col items-start gap-3">
-        <Link className={actionClassName} href="/fit">
+        <Link {...actionSoundProps} className={actionClassName} href="/fit">
           {dictionary.home.assessFit}
         </Link>
 
         <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
-          <Link className={textLinkClassName} href="/schedule">
+          <Link
+            {...linkSoundProps}
+            className={textLinkClassName}
+            href="/schedule"
+          >
             {dictionary.home.scheduleConversation}
           </Link>
 
-          <Link className={textLinkClassName} href="/guestbook">
+          <Link
+            {...linkSoundProps}
+            className={textLinkClassName}
+            href="/guestbook"
+          >
             {dictionary.home.leaveMessage}
           </Link>
         </div>

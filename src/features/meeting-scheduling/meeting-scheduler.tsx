@@ -4,6 +4,7 @@ import type { SubmitEvent } from "react";
 import { useRef, useState } from "react";
 import {
   actionClassName,
+  actionSoundProps,
   ExternalLink,
   focusVisibleClassName,
 } from "@/components/links";
@@ -19,6 +20,7 @@ import {
 } from "@/features/meeting-scheduling/validation";
 import { localeTag, type Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionary";
+import { playInteractionSound } from "@/lib/interaction-sounds";
 
 type FieldName = "name" | "email" | "date" | "time";
 type Fields = Record<FieldName, string>;
@@ -199,6 +201,7 @@ export function MeetingScheduler({
     setSuccess("");
     setMeetingLink(undefined);
     if (Object.keys(nextErrors).length) {
+      playInteractionSound("error");
       const first = (Object.keys(initialFields) as FieldName[]).find(
         (field) => nextErrors[field],
       );
@@ -209,6 +212,7 @@ export function MeetingScheduler({
     }
 
     setSubmitting(true);
+    playInteractionSound("loading");
     try {
       const payload: MeetingPayload = {
         name: fields.name.trim(),
@@ -239,6 +243,7 @@ export function MeetingScheduler({
         } else {
           setGeneralError(meetingErrorMessage(code, dictionary));
         }
+        playInteractionSound("error");
         return;
       }
 
@@ -247,8 +252,10 @@ export function MeetingScheduler({
       setMeetingLink(
         responseValue(data, "meetLink") ?? responseValue(data, "calendarLink"),
       );
+      playInteractionSound("success");
     } catch {
       setGeneralError(dictionary.connectionError);
+      playInteractionSound("error");
     } finally {
       setSubmitting(false);
     }
@@ -395,6 +402,7 @@ export function MeetingScheduler({
           </p>
         ) : null}
         <button
+          {...actionSoundProps}
           className={`${actionClassName} disabled:cursor-not-allowed disabled:bg-black/45 dark:disabled:bg-white/45`}
           disabled={submitting}
           type="submit"
