@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { mutedTextLinkClassName } from "@/components/links";
+import { linkSoundProps, mutedTextLinkClassName } from "@/components/links";
 import { PageShell } from "@/components/page-shell";
 import { NewMessage } from "@/features/guestbook/new-message";
 import { getDictionary } from "@/i18n/get-dictionary";
@@ -39,7 +39,11 @@ export default async function NewMessagePage() {
         </div>
 
         <footer className="mt-12 [@media(max-height:42rem)]:mt-9">
-          <Link className={mutedTextLinkClassName} href="/guestbook">
+          <Link
+            {...linkSoundProps}
+            className={mutedTextLinkClassName}
+            href="/guestbook"
+          >
             {dictionary.guestbook.backToGlobe}
           </Link>
         </footer>

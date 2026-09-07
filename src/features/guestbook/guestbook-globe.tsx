@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { actionClassName } from "@/components/links";
+import { actionClassName, actionSoundProps } from "@/components/links";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionary";
 import type {
@@ -84,6 +84,7 @@ export function GuestbookGlobe({
             dictionary={dictionary.globe}
             primaryAction={
               <Link
+                {...actionSoundProps}
                 href="/guestbook/new"
                 className={`${actionClassName} min-h-10 py-2.5`}
               >

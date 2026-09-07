@@ -1,6 +1,7 @@
 "use client";
 
 import { preferenceOptionClassName } from "@/components/preference-option";
+import { toggleSoundProps } from "@/components/links";
 import { themePreferences, type ThemePreference } from "@/theme/config";
 import { useTheme } from "@/theme/theme-provider";
 
@@ -19,6 +20,7 @@ export function ThemeSwitcher({
       <div className="flex max-w-full flex-wrap items-center gap-x-2 gap-y-1">
         {themePreferences.map((candidate) => (
           <button
+            {...toggleSoundProps}
             className={`${preferenceOptionClassName} ${candidate === preference ? "font-medium underline" : ""}`}
             type="button"
             aria-pressed={candidate === preference}

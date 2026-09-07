@@ -1,6 +1,6 @@
 "use client";
 
-import { mutedButtonClassName } from "@/components/links";
+import { dismissSoundProps, mutedButtonClassName } from "@/components/links";
 import { localeTag, type Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionary";
 import type { GlobePoint } from "@/features/guestbook/globe/geometry";
@@ -84,6 +84,7 @@ export function MessagePanel({
           ) : null}
         </div>
         <button
+          {...dismissSoundProps}
           autoFocus
           type="button"
           className={`${mutedButtonClassName} inline-flex min-h-8 shrink-0 items-center text-sm`}

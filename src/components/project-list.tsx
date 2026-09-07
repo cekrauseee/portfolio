@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getProjects } from "@/content/portfolio";
-import { linkFocusClassName } from "@/components/links";
+import { linkFocusClassName, linkSoundProps } from "@/components/links";
 import type { Dictionary } from "@/i18n/dictionary";
 import { localeTag, type Locale } from "@/i18n/config";
 
@@ -20,6 +20,7 @@ export function ProjectList({
       {projects.map((project) => (
         <article key={project.slug}>
           <Link
+            {...linkSoundProps}
             className={`${linkFocusClassName} group block bg-black/[0.025] px-6 py-5 no-underline hover:bg-black/[0.045] focus-visible:bg-black/[0.045] dark:bg-white/[0.035] dark:hover:bg-white/[0.06] dark:focus-visible:bg-white/[0.06] [@media(max-height:42rem)]:px-5 [@media(max-height:42rem)]:py-4 [@media(max-width:23rem)_and_(max-height:42rem)]:px-4 [@media(max-width:23rem)_and_(max-height:42rem)]:py-3.5`}
             href={`/projects/${project.slug}`}
           >

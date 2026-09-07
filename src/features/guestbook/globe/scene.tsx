@@ -4,6 +4,7 @@ import { useCallback, useMemo, useRef } from "react";
 import { type ThreeEvent, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import type { GeoCoordinates } from "@/features/guestbook/message";
+import { playInteractionSound } from "@/lib/interaction-sounds";
 import {
   createCountryBordersGeometry,
   type GeoJSON,
@@ -136,6 +137,7 @@ export function MessagePoints({
         return;
       }
       event.stopPropagation();
+      playInteractionSound("bloom");
       onSelect(point);
     },
     [onSelect],

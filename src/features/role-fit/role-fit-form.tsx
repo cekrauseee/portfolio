@@ -3,11 +3,16 @@
 import type { SubmitEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { actionClassName, focusVisibleClassName } from "@/components/links";
+import {
+  actionClassName,
+  actionSoundProps,
+  focusVisibleClassName,
+} from "@/components/links";
 import { fitErrorMessage, parseFitErrorCode } from "@/features/role-fit/errors";
 import { localeTag, type Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionary";
 import { MAX_ROLE_DESCRIPTION_LENGTH } from "@/features/role-fit/constants";
+import { playInteractionSound } from "@/lib/interaction-sounds";
 
 const WORD_INTERVAL_MS = 24;
 
@@ -115,6 +120,7 @@ export function RoleFitForm({
       setFieldError(dictionary.emptyDescription);
       setGeneralError("");
       setStatus("error");
+      playInteractionSound("error");
       textareaRef.current?.focus();
       return;
     }
@@ -125,6 +131,7 @@ export function RoleFitForm({
     setFieldError("");
     setGeneralError("");
     setStatus("loading");
+    playInteractionSound("loading");
 
     try {
       const response = await fetch("/api/fit", {
@@ -147,6 +154,7 @@ export function RoleFitForm({
           setGeneralError(fitErrorMessage(code, dictionary));
         }
         setStatus("error");
+        playInteractionSound("error");
         return;
       }
 
@@ -158,13 +166,16 @@ export function RoleFitForm({
       ) {
         setGeneralError(dictionary.unableToAssess);
         setStatus("error");
+        playInteractionSound("error");
         return;
       }
 
+      playInteractionSound("ready");
       revealAnswer(data.answer);
     } catch {
       setGeneralError(dictionary.connectionError);
       setStatus("error");
+      playInteractionSound("error");
     }
   }
 
@@ -226,6 +237,7 @@ export function RoleFitForm({
         ) : null}
 
         <button
+          {...actionSoundProps}
           className={`${actionClassName} disabled:cursor-not-allowed disabled:bg-black/45 dark:disabled:bg-white/45`}
           disabled={isBusy}
           type="submit"
@@ -255,7 +267,11 @@ export function RoleFitForm({
 
       {status === "done" ? (
         <div className="mt-8">
-          <Link className={actionClassName} href="/schedule">
+          <Link
+            {...actionSoundProps}
+            className={actionClassName}
+            href="/schedule"
+          >
             {dictionary.scheduleConversation}
           </Link>
         </div>

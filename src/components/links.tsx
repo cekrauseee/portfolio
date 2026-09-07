@@ -13,6 +13,24 @@ export const mutedTextLinkClassName = `${linkFocusClassName} text-black/70 under
 
 export const mutedButtonClassName = `${mutedTextLinkClassName} cursor-pointer`;
 
+export const linkSoundProps = {
+  "data-cuelume-hover": "tick",
+  "data-cuelume-press": "press",
+  "data-cuelume-release": "release",
+} as const;
+
+export const actionSoundProps = {
+  "data-cuelume-press": "pulse",
+} as const;
+
+export const toggleSoundProps = {
+  "data-cuelume-toggle": "toggle",
+} as const;
+
+export const dismissSoundProps = {
+  "data-cuelume-press": "droplet",
+} as const;
+
 type ExternalLinkProps = Omit<ComponentProps<"a">, "rel" | "target"> & {
   newTabLabel?: string;
 };
@@ -25,6 +43,7 @@ export function ExternalLink({
 }: ExternalLinkProps) {
   return (
     <a
+      {...linkSoundProps}
       {...props}
       className={`${textLinkClassName} ${className ?? ""}`}
       target="_blank"
