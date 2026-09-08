@@ -21,7 +21,7 @@ export function ProjectList({
       aria-label={dictionary.projects}
     >
       <h2
-        className="home-enter-item mb-4 w-fit text-base leading-7 font-semibold text-black underline decoration-[0.08em] underline-offset-[0.18em] dark:text-white"
+        className="home-enter-item mb-4 w-fit text-[0.9375rem] leading-6 font-semibold text-black underline decoration-[0.08em] underline-offset-[0.18em] dark:text-white"
         style={{ animationDelay: "270ms" }}
       >
         {dictionary.projects}

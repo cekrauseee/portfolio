@@ -53,7 +53,7 @@ export default async function Home() {
       locale={locale}
       navigation={dictionary.navigation}
       disableTextSelection
-      containerClassName={`${inter.className} home-project-focus mx-auto flex w-full max-w-[36rem] flex-col gap-12 text-[0.98rem] leading-7 font-medium`}
+      containerClassName={`${inter.className} home-project-focus mx-auto flex w-full max-w-xl flex-col gap-12 px-4 text-[0.9375rem] leading-6 font-medium`}
       showNavigation={false}
     >
       <script
@@ -63,11 +63,11 @@ export default async function Home() {
         }}
       />
       <header className="flex flex-col">
-        <h1 className="home-enter-item text-[1.72rem] leading-[1.08] font-semibold tracking-[-0.04em] text-black lowercase dark:text-white">
+        <h1 className="home-enter-item text-2xl leading-[1.08] font-semibold tracking-[-0.04em] text-black lowercase dark:text-white">
           {profile.name}.
         </h1>
         <p
-          className="home-enter-item mt-3 text-base leading-7 tracking-[-0.015em] text-black/58 lowercase dark:text-white/64"
+          className="home-enter-item mt-3 text-[0.9375rem] leading-6 tracking-[-0.015em] text-black/58 lowercase dark:text-white/64"
           style={{ animationDelay: "45ms" }}
         >
           {dictionary.site.profileSummary
@@ -75,14 +75,14 @@ export default async function Home() {
             .replace("{location}", dictionary.site.location)}
         </p>
         <p
-          className="home-enter-item mt-4 text-base leading-7 tracking-[-0.015em] text-black/58 lowercase dark:text-white/64"
+          className="home-enter-item mt-4 text-[0.9375rem] leading-6 tracking-[-0.015em] text-black/58 lowercase dark:text-white/64"
           style={{ animationDelay: "90ms" }}
         >
           {dictionary.site.description}
         </p>
         <a
           {...linkSoundProps}
-          className={`${textLinkClassName} home-enter-item mt-4 w-fit text-base text-black/82 lowercase decoration-black/35 dark:text-white/84 dark:decoration-white/35`}
+          className={`${textLinkClassName} home-enter-item mt-4 w-fit text-[0.9375rem] text-black/82 lowercase decoration-black/35 dark:text-white/84 dark:decoration-white/35`}
           href={`mailto:${profile.email}`}
           style={{ animationDelay: "135ms" }}
         >
@@ -93,7 +93,7 @@ export default async function Home() {
       <div className="flex flex-col items-start gap-2 lowercase">
         <Link
           {...actionSoundProps}
-          className={`${textLinkClassName} home-enter-item text-base font-medium text-black dark:text-white`}
+          className={`${textLinkClassName} home-enter-item text-[0.9375rem] font-medium text-black dark:text-white`}
           href="/fit"
           style={{ animationDelay: "180ms" }}
         >
@@ -101,7 +101,7 @@ export default async function Home() {
         </Link>
 
         <div
-          className="home-enter-item flex flex-wrap gap-x-4 gap-y-1 text-[0.95rem] text-black/48 dark:text-white/52"
+          className="home-enter-item flex flex-wrap gap-x-4 gap-y-1 text-sm text-black/48 dark:text-white/52"
           style={{ animationDelay: "225ms" }}
         >
           <Link
@@ -130,7 +130,7 @@ export default async function Home() {
 
       <nav
         aria-label={dictionary.navigation.primaryLinks}
-        className="home-enter-item flex flex-wrap gap-x-4 gap-y-1 text-[0.95rem] text-black/45 lowercase dark:text-white/50"
+        className="home-enter-item flex flex-wrap gap-x-4 gap-y-1 text-sm text-black/45 lowercase dark:text-white/50"
         style={{ animationDelay: "540ms" }}
       >
         {socialLinks.map((link) => (

@@ -191,11 +191,11 @@ export function ProjectCollapsibleList({
               }
               type="button"
             >
-              <span className="block w-fit text-[0.98rem] leading-6 font-medium text-black/74 transition-colors group-hover:text-black dark:text-white/74 dark:group-hover:text-white">
+              <span className="block w-fit text-[0.9375rem] leading-6 font-medium text-black/74 transition-colors group-hover:text-black dark:text-white/74 dark:group-hover:text-white">
                 {project.name}
               </span>
               <span
-                className="mt-1 block max-w-[52ch] text-[0.9rem] leading-6 font-normal text-black/44 dark:text-white/48"
+                className="mt-1 block max-w-[52ch] text-sm leading-5 font-normal text-black/44 dark:text-white/48"
                 lang={project.languageTag}
               >
                 {project.description}

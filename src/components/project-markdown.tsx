@@ -31,27 +31,27 @@ export function resolveProjectImageSource(
 function markdownComponents(): Components {
   return {
     h1: ({ children }) => (
-      <h2 className="mt-12 w-fit text-base leading-7 font-semibold lowercase underline decoration-[0.08em] underline-offset-[0.18em] first:mt-0">
+      <h2 className="mt-12 w-fit text-[0.9375rem] leading-6 font-semibold lowercase underline decoration-[0.08em] underline-offset-[0.18em] first:mt-0">
         {children}
       </h2>
     ),
     h2: ({ children }) => (
-      <h2 className="mt-12 w-fit text-base leading-7 font-semibold lowercase underline decoration-[0.08em] underline-offset-[0.18em] first:mt-0">
+      <h2 className="mt-12 w-fit text-[0.9375rem] leading-6 font-semibold lowercase underline decoration-[0.08em] underline-offset-[0.18em] first:mt-0">
         {children}
       </h2>
     ),
     h3: ({ children }) => (
-      <h3 className="mt-9 text-base leading-7 font-semibold lowercase">
+      <h3 className="mt-9 text-[0.9375rem] leading-6 font-semibold lowercase">
         {children}
       </h3>
     ),
     h4: ({ children }) => (
-      <h4 className="mt-7 text-base leading-7 font-semibold lowercase">
+      <h4 className="mt-7 text-[0.9375rem] leading-6 font-semibold lowercase">
         {children}
       </h4>
     ),
     p: ({ children }) => (
-      <p className="mt-4 text-base leading-7 font-normal text-black/58 first:mt-0 dark:text-white/64">
+      <p className="mt-4 text-[0.9375rem] leading-6 font-normal text-black/58 first:mt-0 dark:text-white/64">
         {children}
       </p>
     ),
@@ -68,12 +68,12 @@ function markdownComponents(): Components {
       <strong className="text-foreground font-semibold">{children}</strong>
     ),
     ul: ({ children }) => (
-      <ul className="mt-4 list-disc space-y-2 pl-5 text-base leading-7 font-normal text-black/58 marker:text-black/30 dark:text-white/64 dark:marker:text-white/30">
+      <ul className="mt-4 list-disc space-y-2 pl-5 text-[0.9375rem] leading-6 font-normal text-black/58 marker:text-black/30 dark:text-white/64 dark:marker:text-white/30">
         {children}
       </ul>
     ),
     ol: ({ children }) => (
-      <ol className="mt-4 list-decimal space-y-2 pl-5 text-base leading-7 font-normal text-black/58 marker:text-black/30 dark:text-white/64 dark:marker:text-white/30">
+      <ol className="mt-4 list-decimal space-y-2 pl-5 text-[0.9375rem] leading-6 font-normal text-black/58 marker:text-black/30 dark:text-white/64 dark:marker:text-white/30">
         {children}
       </ol>
     ),
