@@ -365,7 +365,7 @@ test("reads localized Markdown and preserves relative project images", async () 
   }
 });
 
-test("normalizes legacy JSON while source repositories migrate", async () => {
+test("ignores repositories without the Markdown project record", async () => {
   const { directory, outputPath } = await temporaryOutput();
   try {
     const snapshot = await syncGithubProjects({
@@ -377,10 +377,7 @@ test("normalizes legacy JSON while source repositories migrate", async () => {
         if (parsed.pathname.endsWith("/.portfolio/project.md")) {
           return response(404, { message: "Not Found" });
         }
-        return response(200, {
-          encoding: "base64",
-          content: encodedContent(project("legacy")),
-        });
+        throw new Error(`Unexpected URL: ${url}`);
       },
       owner: "test-owner",
       apiBase: "https://github.test",
@@ -388,10 +385,7 @@ test("normalizes legacy JSON while source repositories migrate", async () => {
       now: fixedDate,
     });
 
-    assert.equal(
-      snapshot.projects[0].translations.en.content,
-      "## Product\n\nlegacy details",
-    );
+    assert.deepEqual(snapshot.projects, []);
   } finally {
     await rm(directory, { recursive: true, force: true });
   }

@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { z } from "zod";
-import { getProjects, profile } from "@/content/portfolio";
+import { experience, getProjects, profile } from "@/content/portfolio";
 import { MAX_ROLE_DESCRIPTION_LENGTH } from "@/features/role-fit/constants";
 
 export { MAX_ROLE_DESCRIPTION_LENGTH } from "@/features/role-fit/constants";
@@ -20,6 +20,14 @@ const projects = getProjects("en");
 
 const candidateProfile = [
   `${profile.name} is a ${profile.role} based in ${profile.location}.`,
+  "Professional experience:",
+  ...experience.map((entry) =>
+    [
+      `${entry.company} — ${entry.role}, ${entry.period}`,
+      ...entry.details,
+    ].join("\n"),
+  ),
+  "Published projects:",
   ...projects.map((project) =>
     [`${project.name}: ${project.summary}`, project.content].join("\n"),
   ),

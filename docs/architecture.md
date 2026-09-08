@@ -81,10 +81,9 @@ deterministically, and atomically replaces `.cache/github-projects.json`.
 
 The snapshot loader revalidates the complete file and binds it to the configured
 owner. Writer and reader both require a string slug matching the same safe
-pattern. English is required; Portuguese and Japanese are optional. The
-synchronizer temporarily accepts the previous JSON convention and converts its
-sections to Markdown so repositories can migrate independently. The application
-and snapshot contract use only the normalized Markdown body.
+pattern. English is required; Portuguese and Japanese are optional. Repositories
+without the Markdown record are ignored. The application and snapshot contract
+use the validated Markdown body.
 
 Project Markdown renders CommonMark on the server through controlled components
 inside the home page's collapsible entries. Raw HTML is ignored. Relative image

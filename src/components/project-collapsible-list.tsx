@@ -11,19 +11,23 @@ import {
 import { focusVisibleClassName, toggleSoundProps } from "@/components/links";
 import { stabilizeViewportAnchor } from "@/lib/viewport-scroll";
 
-type ProjectPreview = {
+type CollapsiblePreview = {
   slug: string;
   name: string;
   description: string;
-  languageTag: string;
+  languageTag?: string;
 };
 
 export function ProjectCollapsibleList({
   projects,
   children,
+  idPrefix = "project",
+  marksProjectFocus = false,
 }: {
-  projects: readonly ProjectPreview[];
+  projects: readonly CollapsiblePreview[];
   children: ReactNode;
+  idPrefix?: string;
+  marksProjectFocus?: boolean;
 }) {
   const [openSlug, setOpenSlug] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -122,7 +126,7 @@ export function ProjectCollapsibleList({
       }
 
       setOpenSlug(null);
-      document.getElementById(`project-${openSlug}-trigger`)?.focus();
+      document.getElementById(`${idPrefix}-${openSlug}-trigger`)?.focus();
     }
 
     function handleClick(event: MouseEvent) {
@@ -152,7 +156,7 @@ export function ProjectCollapsibleList({
       document.removeEventListener("keydown", handleKeyDown);
       document.removeEventListener("click", handleClick);
     };
-  }, [openSlug]);
+  }, [idPrefix, openSlug]);
 
   useEffect(
     () => () => {
@@ -168,15 +172,17 @@ export function ProjectCollapsibleList({
       {projects.map((project, index) => {
         const isOpen = openSlug === project.slug;
         const isDimmed = openSlug !== null && !isOpen;
-        const triggerId = `project-${project.slug}-trigger`;
-        const panelId = `project-${project.slug}-panel`;
+        const triggerId = `${idPrefix}-${project.slug}-trigger`;
+        const panelId = `${idPrefix}-${project.slug}-panel`;
 
         return (
           <article
             className={`home-enter-item project-collapsible-item transition-[filter,opacity] duration-300 ease-out motion-reduce:transition-none ${
               isDimmed ? "opacity-35 blur-[1.5px]" : "blur-0 opacity-100"
             }`}
-            data-project-expanded={isOpen ? "true" : undefined}
+            data-project-expanded={
+              marksProjectFocus && isOpen ? "true" : undefined
+            }
             key={project.slug}
             style={{ animationDelay: `${315 + index * 45}ms` }}
           >

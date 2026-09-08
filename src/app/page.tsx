@@ -8,6 +8,7 @@ import {
 } from "@/components/links";
 import { PageShell } from "@/components/page-shell";
 import { ProjectList } from "@/components/project-list";
+import { ExperienceList } from "@/components/experience-list";
 import { site } from "@/config/site";
 import { profile, socialLinks } from "@/content/portfolio";
 import { localeDetails } from "@/i18n/config";
@@ -66,67 +67,90 @@ export default async function Home() {
         <h1 className="home-enter-item text-2xl leading-[1.08] font-semibold tracking-[-0.04em] text-black lowercase dark:text-white">
           {profile.name}.
         </h1>
-        <p
-          className="home-enter-item mt-3 text-[0.9375rem] leading-6 tracking-[-0.015em] text-black/58 lowercase dark:text-white/64"
-          style={{ animationDelay: "45ms" }}
-        >
-          {dictionary.site.profileSummary
-            .replace("{role}", dictionary.site.role)
-            .replace("{location}", dictionary.site.location)}
-        </p>
-        <p
-          className="home-enter-item mt-4 text-[0.9375rem] leading-6 tracking-[-0.015em] text-black/58 lowercase dark:text-white/64"
-          style={{ animationDelay: "90ms" }}
-        >
-          {dictionary.site.description}
-        </p>
+        {[
+          dictionary.home.bio.intro,
+          dictionary.home.bio.process,
+          dictionary.home.bio.interests,
+        ].map((paragraph, index) => (
+          <p
+            className="home-enter-item mt-4 text-[0.9375rem] leading-6 tracking-[-0.015em] text-black/58 lowercase dark:text-white/64"
+            key={paragraph}
+            style={{ animationDelay: `${45 + index * 45}ms` }}
+          >
+            {paragraph}
+          </p>
+        ))}
         <a
           {...linkSoundProps}
           className={`${textLinkClassName} home-enter-item mt-4 w-fit text-[0.9375rem] text-black/82 lowercase decoration-black/35 dark:text-white/84 dark:decoration-white/35`}
           href={`mailto:${profile.email}`}
-          style={{ animationDelay: "135ms" }}
+          style={{ animationDelay: "180ms" }}
         >
           {profile.email}
         </a>
       </header>
-
-      <div className="flex flex-col items-start gap-2 lowercase">
-        <Link
-          {...actionSoundProps}
-          className={`${textLinkClassName} home-enter-item text-[0.9375rem] font-medium text-black dark:text-white`}
-          href="/fit"
-          style={{ animationDelay: "180ms" }}
-        >
-          {dictionary.home.assessFit}
-        </Link>
-
-        <div
-          className="home-enter-item flex flex-wrap gap-x-4 gap-y-1 text-sm text-black/48 dark:text-white/52"
-          style={{ animationDelay: "225ms" }}
-        >
-          <Link
-            {...linkSoundProps}
-            className={`${textLinkClassName} decoration-black/20 dark:decoration-white/20`}
-            href="/schedule"
-          >
-            {dictionary.home.scheduleConversation}
-          </Link>
-
-          <Link
-            {...linkSoundProps}
-            className={`${textLinkClassName} decoration-black/20 dark:decoration-white/20`}
-            href="/guestbook"
-          >
-            {dictionary.home.leaveMessage}
-          </Link>
-        </div>
-      </div>
 
       <ProjectList
         dictionary={dictionary.home}
         projectDictionary={dictionary.projects}
         locale={locale}
       />
+
+      <ExperienceList
+        dictionary={dictionary.home.experience}
+        externalLinkNewTab={dictionary.navigation.externalLinkNewTab}
+      />
+
+      <section className="flex flex-col lowercase">
+        <h2 className="home-enter-item mb-4 w-fit text-[0.9375rem] leading-6 font-semibold text-black underline decoration-[0.08em] underline-offset-[0.18em] dark:text-white">
+          {dictionary.home.contact.title}
+        </h2>
+        <p className="home-enter-item text-black/58 dark:text-white/64">
+          {dictionary.home.contact.description}
+        </p>
+        <div className="home-enter-item mt-3 flex flex-wrap gap-x-4 gap-y-1">
+          <a
+            {...linkSoundProps}
+            className={`${textLinkClassName} text-black/82 decoration-black/35 dark:text-white/84 dark:decoration-white/35`}
+            href={`mailto:${profile.email}`}
+          >
+            {dictionary.home.contact.email}
+          </a>
+          <Link
+            {...linkSoundProps}
+            className={`${textLinkClassName} text-black/82 decoration-black/35 dark:text-white/84 dark:decoration-white/35`}
+            href="/schedule"
+          >
+            {dictionary.home.scheduleConversation}
+          </Link>
+        </div>
+        <p className="home-enter-item mt-5 text-black/58 dark:text-white/64">
+          {dictionary.home.contact.roleFitDescription}
+        </p>
+        <Link
+          {...actionSoundProps}
+          className={`${textLinkClassName} home-enter-item mt-3 w-fit text-[0.9375rem] font-medium text-black dark:text-white`}
+          href="/fit"
+        >
+          {dictionary.home.contact.roleFit}
+        </Link>
+      </section>
+
+      <section className="flex flex-col lowercase">
+        <h2 className="home-enter-item mb-4 w-fit text-[0.9375rem] leading-6 font-semibold text-black underline decoration-[0.08em] underline-offset-[0.18em] dark:text-white">
+          {dictionary.home.guestbook.title}
+        </h2>
+        <p className="home-enter-item text-black/58 dark:text-white/64">
+          {dictionary.home.guestbook.description}
+        </p>
+        <Link
+          {...linkSoundProps}
+          className={`${textLinkClassName} home-enter-item mt-3 w-fit text-black/82 decoration-black/35 dark:text-white/84 dark:decoration-white/35`}
+          href="/guestbook"
+        >
+          {dictionary.home.guestbook.visit}
+        </Link>
+      </section>
 
       <nav
         aria-label={dictionary.navigation.primaryLinks}

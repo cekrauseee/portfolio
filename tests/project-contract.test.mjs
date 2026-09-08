@@ -26,19 +26,6 @@ function projectWithSlug(slug) {
   };
 }
 
-function legacyProjectWithSlug(slug) {
-  return {
-    slug,
-    name: "fixture-owner/numeric",
-    description: "Fixture project.",
-    repositoryUrl: "https://github.com/fixture-owner/numeric",
-    metaDescription: "Fixture project metadata.",
-    summary: "Fixture project summary.",
-    highlights: ["Fixtures"],
-    sections: [{ title: "Product", paragraphs: ["Fixture details."] }],
-  };
-}
-
 test("localized projects select requested content and fall back to English", () => {
   const project = {
     slug: "localized",
@@ -160,18 +147,15 @@ test("project writer and reader both reject non-string slugs", async () => {
               },
             ]);
           }
-          if (parsed.pathname.endsWith("/.portfolio/project.md")) {
-            return new Response(null, { status: 404 });
-          }
           return Response.json({
             encoding: "base64",
             content: Buffer.from(
-              JSON.stringify(legacyProjectWithSlug(123)),
+              `---\nslug: 123\nname: fixture-owner/numeric\nrepositoryUrl: https://github.com/fixture-owner/numeric\ndescription: Fixture project.\nmetaDescription: Fixture metadata.\nsummary: Fixture summary.\nhighlights:\n  - Fixtures\n---\n\n## Product\n\nFixture details.`,
             ).toString("base64"),
           });
         },
       }),
-      /invalid Project fields/,
+      /invalid Markdown project identity/,
     );
   } finally {
     if (previousOwner === undefined) {

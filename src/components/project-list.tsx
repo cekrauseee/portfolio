@@ -28,6 +28,7 @@ export function ProjectList({
       </h2>
 
       <ProjectCollapsibleList
+        marksProjectFocus
         projects={projects.map((project) => ({
           slug: project.slug,
           name: project.name,

@@ -7,7 +7,6 @@ export const pt: Dictionary = {
       "Engenheiro de software em Lisboa, criando produtos, interfaces e ferramentas bem pensados para pessoas e agentes.",
     role: "Engenheiro de software",
     location: "Lisboa",
-    profileSummary: "{role} em {location}.",
   },
   navigation: {
     primaryLinks: "Links principais",
@@ -19,11 +18,63 @@ export const pt: Dictionary = {
     appearance: { system: "Sistema", light: "Claro", dark: "Escuro" },
   },
   home: {
-    assessFit: "Avaliar compatibilidade",
-    scheduleConversation: "Agendar uma conversa",
-    leaveMessage: "Deixar uma mensagem no globo",
-    projects: "Projetos",
-    readProjectNotes: "Ler notas do projeto",
+    assessFit: "avaliar compatibilidade",
+    scheduleConversation: "agendar uma conversa",
+    leaveMessage: "deixar uma mensagem no globo",
+    projects: "projetos",
+    readProjectNotes: "ler notas do projeto",
+    bio: {
+      intro:
+        "sou engenheiro de software em lisboa, criando produtos, interfaces e ferramentas bem pensados para pessoas e agentes.",
+      process:
+        "gosto de entender o que as pessoas precisam e descobrir como transformar isso em software. conversar sobre ideias, questionar premissas, pensar na arquitetura e escrever o código são partes do trabalho que eu gosto. também me importo com a sensação de usar a aplicação.",
+      interests:
+        "trabalho principalmente com typescript e node.js. ultimamente, tenho explorado agentes de ia e orquestração: como eles trabalham juntos, como mantêm contexto útil e até onde consigo levá-los.",
+    },
+    experience: {
+      title: "experiência",
+      linkedin: "mais sobre minha experiência no linkedin",
+      entries: {
+        teamIt: {
+          roleAndPeriod: "engenheiro de software · fevereiro–julho de 2026",
+          paragraphs: {
+            first:
+              "trabalhei em experimentos de ia e agentes em p&d. o principal foi um assistente desktop para gestores entrevistando consultores. trabalhei com o diretor de p&d nos requisitos e construí a aplicação, da arquitetura até a publicação na microsoft store.",
+            second:
+              "ele podia sugerir perguntas durante uma reunião e ajudar a trabalhar com transcrições e arquivos depois. um pequeno grupo de consultores já o usava em reuniões antes de eu sair.",
+          },
+        },
+        clinia: {
+          roleAndPeriod:
+            "estagiário full-stack → engenheiro de software · novembro de 2023–novembro de 2025",
+          paragraphs: {
+            first:
+              "entrei como a quarta pessoa do time de engenharia, começando com um ano de estágio. construíamos software para ajudar clínicas a gerenciar conversas com pacientes e automatizar tarefas do dia a dia.",
+            second:
+              "trabalhei em funcionalidades do produto e fluxos visuais, e construí o módulo inicial do primeiro agente de ia da plataforma. conforme o produto cresceu, também trabalhei em suporte, estabilidade e mudanças na arquitetura de backend e ia.",
+          },
+        },
+        killing: {
+          roleAndPeriod: "estagiário de ti · setembro de 2022–abril de 2023",
+          paragraph:
+            "trabalhei com suporte de ti em uma fabricante de tintas e construí algumas aplicações junto desse trabalho. uma ajudava consultores comerciais a preencher checklists de visitas a clientes e entrou em produção. a outra foi um protótipo para monitorar equipamentos da fábrica.",
+        },
+      },
+    },
+    contact: {
+      title: "entre em contato",
+      description:
+        "estou aberto a uma nova vaga ou trabalho freelance. se você tem algo em mente, gostaria de saber mais.",
+      email: "enviar e-mail",
+      roleFitDescription:
+        "você também pode comparar a descrição de uma vaga com o trabalho que compartilhei aqui.",
+      roleFit: "comparar uma vaga com meu trabalho",
+    },
+    guestbook: {
+      title: "livro de visitas",
+      description: "deixe uma mensagem no globo ou veja quem passou por aqui.",
+      visit: "visitar o livro de visitas",
+    },
   },
   fit: {
     title: "Avaliar compatibilidade",

@@ -6,7 +6,6 @@ export type Dictionary = {
     description: string;
     role: string;
     location: string;
-    profileSummary: string;
   };
   navigation: {
     primaryLinks: string;
@@ -27,6 +26,47 @@ export type Dictionary = {
     leaveMessage: string;
     projects: string;
     readProjectNotes: string;
+    bio: {
+      intro: string;
+      process: string;
+      interests: string;
+    };
+    experience: {
+      title: string;
+      linkedin: string;
+      entries: {
+        teamIt: {
+          roleAndPeriod: string;
+          paragraphs: {
+            first: string;
+            second: string;
+          };
+        };
+        clinia: {
+          roleAndPeriod: string;
+          paragraphs: {
+            first: string;
+            second: string;
+          };
+        };
+        killing: {
+          roleAndPeriod: string;
+          paragraph: string;
+        };
+      };
+    };
+    contact: {
+      title: string;
+      description: string;
+      email: string;
+      roleFitDescription: string;
+      roleFit: string;
+    };
+    guestbook: {
+      title: string;
+      description: string;
+      visit: string;
+    };
   };
   fit: {
     title: string;

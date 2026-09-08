@@ -1,51 +1,44 @@
 ---
-description: >-
-  Um portfólio de engenharia de software inspirado em terminais, com estudos de
-  caso localizados, avaliação de compatibilidade com vagas e agendamento de
-  reuniões de uma hora.
+description: um lugar para compartilhar meus projetos e conversar sobre trabalho.
 metaDescription: >-
-  Portfólio de engenharia de software de Henrique Krause com estudos de caso
-  localizados, avaliação de compatibilidade com vagas e agendamento de reuniões
-  de uma hora pelo Google Calendar e Google Meet.
+  meu portfólio de engenharia de software, com notas sobre projetos, uma
+  ferramenta para comparar vagas, agendamento de conversas e um livro de visitas
+  em um globo.
 summary: >-
-  Este portfólio apresenta projetos de software selecionados como estudos de
-  caso localizados e indexáveis. Visitantes podem comparar uma vaga com a
-  experiência publicada e agendar uma conversa de uma hora.
+  construí meu portfólio em torno de notas mantidas nos próprios repositórios dos
+  projetos e reunidas do github durante o build. ele também tem uma ferramenta
+  para comparar vagas com o trabalho e a experiência publicados, agendamento pelo
+  calendar e meet e um livro de visitas moderado em um globo interativo.
 highlights:
-  - Estudos de caso localizados e indexáveis
-  - Registros de projetos opt-in pelo GitHub
-  - Snapshots validados durante o build
-  - Avaliação de compatibilidade com vagas
-  - Agendamento de uma hora pelo Google Calendar e Meet
-  - Detecção de bots e limites compartilhados para ações públicas
-  - Agendamento de calendário seguro contra repetição
-  - Validação antecipada da configuração de produção
-  - Ambiente de desenvolvimento local com Docker
-  - Metadados de SEO e dados estruturados
+  - notas dos projetos mantidas junto ao código
+  - projetos expansíveis em três idiomas
+  - comparação de vagas e agendamento de conversas
+  - um livro de visitas em um globo
 ---
 
-## Produto
+construí este site para dar uma casa aos meus projetos e algum espaço para
+explicá-los. a página continua simples: uma coluna estreita, links de texto e
+notas dos projetos que abrem no mesmo lugar.
 
-Este portfólio reúne perfil profissional, links de contato e projetos de software selecionados em uma interface compacta.
+## fácil de atualizar
 
-As páginas dos projetos são indexáveis e incluem metadados localizados, dados estruturados, entradas no sitemap e prévias para redes sociais.
+cada projeto mantém seu texto em uma pasta `.portfolio` dentro do próprio
+repositório. o site reúne esses arquivos do github durante o build, então
+adicionar um projeto segue o mesmo processo de atualizar um que já está aqui.
 
-## O que construí
+os arquivos usam markdown, com espaço para imagens e traduções separadas. o site
+está disponível em inglês, português e japonês.
 
-Repositórios públicos da conta configurada no GitHub participam por meio de um arquivo `.portfolio/project.json`. A sincronização valida os registros elegíveis e suas traduções em um snapshot gerado durante o build.
+## algumas formas de interagir
 
-A rota de avaliação usa os registros publicados dos projetos como contexto, retorna uma análise curta em texto simples e não armazena nem a descrição enviada nem a resposta.
+você pode comparar a descrição de uma vaga com meu trabalho e minha experiência
+publicados ou agendar uma conversa pelo meu calendário. o agendamento verifica a
+disponibilidade e envia um convite com um link do google meet.
 
-O agendamento recebe nome, e-mail, horário local em hora cheia e fuso horário. Ele consulta a disponibilidade no Google Calendar, cria um evento privado de uma hora com uma solicitação de conferência no Google Meet, envia o convite e pode enviar ao proprietário uma notificação idempotente de melhor esforço pelo Resend.
+também trabalhei no que acontece quando um pedido de agendamento é interrompido ou
+enviado novamente, para que uma nova tentativa recupere a reunião original sem
+criar outra.
 
-## Decisões de engenharia
-
-Os Client Components ficam restritos aos formulários interativos, enquanto Route Handlers em Node.js validam as entradas antes de solicitações externas.
-
-BotID, sessões assinadas canônicas, limites de tamanho para requisições e limites por sessão e por IP agregado no Redis protegem as ações públicas. Em produção, o sistema bloqueia as operações quando o armazenamento compartilhado de proteção está indisponível.
-
-O agendamento usa locks no Redis derivados de limites definidos para solicitações externas, uma chave de idempotência estável no navegador, IDs determinísticos no Calendar e resumos privados da requisição e da operação. Links existentes só são reutilizados na operação original, enquanto eventos cancelados são restaurados como novos agendamentos.
-
-Os builds de produção validam variáveis críticas, robustez dos segredos, URLs e grupos opcionais de configuração antes da compilação. O desenvolvimento local usa um lockfile exato e um serviço Redis no Docker Compose pelo mesmo adaptador da aplicação.
-
-O layout responsivo funciona em desktops e telas móveis estreitas, com foco de teclado visível, safe areas e temas claro e escuro do sistema.
+o livro de visitas é uma parte mais descontraída do site. visitantes podem deixar
+uma mensagem que aparece como um ponto de luz no globo. as mensagens são moderadas
+antes de aparecer, e os formulários públicos têm limites de uso.

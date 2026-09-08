@@ -7,7 +7,6 @@ export const en: Dictionary = {
       "Software engineer in Lisbon building thoughtful products, interfaces, and tools for humans and agents.",
     role: "Software engineer",
     location: "Lisbon",
-    profileSummary: "{role} based in {location}.",
   },
   navigation: {
     primaryLinks: "Primary links",
@@ -19,11 +18,64 @@ export const en: Dictionary = {
     appearance: { system: "System", light: "Light", dark: "Dark" },
   },
   home: {
-    assessFit: "Assess my fit",
-    scheduleConversation: "Schedule a conversation",
-    leaveMessage: "Leave a message on the globe",
-    projects: "Projects",
-    readProjectNotes: "Read project notes",
+    assessFit: "assess my fit",
+    scheduleConversation: "schedule a conversation",
+    leaveMessage: "leave a message on the globe",
+    projects: "projects",
+    readProjectNotes: "read project notes",
+    bio: {
+      intro:
+        "i'm a software engineer based in lisbon, building thoughtful products, interfaces, and tools for humans and agents.",
+      process:
+        "i like understanding what people need and figuring out how to turn it into software. talking through ideas, questioning assumptions, thinking about the architecture, and writing the code are all parts of the work i enjoy. so is paying attention to how an application feels to use.",
+      interests:
+        "i work mainly with typescript and node.js. lately, i've been exploring ai agents and orchestration: how they work together, how they keep useful context, and how far i can push them.",
+    },
+    experience: {
+      title: "experience",
+      linkedin: "more about my experience on linkedin",
+      entries: {
+        teamIt: {
+          roleAndPeriod: "software engineer · february–july 2026",
+          paragraphs: {
+            first:
+              "i worked on ai and agent experiments in r&d. the main one was a desktop assistant for managers interviewing consultants. i worked with the r&d director on the requirements and built the application, from the architecture through to its release on the microsoft store.",
+            second:
+              "it could suggest questions during a meeting and help work with transcripts and files afterward. a small group of consultants was using it in meetings before i left.",
+          },
+        },
+        clinia: {
+          roleAndPeriod:
+            "full-stack intern → software engineer · november 2023–november 2025",
+          paragraphs: {
+            first:
+              "i joined as the fourth person on the engineering team, starting with a year as an intern. we built software to help clinics manage patient conversations and automate everyday tasks.",
+            second:
+              "i worked on product features and visual workflows, and built the initial module for the platform's first ai agent. as the product grew, i also worked on support, stability, and changes to the backend and ai architecture.",
+          },
+        },
+        killing: {
+          roleAndPeriod: "it intern · september 2022–april 2023",
+          paragraph:
+            "i worked in it support at a paint manufacturer and built a couple of applications alongside that work. one helped sales consultants fill in customer visit checklists and went into production. the other was a prototype for monitoring factory equipment.",
+        },
+      },
+    },
+    contact: {
+      title: "get in touch",
+      description:
+        "i'm open to a new role or freelance work. if you have something in mind, i'd like to hear about it.",
+      email: "email me",
+      roleFitDescription:
+        "you can also compare a role description with the work i've shared here.",
+      roleFit: "compare a role with my work",
+    },
+    guestbook: {
+      title: "guestbook",
+      description:
+        "leave a note on the globe, or have a look at who's stopped by.",
+      visit: "visit the guestbook",
+    },
   },
   fit: {
     title: "Assess my fit",

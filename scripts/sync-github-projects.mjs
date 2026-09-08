@@ -16,7 +16,6 @@ export const DEFAULT_OUTPUT_PATH = path.join(
   "github-projects.json",
 );
 export const PROJECT_FILE_PATH = ".portfolio/project.md";
-export const LEGACY_PROJECT_FILE_PATH = ".portfolio/project.json";
 const LOCALIZED_PROJECT_FILE_PATHS = {
   pt: ".portfolio/project.pt.md",
   ja: ".portfolio/project.ja.md",
@@ -49,31 +48,6 @@ export function loadGithubProjectSyncEnv(
   loadEnvConfig(projectDirectory, mode === "development", console, true);
 }
 
-const LEGACY_PROJECT_KEYS = [
-  "description",
-  "highlights",
-  "metaDescription",
-  "name",
-  "repositoryUrl",
-  "sections",
-  "slug",
-  "summary",
-];
-const LOCALIZED_PROJECT_KEYS = [
-  "name",
-  "repositoryUrl",
-  "slug",
-  "translations",
-];
-const TRANSLATION_KEYS = [
-  "description",
-  "highlights",
-  "metaDescription",
-  "sections",
-  "summary",
-];
-const SUPPORTED_PROJECT_LOCALES = ["en", "pt", "ja"];
-
 function isRecord(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -99,104 +73,6 @@ function isSafeRepositoryUrl(value) {
   } catch {
     return false;
   }
-}
-
-function validateTranslation(value, context) {
-  if (
-    !isRecord(value) ||
-    !hasExactKeys(value, TRANSLATION_KEYS) ||
-    !nonEmptyString(value.description) ||
-    !nonEmptyString(value.metaDescription) ||
-    !nonEmptyString(value.summary) ||
-    !Array.isArray(value.highlights) ||
-    value.highlights.length === 0 ||
-    !value.highlights.every(nonEmptyString) ||
-    !Array.isArray(value.sections) ||
-    value.sections.length === 0
-  ) {
-    throw new Error(`${context} has invalid translation fields.`);
-  }
-
-  for (const [sectionIndex, section] of value.sections.entries()) {
-    if (
-      !isRecord(section) ||
-      !hasExactKeys(section, ["paragraphs", "title"]) ||
-      !nonEmptyString(section.title) ||
-      !Array.isArray(section.paragraphs) ||
-      section.paragraphs.length === 0 ||
-      !section.paragraphs.every(nonEmptyString)
-    ) {
-      throw new Error(`${context}.sections[${sectionIndex}] is invalid.`);
-    }
-  }
-
-  return value;
-}
-
-function validateProject(value, context) {
-  if (!isRecord(value)) {
-    throw new Error(`${context} must contain exactly the Project fields.`);
-  }
-
-  const isLegacy = hasExactKeys(value, LEGACY_PROJECT_KEYS);
-  const isLocalized = hasExactKeys(value, LOCALIZED_PROJECT_KEYS);
-  if (!isLegacy && !isLocalized) {
-    throw new Error(`${context} must contain exactly the Project fields.`);
-  }
-  if (
-    typeof value.slug !== "string" ||
-    !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value.slug) ||
-    !nonEmptyString(value.name) ||
-    !isSafeRepositoryUrl(value.repositoryUrl)
-  ) {
-    throw new Error(`${context} has invalid Project fields.`);
-  }
-
-  if (isLegacy) {
-    return {
-      slug: value.slug,
-      name: value.name,
-      repositoryUrl: value.repositoryUrl,
-      translations: {
-        en: validateTranslation(
-          {
-            description: value.description,
-            highlights: value.highlights,
-            metaDescription: value.metaDescription,
-            sections: value.sections,
-            summary: value.summary,
-          },
-          `${context}.translations.en`,
-        ),
-      },
-    };
-  }
-
-  if (!isRecord(value.translations)) {
-    throw new Error(`${context}.translations is invalid.`);
-  }
-  const locales = Object.keys(value.translations);
-  if (
-    !locales.includes("en") ||
-    locales.some((locale) => !SUPPORTED_PROJECT_LOCALES.includes(locale))
-  ) {
-    throw new Error(`${context}.translations has unsupported locales.`);
-  }
-
-  return {
-    slug: value.slug,
-    name: value.name,
-    repositoryUrl: value.repositoryUrl,
-    translations: Object.fromEntries(
-      locales.map((locale) => [
-        locale,
-        validateTranslation(
-          value.translations[locale],
-          `${context}.translations.${locale}`,
-        ),
-      ]),
-    ),
-  };
 }
 
 function hasLevelOneHeading(content) {
@@ -273,35 +149,6 @@ function parseProjectTranslationMarkdown(source, context) {
     context,
     TRANSLATED_MARKDOWN_KEYS,
   );
-}
-
-function sectionsToMarkdown(sections) {
-  return sections
-    .map(
-      (section) => `## ${section.title}\n\n${section.paragraphs.join("\n\n")}`,
-    )
-    .join("\n\n");
-}
-
-function normalizeLegacyProject(project, assetBaseUrl) {
-  return {
-    slug: project.slug,
-    name: project.name,
-    repositoryUrl: project.repositoryUrl,
-    assetBaseUrl,
-    translations: Object.fromEntries(
-      Object.entries(project.translations).map(([locale, translation]) => [
-        locale,
-        {
-          description: translation.description,
-          metaDescription: translation.metaDescription,
-          summary: translation.summary,
-          highlights: translation.highlights,
-          content: sectionsToMarkdown(translation.sections),
-        },
-      ]),
-    ),
-  };
 }
 
 function projectAssetBaseUrl(owner, repository, ref) {
@@ -416,17 +263,6 @@ function decodeFileContent(body, context) {
   }
 
   return Buffer.from(body.content, "base64").toString("utf8");
-}
-
-function decodeLegacyProjectContent(body, context) {
-  let parsed;
-  try {
-    parsed = JSON.parse(decodeFileContent(body, context));
-  } catch {
-    throw new Error(`${context} is not valid JSON.`);
-  }
-
-  return validateProject(parsed, context);
 }
 
 async function getRepositoryFile({
@@ -608,7 +444,6 @@ export async function syncGithubProjects({
       token,
     });
 
-    let project;
     if (markdownFile) {
       const baseProject = parseProjectMarkdown(
         decodeFileContent(markdownFile.body, markdownFile.context),
@@ -637,38 +472,19 @@ export async function syncGithubProjects({
         }
       }
 
-      project = {
+      const project = {
         slug: baseProject.slug,
         name: baseProject.name,
         repositoryUrl: baseProject.repositoryUrl,
         assetBaseUrl,
         translations,
       };
-    } else {
-      const legacyFile = await getRepositoryFile({
-        apiBase,
-        fetchImpl,
-        owner,
-        path: LEGACY_PROJECT_FILE_PATH,
-        ref: repo.default_branch,
-        repository: repo.name,
-        timeoutMs,
-        token,
-      });
-      if (!legacyFile) {
-        continue;
+      if (slugs.has(project.slug)) {
+        throw new Error(`Duplicate project slug: ${project.slug}.`);
       }
-      project = normalizeLegacyProject(
-        decodeLegacyProjectContent(legacyFile.body, legacyFile.context),
-        assetBaseUrl,
-      );
+      slugs.add(project.slug);
+      projects.push(project);
     }
-
-    if (slugs.has(project.slug)) {
-      throw new Error(`Duplicate project slug: ${project.slug}.`);
-    }
-    slugs.add(project.slug);
-    projects.push(project);
   }
 
   projects.sort(

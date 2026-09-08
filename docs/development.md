@@ -95,9 +95,7 @@ Markdown bodies start with `##` headings so expanded content nests under the
 home page's projects section. Raw HTML is ignored. Store project images in the
 source repository and reference them with a relative Markdown path such as
 `![Dashboard](images/dashboard.webp)`. Image alt text is required when the image
-conveys information and can be empty only when the image is decorative. The
-synchronizer temporarily accepts `.portfolio/project.json` and normalizes its
-sections while source repositories migrate.
+conveys information and can be empty only when the image is decorative.
 
 The writer and reader enforce the same normalized fields, Markdown body, and
 string slug contract. Invalid records, unsupported translation keys, duplicate
