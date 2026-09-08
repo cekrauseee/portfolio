@@ -21,52 +21,21 @@ export type Dictionary = {
     };
   };
   home: {
-    assessFit: string;
-    scheduleConversation: string;
-    leaveMessage: string;
     projects: string;
-    readProjectNotes: string;
-    bio: {
-      intro: string;
-      process: string;
-      interests: string;
-    };
+    bio: { intro: string; process: string; interests: string };
     experience: {
       title: string;
-      linkedin: string;
-      entries: {
-        teamIt: {
-          roleAndPeriod: string;
-          paragraphs: {
-            first: string;
-            second: string;
-          };
-        };
-        clinia: {
-          roleAndPeriod: string;
-          paragraphs: {
-            first: string;
-            second: string;
-          };
-        };
-        killing: {
-          roleAndPeriod: string;
-          paragraph: string;
-        };
-      };
+      entries: Record<
+        "teamIt" | "clinia" | "killing",
+        {
+          role: string;
+          period: string;
+          description: string;
+        }
+      >;
     };
-    contact: {
-      title: string;
-      description: string;
-      email: string;
-      roleFitDescription: string;
-      roleFit: string;
-    };
-    guestbook: {
-      title: string;
-      description: string;
-      visit: string;
-    };
+    contact: { description: string; schedule: string; roleFit: string };
+    guestbook: { title: string };
   };
   fit: {
     title: string;

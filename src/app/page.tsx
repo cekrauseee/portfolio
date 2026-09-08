@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { Inter } from "next/font/google";
 import {
-  actionSoundProps,
   ExternalLink,
   linkSoundProps,
-  textLinkClassName,
+  quietLinkClassName,
 } from "@/components/links";
 import { PageShell } from "@/components/page-shell";
 import { ProjectList } from "@/components/project-list";
@@ -53,8 +52,7 @@ export default async function Home() {
     <PageShell
       locale={locale}
       navigation={dictionary.navigation}
-      disableTextSelection
-      containerClassName={`${inter.className} home-project-focus mx-auto flex w-full max-w-xl flex-col gap-12 px-4 text-[0.9375rem] leading-6 font-medium`}
+      containerClassName={`${inter.className} home-project-focus mx-auto flex w-full max-w-xl flex-col gap-10 px-4 text-[0.9375rem] leading-relaxed font-normal text-black/65 select-text sm:gap-12 dark:text-white/70 [&_footer_button]:rounded-full [&_footer_button]:px-2 [&_footer_button]:text-[0.8125rem] [&_footer_button]:leading-5 [&_footer_button]:lowercase [&_footer_button]:no-underline [&_footer_button]:transition-[background-color,color,scale] [&_footer_button]:duration-200 [&_footer_button]:ease-out [&_footer_button:hover]:bg-black/[0.05] [&_footer_button:focus-visible]:bg-black/[0.05] motion-safe:[&_footer_button:active]:scale-[0.97] motion-reduce:[&_footer_button]:transition-none dark:[&_footer_button:hover]:bg-white/[0.08] dark:[&_footer_button:focus-visible]:bg-white/[0.08] [&_footer_button[aria-pressed=true]]:bg-black/[0.05] [&_footer_button[aria-pressed=true]]:font-medium dark:[&_footer_button[aria-pressed=true]]:bg-white/[0.08]`}
       showNavigation={false}
     >
       <script
@@ -63,8 +61,8 @@ export default async function Home() {
           __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
         }}
       />
-      <header className="flex flex-col">
-        <h1 className="home-enter-item text-2xl leading-[1.08] font-semibold tracking-[-0.04em] text-black lowercase dark:text-white">
+      <header className="flex flex-col gap-3 lowercase">
+        <h1 className="home-enter-item mb-1 text-2xl leading-tight font-medium tracking-tight text-black dark:text-white">
           {profile.name}.
         </h1>
         {[
@@ -73,21 +71,13 @@ export default async function Home() {
           dictionary.home.bio.interests,
         ].map((paragraph, index) => (
           <p
-            className="home-enter-item mt-4 text-[0.9375rem] leading-6 tracking-[-0.015em] text-black/58 lowercase dark:text-white/64"
+            className="home-enter-item text-pretty"
             key={paragraph}
-            style={{ animationDelay: `${45 + index * 45}ms` }}
+            style={{ animationDelay: `${30 + index * 30}ms` }}
           >
             {paragraph}
           </p>
         ))}
-        <a
-          {...linkSoundProps}
-          className={`${textLinkClassName} home-enter-item mt-4 w-fit text-[0.9375rem] text-black/82 lowercase decoration-black/35 dark:text-white/84 dark:decoration-white/35`}
-          href={`mailto:${profile.email}`}
-          style={{ animationDelay: "180ms" }}
-        >
-          {profile.email}
-        </a>
       </header>
 
       <ProjectList
@@ -96,78 +86,61 @@ export default async function Home() {
         locale={locale}
       />
 
-      <ExperienceList
-        dictionary={dictionary.home.experience}
-        externalLinkNewTab={dictionary.navigation.externalLinkNewTab}
-      />
+      <ExperienceList dictionary={dictionary.home.experience} />
 
-      <section className="flex flex-col lowercase">
-        <h2 className="home-enter-item mb-4 w-fit text-[0.9375rem] leading-6 font-semibold text-black underline decoration-[0.08em] underline-offset-[0.18em] dark:text-white">
-          {dictionary.home.contact.title}
-        </h2>
-        <p className="home-enter-item text-black/58 dark:text-white/64">
-          {dictionary.home.contact.description}
-        </p>
-        <div className="home-enter-item mt-3 flex flex-wrap gap-x-4 gap-y-1">
-          <a
-            {...linkSoundProps}
-            className={`${textLinkClassName} text-black/82 decoration-black/35 dark:text-white/84 dark:decoration-white/35`}
-            href={`mailto:${profile.email}`}
-          >
-            {dictionary.home.contact.email}
-          </a>
-          <Link
-            {...linkSoundProps}
-            className={`${textLinkClassName} text-black/82 decoration-black/35 dark:text-white/84 dark:decoration-white/35`}
-            href="/schedule"
-          >
-            {dictionary.home.scheduleConversation}
-          </Link>
-        </div>
-        <p className="home-enter-item mt-5 text-black/58 dark:text-white/64">
-          {dictionary.home.contact.roleFitDescription}
-        </p>
-        <Link
-          {...actionSoundProps}
-          className={`${textLinkClassName} home-enter-item mt-3 w-fit text-[0.9375rem] font-medium text-black dark:text-white`}
-          href="/fit"
-        >
-          {dictionary.home.contact.roleFit}
-        </Link>
-      </section>
-
-      <section className="flex flex-col lowercase">
-        <h2 className="home-enter-item mb-4 w-fit text-[0.9375rem] leading-6 font-semibold text-black underline decoration-[0.08em] underline-offset-[0.18em] dark:text-white">
-          {dictionary.home.guestbook.title}
-        </h2>
-        <p className="home-enter-item text-black/58 dark:text-white/64">
-          {dictionary.home.guestbook.description}
-        </p>
-        <Link
-          {...linkSoundProps}
-          className={`${textLinkClassName} home-enter-item mt-3 w-fit text-black/82 decoration-black/35 dark:text-white/84 dark:decoration-white/35`}
-          href="/guestbook"
-        >
-          {dictionary.home.guestbook.visit}
-        </Link>
-      </section>
-
-      <nav
-        aria-label={dictionary.navigation.primaryLinks}
-        className="home-enter-item flex flex-wrap gap-x-4 gap-y-1 text-sm text-black/45 lowercase dark:text-white/50"
-        style={{ animationDelay: "540ms" }}
+      <div
+        className="home-enter-item flex flex-col gap-4 lowercase"
+        style={{ animationDelay: "290ms" }}
       >
-        {socialLinks.map((link) => (
-          <ExternalLink
-            className="decoration-black/20 dark:decoration-white/20"
-            href={link.href}
-            key={link.href}
-            newTabLabel={dictionary.navigation.externalLinkNewTab}
-          >
-            {link.label}
-          </ExternalLink>
-        ))}
-      </nav>
+        <p className="text-pretty">{dictionary.home.contact.description}</p>
+        <nav
+          aria-label={dictionary.navigation.primaryLinks}
+          className="flex flex-col gap-3 text-sm leading-relaxed"
+        >
+          <div className="flex flex-wrap gap-x-5 gap-y-2">
+            <a
+              {...linkSoundProps}
+              className={quietLinkClassName}
+              href={`mailto:${profile.email}`}
+            >
+              {profile.email}
+            </a>
+            {socialLinks.map((link) => (
+              <ExternalLink
+                appearance="quiet"
+                href={link.href}
+                key={link.href}
+                newTabLabel={dictionary.navigation.externalLinkNewTab}
+              >
+                {link.label}
+              </ExternalLink>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-x-5 gap-y-2">
+            <Link
+              {...linkSoundProps}
+              className={quietLinkClassName}
+              href="/schedule"
+            >
+              {dictionary.home.contact.schedule}
+            </Link>
+            <Link
+              {...linkSoundProps}
+              className={quietLinkClassName}
+              href="/fit"
+            >
+              {dictionary.home.contact.roleFit}
+            </Link>
+            <Link
+              {...linkSoundProps}
+              className={quietLinkClassName}
+              href="/guestbook"
+            >
+              {dictionary.home.guestbook.title}
+            </Link>
+          </div>
+        </nav>
+      </div>
     </PageShell>
   );
 }

@@ -18,11 +18,12 @@ export function ProjectList({
   return (
     <section
       className="project-focus-anchor flex flex-col lowercase"
-      aria-label={dictionary.projects}
+      aria-labelledby="projects-heading"
     >
       <h2
-        className="home-enter-item mb-4 w-fit text-[0.9375rem] leading-6 font-semibold text-black underline decoration-[0.08em] underline-offset-[0.18em] dark:text-white"
-        style={{ animationDelay: "270ms" }}
+        id="projects-heading"
+        className="home-enter-item mb-4 text-sm leading-relaxed font-medium text-black/60 dark:text-white/65"
+        style={{ animationDelay: "110ms" }}
       >
         {dictionary.projects}
       </h2>
@@ -43,9 +44,9 @@ export function ProjectList({
               content={project.content}
             />
 
-            <p className="mt-8 lowercase">
+            <p className="mt-4 text-sm lowercase">
               <ExternalLink
-                className="text-black/82 decoration-black/35 dark:text-white/84 dark:decoration-white/35"
+                appearance="soft"
                 href={project.repositoryUrl}
                 newTabLabel={projectDictionary.externalLinkNewTab}
               >

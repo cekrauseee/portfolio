@@ -1,21 +1,17 @@
 "use client";
 
-import {
-  Children,
-  type ReactNode,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { Children, type ReactNode, useEffect, useRef, useState } from "react";
 import { focusVisibleClassName, toggleSoundProps } from "@/components/links";
 import { stabilizeViewportAnchor } from "@/lib/viewport-scroll";
+
+const PANEL_TRANSITION_MS = 500;
 
 type CollapsiblePreview = {
   slug: string;
   name: string;
   description: string;
   languageTag?: string;
+  meta?: string;
 };
 
 export function ProjectCollapsibleList({
@@ -31,81 +27,69 @@ export function ProjectCollapsibleList({
 }) {
   const [openSlug, setOpenSlug] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
-  const anchorFrameRef = useRef<number | null>(null);
+  const cancelAnchorRef = useRef<(() => void) | null>(null);
   const contents = Children.toArray(children);
 
-  useLayoutEffect(() => {
-    const main = rootRef.current?.closest<HTMLElement>("main");
-    if (!main) {
-      return;
-    }
+  function preserveViewportPosition(anchor: HTMLElement) {
+    cancelAnchorRef.current?.();
 
-    const scrollContainer = main;
-
-    const { overflowY } = window.getComputedStyle(scrollContainer);
-    if (overflowY !== "auto" && overflowY !== "scroll") {
-      return;
-    }
-
-    let remainingFrames = 36;
+    const targetTop = anchor.getBoundingClientRect().top;
+    const main = anchor.closest<HTMLElement>("main");
+    const hasScrollContainer =
+      main && /^(auto|scroll)$/.test(window.getComputedStyle(main).overflowY);
+    const readScrollTop = () =>
+      hasScrollContainer ? main.scrollTop : window.scrollY;
+    let expectedScrollTop = readScrollTop();
+    let startedAt: number | null = null;
+    const duration = window.matchMedia("(prefers-reduced-motion: reduce)")
+      .matches
+      ? 0
+      : PANEL_TRANSITION_MS;
     let frame: number | null = null;
 
-    function keepRootScrollReset() {
-      if (!scrollContainer.isConnected) {
-        return;
-      }
-
-      if (window.scrollX !== 0 || window.scrollY !== 0) {
-        window.scrollTo(0, 0);
-      }
-
-      remainingFrames -= 1;
-      if (remainingFrames > 0) {
-        frame = requestAnimationFrame(keepRootScrollReset);
-      }
-    }
-
-    keepRootScrollReset();
-
-    return () => {
+    function cancel() {
       if (frame !== null) {
         cancelAnimationFrame(frame);
       }
-    };
-  }, []);
-
-  function preserveViewportPosition(anchor: HTMLElement) {
-    if (anchorFrameRef.current !== null) {
-      cancelAnimationFrame(anchorFrameRef.current);
+      frame = null;
+      for (const event of ["wheel", "touchstart", "pointerdown", "keydown"]) {
+        window.removeEventListener(event, cancel, true);
+      }
+      if (cancelAnchorRef.current === cancel) {
+        cancelAnchorRef.current = null;
+      }
     }
 
-    const targetTop = anchor.getBoundingClientRect().top;
-    let remainingFrames = window.matchMedia("(prefers-reduced-motion: reduce)")
-      .matches
-      ? 1
-      : 36;
-
-    function keepAnchorStable() {
-      if (!anchor.isConnected) {
-        anchorFrameRef.current = null;
+    function keepAnchorStable(now: number) {
+      startedAt ??= now;
+      // User or external scrolling takes priority over our layout correction.
+      if (
+        !anchor.isConnected ||
+        Math.abs(readScrollTop() - expectedScrollTop) > 0.5
+      ) {
+        cancel();
         return;
       }
 
       stabilizeViewportAnchor(anchor, targetTop);
+      expectedScrollTop = readScrollTop();
 
-      remainingFrames -= 1;
-
-      if (remainingFrames > 0) {
-        anchorFrameRef.current = requestAnimationFrame(keepAnchorStable);
+      if (now - startedAt < duration) {
+        frame = requestAnimationFrame(keepAnchorStable);
       } else {
-        anchorFrameRef.current = null;
+        cancel();
       }
     }
 
-    anchorFrameRef.current = requestAnimationFrame(keepAnchorStable);
+    for (const event of ["wheel", "touchstart", "pointerdown", "keydown"]) {
+      window.addEventListener(event, cancel, { capture: true, passive: true });
+    }
+    cancelAnchorRef.current = cancel;
+    frame = requestAnimationFrame(keepAnchorStable);
   }
 
   function toggleProject(slug: string, trigger: HTMLButtonElement) {
+    cancelAnchorRef.current?.();
     const nextSlug = openSlug === slug ? null : slug;
 
     if (openSlug && nextSlug && openSlug !== nextSlug) {
@@ -125,8 +109,11 @@ export function ProjectCollapsibleList({
         return;
       }
 
+      cancelAnchorRef.current?.();
       setOpenSlug(null);
-      document.getElementById(`${idPrefix}-${openSlug}-trigger`)?.focus();
+      document
+        .getElementById(`${idPrefix}-${openSlug}-trigger`)
+        ?.focus({ preventScroll: true });
     }
 
     function handleClick(event: MouseEvent) {
@@ -142,6 +129,7 @@ export function ProjectCollapsibleList({
         "button, a, input, select, textarea, [tabindex]",
       );
 
+      cancelAnchorRef.current?.();
       setOpenSlug(null);
 
       if (anchor) {
@@ -160,9 +148,7 @@ export function ProjectCollapsibleList({
 
   useEffect(
     () => () => {
-      if (anchorFrameRef.current !== null) {
-        cancelAnimationFrame(anchorFrameRef.current);
-      }
+      cancelAnchorRef.current?.();
     },
     [],
   );
@@ -184,44 +170,53 @@ export function ProjectCollapsibleList({
               marksProjectFocus && isOpen ? "true" : undefined
             }
             key={project.slug}
-            style={{ animationDelay: `${315 + index * 45}ms` }}
+            style={{ animationDelay: `${Math.min(140 + index * 30, 290)}ms` }}
           >
-            <button
-              {...toggleSoundProps}
-              aria-controls={panelId}
-              aria-expanded={isOpen}
-              className={`${focusVisibleClassName} group block w-full cursor-pointer touch-manipulation text-left`}
-              id={triggerId}
-              onClick={(event) =>
-                toggleProject(project.slug, event.currentTarget)
-              }
-              type="button"
-            >
-              <span className="block w-fit text-[0.9375rem] leading-6 font-medium text-black/74 transition-colors group-hover:text-black dark:text-white/74 dark:group-hover:text-white">
-                {project.name}
-              </span>
-              <span
-                className="mt-1 block max-w-[52ch] text-sm leading-5 font-normal text-black/44 dark:text-white/48"
-                lang={project.languageTag}
+            <h3>
+              <button
+                {...toggleSoundProps}
+                aria-controls={panelId}
+                aria-expanded={isOpen}
+                className={`${focusVisibleClassName} group block w-full cursor-pointer touch-manipulation text-left`}
+                id={triggerId}
+                onClick={(event) =>
+                  toggleProject(project.slug, event.currentTarget)
+                }
+                type="button"
               >
-                {project.description}
-              </span>
-            </button>
+                <span className="block text-[0.9375rem] leading-relaxed font-medium text-black/85 transition-colors group-hover:text-black dark:text-white/85 dark:group-hover:text-white">
+                  {project.name}
+                </span>
+                <span
+                  className="mt-1 block max-w-[52ch] text-sm leading-relaxed font-normal text-black/60 dark:text-white/65"
+                  lang={project.languageTag}
+                >
+                  {project.description}
+                  {project.meta ? <span> · {project.meta}</span> : null}
+                </span>
+              </button>
+            </h3>
 
             <div
               aria-hidden={!isOpen}
               aria-labelledby={triggerId}
-              className={`project-collapsible-panel grid transition-[grid-template-rows,opacity] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none ${
+              className={`project-collapsible-panel grid transition-[grid-template-rows,opacity] ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none ${
                 isOpen
                   ? "grid-rows-[1fr] opacity-100"
                   : "pointer-events-none grid-rows-[0fr] opacity-0"
               }`}
+              style={{ transitionDuration: `${PANEL_TRANSITION_MS}ms` }}
               id={panelId}
               inert={isOpen ? undefined : true}
               role="region"
             >
               <div className="min-h-0 overflow-hidden">
-                <div className="pb-2">{contents[index]}</div>
+                <div
+                  className={`origin-top-left pb-1 transition-transform ease-[cubic-bezier(0.2,0.9,0.3,1.15)] motion-reduce:transform-none motion-reduce:transition-none ${isOpen ? "translate-y-0 scale-100" : "translate-y-2 scale-[0.98]"}`}
+                  style={{ transitionDuration: `${PANEL_TRANSITION_MS}ms` }}
+                >
+                  {contents[index]}
+                </div>
               </div>
             </div>
           </article>

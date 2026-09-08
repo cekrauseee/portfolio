@@ -3,7 +3,7 @@ import ReactMarkdown, {
   defaultUrlTransform,
   type Components,
 } from "react-markdown";
-import { linkSoundProps, textLinkClassName } from "@/components/links";
+import { linkSoundProps, quietLinkClassName } from "@/components/links";
 
 function isRelativeUrl(value: string) {
   return (
@@ -31,49 +31,49 @@ export function resolveProjectImageSource(
 function markdownComponents(): Components {
   return {
     h1: ({ children }) => (
-      <h2 className="mt-12 w-fit text-[0.9375rem] leading-6 font-semibold lowercase underline decoration-[0.08em] underline-offset-[0.18em] first:mt-0">
-        {children}
-      </h2>
-    ),
-    h2: ({ children }) => (
-      <h2 className="mt-12 w-fit text-[0.9375rem] leading-6 font-semibold lowercase underline decoration-[0.08em] underline-offset-[0.18em] first:mt-0">
-        {children}
-      </h2>
-    ),
-    h3: ({ children }) => (
-      <h3 className="mt-9 text-[0.9375rem] leading-6 font-semibold lowercase">
-        {children}
-      </h3>
-    ),
-    h4: ({ children }) => (
-      <h4 className="mt-7 text-[0.9375rem] leading-6 font-semibold lowercase">
+      <h4 className="mt-6 text-[0.9375rem] leading-relaxed font-medium text-black/85 lowercase first:mt-0 dark:text-white/85">
         {children}
       </h4>
     ),
+    h2: ({ children }) => (
+      <h4 className="mt-6 text-[0.9375rem] leading-relaxed font-medium text-black/85 lowercase first:mt-0 dark:text-white/85">
+        {children}
+      </h4>
+    ),
+    h3: ({ children }) => (
+      <h5 className="mt-5 text-[0.9375rem] leading-relaxed font-medium lowercase">
+        {children}
+      </h5>
+    ),
+    h4: ({ children }) => (
+      <h6 className="mt-5 text-[0.9375rem] leading-relaxed font-medium lowercase">
+        {children}
+      </h6>
+    ),
     p: ({ children }) => (
-      <p className="mt-4 text-[0.9375rem] leading-6 font-normal text-black/58 first:mt-0 dark:text-white/64">
+      <p className="mt-3 text-[0.9375rem] leading-relaxed font-normal text-black/65 first:mt-0 dark:text-white/70">
         {children}
       </p>
     ),
     a: ({ children, href }) => (
       <a
         {...linkSoundProps}
-        className={`${textLinkClassName} text-black/82 decoration-black/35 dark:text-white/84 dark:decoration-white/35`}
+        className={`${quietLinkClassName} font-medium`}
         href={href}
       >
         {children}
       </a>
     ),
     strong: ({ children }) => (
-      <strong className="text-foreground font-semibold">{children}</strong>
+      <strong className="text-foreground font-medium">{children}</strong>
     ),
     ul: ({ children }) => (
-      <ul className="mt-4 list-disc space-y-2 pl-5 text-[0.9375rem] leading-6 font-normal text-black/58 marker:text-black/30 dark:text-white/64 dark:marker:text-white/30">
+      <ul className="mt-3 list-disc space-y-2 pl-5 text-[0.9375rem] leading-relaxed font-normal text-black/65 marker:text-black/30 dark:text-white/70 dark:marker:text-white/30">
         {children}
       </ul>
     ),
     ol: ({ children }) => (
-      <ol className="mt-4 list-decimal space-y-2 pl-5 text-[0.9375rem] leading-6 font-normal text-black/58 marker:text-black/30 dark:text-white/64 dark:marker:text-white/30">
+      <ol className="mt-3 list-decimal space-y-2 pl-5 text-[0.9375rem] leading-relaxed font-normal text-black/65 marker:text-black/30 dark:text-white/70 dark:marker:text-white/30">
         {children}
       </ol>
     ),
@@ -88,11 +88,11 @@ function markdownComponents(): Components {
       </code>
     ),
     pre: ({ children }) => (
-      <pre className="mt-5 overflow-x-auto bg-black/[0.035] p-4 text-sm leading-6 font-normal select-text dark:bg-white/[0.06] [&_code]:bg-transparent [&_code]:p-0">
+      <pre className="mt-5 overflow-x-auto bg-black/[0.035] p-4 text-sm leading-relaxed font-normal select-text dark:bg-white/[0.06] [&_code]:bg-transparent [&_code]:p-0">
         {children}
       </pre>
     ),
-    hr: () => <hr className="my-12 border-black/8 dark:border-white/12" />,
+    hr: () => <hr className="my-6 border-black/8 dark:border-white/12" />,
     img: ({ alt = "", src }) => {
       if (typeof src !== "string" || !src) {
         return null;
@@ -100,12 +100,12 @@ function markdownComponents(): Components {
 
       return (
         <Image
-          className="relative left-1/2 my-7 h-auto w-[min(44rem,calc(100vw-2rem))] max-w-none -translate-x-1/2 outline-1 -outline-offset-1 outline-black/8 dark:outline-white/10"
+          className="my-5 h-auto w-full outline-1 -outline-offset-1 outline-black/8 dark:outline-white/10"
           src={src}
           alt={alt}
           width={1600}
           height={900}
-          sizes="(max-width: 768px) calc(100vw - 2rem), 704px"
+          sizes="(max-width: 576px) calc(100vw - 2rem), 544px"
         />
       );
     },
@@ -120,7 +120,7 @@ export function ProjectMarkdown({
   content: string;
 }) {
   return (
-    <div className="mt-12 select-text [&>h2+p]:mt-3">
+    <div className="mt-4 select-text [&>h4+p]:mt-2 [&>h5+p]:mt-2 [&>h6+p]:mt-2">
       <ReactMarkdown
         components={markdownComponents()}
         skipHtml

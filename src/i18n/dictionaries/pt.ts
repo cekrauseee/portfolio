@@ -18,62 +18,46 @@ export const pt: Dictionary = {
     appearance: { system: "Sistema", light: "Claro", dark: "Escuro" },
   },
   home: {
-    assessFit: "avaliar compatibilidade",
-    scheduleConversation: "agendar uma conversa",
-    leaveMessage: "deixar uma mensagem no globo",
     projects: "projetos",
-    readProjectNotes: "ler notas do projeto",
     bio: {
       intro:
-        "sou engenheiro de software em lisboa, criando produtos, interfaces e ferramentas bem pensados para pessoas e agentes.",
+        "sou engenheiro de software em lisboa, criando produtos, interfaces e ferramentas para pessoas e agentes.",
       process:
-        "gosto de entender o que as pessoas precisam e descobrir como transformar isso em software. conversar sobre ideias, questionar premissas, pensar na arquitetura e escrever o código são partes do trabalho que eu gosto. também me importo com a sensação de usar a aplicação.",
+        "gosto de transformar ideias em software e cuidar de como ele é usado.",
       interests:
-        "trabalho principalmente com typescript e node.js. ultimamente, tenho explorado agentes de ia e orquestração: como eles trabalham juntos, como mantêm contexto útil e até onde consigo levá-los.",
+        "trabalho principalmente com typescript e node.js. ultimamente, tenho explorado como agentes de ia trabalham juntos e mantêm contexto útil.",
     },
     experience: {
       title: "experiência",
-      linkedin: "mais sobre minha experiência no linkedin",
       entries: {
         teamIt: {
-          roleAndPeriod: "engenheiro de software · fevereiro–julho de 2026",
-          paragraphs: {
-            first:
-              "trabalhei em experimentos de ia e agentes em p&d. o principal foi um assistente desktop para gestores entrevistando consultores. trabalhei com o diretor de p&d nos requisitos e construí a aplicação, da arquitetura até a publicação na microsoft store.",
-            second:
-              "ele podia sugerir perguntas durante uma reunião e ajudar a trabalhar com transcrições e arquivos depois. um pequeno grupo de consultores já o usava em reuniões antes de eu sair.",
-          },
+          role: "engenheiro de software",
+          period: "fevereiro–julho de 2026",
+          description:
+            "construí um assistente de ia para entrevistas, trabalhando com o diretor de p&d dos requisitos até a publicação na microsoft store. consultores já o usavam em reuniões antes de eu sair.",
         },
         clinia: {
-          roleAndPeriod:
-            "estagiário full-stack → engenheiro de software · novembro de 2023–novembro de 2025",
-          paragraphs: {
-            first:
-              "entrei como a quarta pessoa do time de engenharia, começando com um ano de estágio. construíamos software para ajudar clínicas a gerenciar conversas com pacientes e automatizar tarefas do dia a dia.",
-            second:
-              "trabalhei em funcionalidades do produto e fluxos visuais, e construí o módulo inicial do primeiro agente de ia da plataforma. conforme o produto cresceu, também trabalhei em suporte, estabilidade e mudanças na arquitetura de backend e ia.",
-          },
+          role: "engenheiro de software",
+          period: "novembro de 2023–novembro de 2025",
+          description:
+            "entrei como estagiário e continuei como engenheiro. trabalhei no software para clínicas, em fluxos visuais e no primeiro agente de ia. depois, ajudei na estabilidade e nas mudanças da arquitetura de backend e ia.",
         },
         killing: {
-          roleAndPeriod: "estagiário de ti · setembro de 2022–abril de 2023",
-          paragraph:
-            "trabalhei com suporte de ti em uma fabricante de tintas e construí algumas aplicações junto desse trabalho. uma ajudava consultores comerciais a preencher checklists de visitas a clientes e entrou em produção. a outra foi um protótipo para monitorar equipamentos da fábrica.",
+          role: "estagiário de ti",
+          period: "setembro de 2022–abril de 2023",
+          description:
+            "junto do suporte de ti, construí um checklist de visitas a clientes que entrou em produção e um protótipo para monitorar equipamentos da fábrica.",
         },
       },
     },
     contact: {
-      title: "entre em contato",
       description:
-        "estou aberto a uma nova vaga ou trabalho freelance. se você tem algo em mente, gostaria de saber mais.",
-      email: "enviar e-mail",
-      roleFitDescription:
-        "você também pode comparar a descrição de uma vaga com o trabalho que compartilhei aqui.",
-      roleFit: "comparar uma vaga com meu trabalho",
+        "aberto a uma nova vaga ou trabalho freelance. gostaria de saber no que você está trabalhando.",
+      schedule: "agendar uma conversa",
+      roleFit: "comparar uma vaga",
     },
     guestbook: {
       title: "livro de visitas",
-      description: "deixe uma mensagem no globo ou veja quem passou por aqui.",
-      visit: "visitar o livro de visitas",
     },
   },
   fit: {
