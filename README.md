@@ -1,12 +1,12 @@
 # portfolio
 
-A terminal-inspired personal portfolio built with Next.js and Tailwind CSS. It
-combines statically rendered project case studies with focused tools for role-fit
-assessment and meeting scheduling.
+A centered editorial personal portfolio built with Next.js and Tailwind CSS. It
+combines inline project case studies with focused tools for role-fit assessment
+and meeting scheduling.
 
 ## Features
 
-- statically rendered, indexable project case studies;
+- server-rendered project case studies that expand inline on the home page;
 - role-fit assessments grounded in the published portfolio content;
 - one-hour meeting scheduling with Google Calendar and Google Meet;
 - a moderated visitor guestbook displayed on an interactive globe;
@@ -63,7 +63,7 @@ OpenAI project hard-spend limit with alerts outside this repository.
 
 Project case studies come from the validated `.cache/github-projects.json`
 snapshot. `npm run dev` and `npm run build` refresh it by scanning public
-repositories owned by `GITHUB_OWNER` and reading `.portfolio/project.json` from
+repositories owned by `GITHUB_OWNER` and reading `.portfolio/project.md` from
 each default branch. Visitor requests never call GitHub.
 
 ## Continuous delivery

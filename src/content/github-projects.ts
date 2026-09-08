@@ -8,18 +8,8 @@ export const githubProjectsSnapshotPath = path.join(
   "github-projects.json",
 );
 
-const legacyProjectKeys = [
-  "description",
-  "highlights",
-  "metaDescription",
-  "name",
-  "repositoryUrl",
-  "sections",
-  "slug",
-  "summary",
-] as const;
-
-const localizedProjectKeys = [
+const projectKeys = [
+  "assetBaseUrl",
   "name",
   "repositoryUrl",
   "slug",
@@ -27,10 +17,10 @@ const localizedProjectKeys = [
 ] as const;
 
 const translationKeys = [
+  "content",
   "description",
   "highlights",
   "metaDescription",
-  "sections",
   "summary",
 ] as const;
 
@@ -72,6 +62,31 @@ function isSafeRepositoryUrl(value: unknown): value is string {
   }
 }
 
+function isSafeAssetBaseUrl(value: unknown, owner: string): value is string {
+  if (!nonEmptyString(value)) {
+    return false;
+  }
+
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === "https:" &&
+      url.hostname === "raw.githubusercontent.com" &&
+      url.port === "" &&
+      url.search === "" &&
+      url.hash === "" &&
+      url.pathname.startsWith(`/${owner}/`) &&
+      url.pathname.endsWith("/.portfolio/")
+    );
+  } catch {
+    return false;
+  }
+}
+
+function hasLevelOneHeading(content: string) {
+  return /^ {0,3}#(?:[ \t]+|$)/m.test(content);
+}
+
 function parseTranslation(
   value: unknown,
   index: number,
@@ -86,80 +101,35 @@ function parseTranslation(
     !Array.isArray(value.highlights) ||
     value.highlights.length === 0 ||
     !value.highlights.every(nonEmptyString) ||
-    !Array.isArray(value.sections) ||
-    value.sections.length === 0
+    !nonEmptyString(value.content) ||
+    hasLevelOneHeading(value.content)
   ) {
     throw new Error(
       `Invalid GitHub project translation at index ${index}.${locale}.`,
     );
   }
 
-  const sections = value.sections.map((section, sectionIndex) => {
-    if (
-      !isRecord(section) ||
-      !hasExactKeys(section, ["paragraphs", "title"]) ||
-      !nonEmptyString(section.title) ||
-      !Array.isArray(section.paragraphs) ||
-      section.paragraphs.length === 0 ||
-      !section.paragraphs.every(nonEmptyString)
-    ) {
-      throw new Error(
-        `Invalid GitHub project section at index ${index}.${locale}.${sectionIndex}.`,
-      );
-    }
-
-    return { title: section.title, paragraphs: section.paragraphs };
-  });
-
   return {
     description: value.description,
     metaDescription: value.metaDescription,
     summary: value.summary,
     highlights: value.highlights,
-    sections,
+    content: value.content,
   };
 }
 
-function parseProject(value: unknown, index: number): Project {
-  if (!isRecord(value)) {
-    throw new Error(`Invalid GitHub project at index ${index}.`);
-  }
-
-  const isLegacy = hasExactKeys(value, legacyProjectKeys);
-  const isLocalized = hasExactKeys(value, localizedProjectKeys);
+function parseProject(value: unknown, index: number, owner: string): Project {
   if (
-    (!isLegacy && !isLocalized) ||
+    !isRecord(value) ||
+    !hasExactKeys(value, projectKeys) ||
     typeof value.slug !== "string" ||
     !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value.slug) ||
     !nonEmptyString(value.name) ||
-    !isSafeRepositoryUrl(value.repositoryUrl)
+    !isSafeRepositoryUrl(value.repositoryUrl) ||
+    !isSafeAssetBaseUrl(value.assetBaseUrl, owner) ||
+    !isRecord(value.translations)
   ) {
     throw new Error(`Invalid GitHub project at index ${index}.`);
-  }
-
-  if (isLegacy) {
-    return {
-      slug: value.slug,
-      name: value.name,
-      repositoryUrl: value.repositoryUrl,
-      translations: {
-        en: parseTranslation(
-          {
-            description: value.description,
-            highlights: value.highlights,
-            metaDescription: value.metaDescription,
-            sections: value.sections,
-            summary: value.summary,
-          },
-          index,
-          "en",
-        ),
-      },
-    };
-  }
-
-  if (!isRecord(value.translations)) {
-    throw new Error(`Invalid GitHub project translations at index ${index}.`);
   }
 
   const translationsRecord = value.translations;
@@ -185,6 +155,7 @@ function parseProject(value: unknown, index: number): Project {
     slug: value.slug,
     name: value.name,
     repositoryUrl: value.repositoryUrl,
+    assetBaseUrl: value.assetBaseUrl,
     translations,
   };
 }
@@ -200,7 +171,7 @@ export function parseGithubProjectsSnapshot(
   if (
     !isRecord(value) ||
     !hasExactKeys(value, ["generatedAt", "owner", "projects", "version"]) ||
-    value.version !== 1 ||
+    value.version !== 2 ||
     !isIsoTimestamp(value.generatedAt) ||
     !nonEmptyString(value.owner) ||
     value.owner !== githubOwner ||
@@ -209,7 +180,9 @@ export function parseGithubProjectsSnapshot(
     throw new Error("Invalid GitHub projects snapshot.");
   }
 
-  const projects = value.projects.map(parseProject);
+  const projects = value.projects.map((project, index) =>
+    parseProject(project, index, githubOwner),
+  );
   const slugs = new Set<string>();
   for (const project of projects) {
     if (slugs.has(project.slug)) {

@@ -84,18 +84,25 @@ required columns, and destructive changes.
 optional for a higher public GitHub API rate limit.
 
 `predev` and `prebuild` reconcile public repositories owned by that account.
-Repositories opt in by committing `.portfolio/project.json` on their default
-branch. Identity fields (`slug`, `name`, and `repositoryUrl`) stay at the top
-level. Put `description`, `metaDescription`, `summary`, `highlights`, and
-`sections` under `translations.en`, with optional matching `pt` and `ja` entries.
-English is required and is used when the requested translation is absent. The
-sync still accepts the previous English-only shape so repositories can migrate
-independently.
+Repositories opt in by committing `.portfolio/project.md` on their default
+branch. Its front matter contains `slug`, `name`, `repositoryUrl`, `description`,
+`metaDescription`, `summary`, and `highlights`; the body contains the English
+case study. Optional `.portfolio/project.pt.md` and `.portfolio/project.ja.md`
+files repeat only the editorial front matter and provide translated bodies.
+English is required and is used when the requested translation is absent.
 
-The writer and reader enforce the same normalized fields and string slug
-contract. Invalid records, unsupported translation keys, duplicate slugs, and
-upstream failures stop the sync; a successful sync atomically replaces the
-complete snapshot.
+Markdown bodies start with `##` headings so expanded content nests under the
+home page's projects section. Raw HTML is ignored. Store project images in the
+source repository and reference them with a relative Markdown path such as
+`![Dashboard](images/dashboard.webp)`. Image alt text is required when the image
+conveys information and can be empty only when the image is decorative. The
+synchronizer temporarily accepts `.portfolio/project.json` and normalizes its
+sections while source repositories migrate.
+
+The writer and reader enforce the same normalized fields, Markdown body, and
+string slug contract. Invalid records, unsupported translation keys, duplicate
+slugs, and upstream failures stop the sync; a successful sync atomically replaces
+the complete snapshot.
 
 The application renders only from `.cache/github-projects.json`. It never calls
 GitHub during visitor traffic. A valid empty snapshot is supported. Run

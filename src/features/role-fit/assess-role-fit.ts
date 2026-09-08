@@ -21,10 +21,7 @@ const projects = getProjects("en");
 const candidateProfile = [
   `${profile.name} is a ${profile.role} based in ${profile.location}.`,
   ...projects.map((project) =>
-    [
-      `${project.name}: ${project.summary}`,
-      ...project.sections.flatMap((section) => section.paragraphs),
-    ].join("\n"),
+    [`${project.name}: ${project.summary}`, project.content].join("\n"),
   ),
 ].join("\n\n");
 

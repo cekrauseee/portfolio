@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
+import matter from "gray-matter";
 import { syncGithubProjects } from "../scripts/sync-github-projects.mjs";
 
 const fixedDate = new Date("2026-08-18T12:00:00.000Z");
@@ -27,7 +28,33 @@ function project(slug, overrides = {}) {
 }
 
 function encodedContent(value) {
-  return Buffer.from(JSON.stringify(value)).toString("base64");
+  return Buffer.from(
+    typeof value === "string" ? value : JSON.stringify(value),
+  ).toString("base64");
+}
+
+function projectMarkdown(slug, overrides = {}) {
+  const { sections, ...data } = project(slug, overrides);
+  const content = sections
+    .map(
+      (section) => `## ${section.title}\n\n${section.paragraphs.join("\n\n")}`,
+    )
+    .join("\n\n");
+  return matter.stringify(content, data);
+}
+
+function translationMarkdown(content, overrides = {}) {
+  return matter.stringify(content, {
+    description: "Descrição do projeto.",
+    metaDescription: "Metadados do projeto.",
+    summary: "Resumo do projeto.",
+    highlights: ["Next.js"],
+    ...overrides,
+  });
+}
+
+function isLocalizedProjectPath(pathname) {
+  return /\/project\.(?:pt|ja)\.md$/.test(pathname);
 }
 
 function response(status, body, headers = {}) {
@@ -136,7 +163,7 @@ test("sync skip requires an existing snapshot", async () => {
     await writeFile(
       path.join(directory, ".cache", "github-projects.json"),
       JSON.stringify({
-        version: 1,
+        version: 2,
         owner: "test-owner",
         generatedAt: fixedDate.toISOString(),
         projects: [],
@@ -225,20 +252,23 @@ test("paginates all public repositories, skips 404 files, and sorts projects", a
     ) {
       return response(200, second);
     }
-    if (parsed.pathname.endsWith("/zeta/contents/.portfolio/project.json")) {
+    if (parsed.pathname.endsWith("/zeta/contents/.portfolio/project.md")) {
       return response(200, {
         encoding: "base64",
-        content: encodedContent(project("zeta")),
+        content: encodedContent(projectMarkdown("zeta")),
       });
     }
-    if (parsed.pathname.endsWith("/missing/contents/.portfolio/project.json")) {
+    if (parsed.pathname.includes("/missing/contents/.portfolio/project")) {
       return response(404, { message: "Not Found" });
     }
-    if (parsed.pathname.endsWith("/alpha/contents/.portfolio/project.json")) {
+    if (parsed.pathname.endsWith("/alpha/contents/.portfolio/project.md")) {
       return response(200, {
         encoding: "base64",
-        content: encodedContent(project("alpha")),
+        content: encodedContent(projectMarkdown("alpha")),
       });
+    }
+    if (isLocalizedProjectPath(parsed.pathname)) {
+      return response(404, { message: "Not Found" });
     }
     throw new Error(`Unexpected URL: ${url}`);
   };
@@ -258,8 +288,110 @@ test("paginates all public repositories, skips 404 files, and sorts projects", a
       ["alpha", "zeta"],
     );
     assert.equal(snapshot.generatedAt, fixedDate.toISOString());
-    assert.equal(calls.filter((url) => url.includes("/repos/")).length, 3);
+    assert.equal(
+      calls.filter((url) => new URL(url).pathname.endsWith("/project.md"))
+        .length,
+      3,
+    );
     assert.deepEqual(JSON.parse(await readFile(outputPath, "utf8")), snapshot);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("reads localized Markdown and preserves relative project images", async () => {
+  const { directory, outputPath } = await temporaryOutput();
+  const fetchImpl = async (url) => {
+    const parsed = new URL(url);
+    if (parsed.pathname === "/users/test-owner/repos") {
+      return response(200, [repository("localized")]);
+    }
+    if (parsed.pathname.endsWith("/.portfolio/project.md")) {
+      const source = project("localized");
+      const data = {
+        slug: source.slug,
+        name: source.name,
+        description: source.description,
+        repositoryUrl: source.repositoryUrl,
+        metaDescription: source.metaDescription,
+        summary: source.summary,
+        highlights: source.highlights,
+      };
+      return response(200, {
+        encoding: "base64",
+        content: encodedContent(
+          matter.stringify(
+            "## Product\n\n![Dashboard](images/dashboard.webp)",
+            data,
+          ),
+        ),
+      });
+    }
+    if (parsed.pathname.endsWith("/.portfolio/project.pt.md")) {
+      return response(200, {
+        encoding: "base64",
+        content: encodedContent(
+          translationMarkdown("## Produto\n\nDetalhes em português."),
+        ),
+      });
+    }
+    return response(404, { message: "Not Found" });
+  };
+
+  try {
+    const snapshot = await syncGithubProjects({
+      fetchImpl,
+      owner: "test-owner",
+      apiBase: "https://github.test",
+      outputPath,
+      now: fixedDate,
+    });
+
+    assert.equal(snapshot.version, 2);
+    assert.equal(
+      snapshot.projects[0].translations.en.content,
+      "## Product\n\n![Dashboard](images/dashboard.webp)",
+    );
+    assert.equal(
+      snapshot.projects[0].translations.pt.content,
+      "## Produto\n\nDetalhes em português.",
+    );
+    assert.equal(
+      snapshot.projects[0].assetBaseUrl,
+      "https://raw.githubusercontent.com/test-owner/localized/main/.portfolio/",
+    );
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("normalizes legacy JSON while source repositories migrate", async () => {
+  const { directory, outputPath } = await temporaryOutput();
+  try {
+    const snapshot = await syncGithubProjects({
+      fetchImpl: async (url) => {
+        const parsed = new URL(url);
+        if (parsed.pathname === "/users/test-owner/repos") {
+          return response(200, [repository("legacy")]);
+        }
+        if (parsed.pathname.endsWith("/.portfolio/project.md")) {
+          return response(404, { message: "Not Found" });
+        }
+        return response(200, {
+          encoding: "base64",
+          content: encodedContent(project("legacy")),
+        });
+      },
+      owner: "test-owner",
+      apiBase: "https://github.test",
+      outputPath,
+      now: fixedDate,
+    });
+
+    assert.equal(
+      snapshot.projects[0].translations.en.content,
+      "## Product\n\nlegacy details",
+    );
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
@@ -302,9 +434,12 @@ test("rejects malformed convention content", async () => {
     if (parsed.pathname === "/users/test-owner/repos") {
       return response(200, [repository("broken")]);
     }
+    if (isLocalizedProjectPath(parsed.pathname)) {
+      return response(404, { message: "Not Found" });
+    }
     return response(200, {
       encoding: "base64",
-      content: encodedContent({ ...project("broken"), unexpected: true }),
+      content: encodedContent(projectMarkdown("broken", { unexpected: true })),
     });
   };
 
@@ -316,7 +451,7 @@ test("rejects malformed convention content", async () => {
         apiBase: "https://github.test",
         outputPath,
       }),
-      /exactly the Project fields/,
+      /invalid Markdown project fields/,
     );
   } finally {
     await rm(directory, { recursive: true, force: true });
@@ -405,10 +540,13 @@ test("deduplicates repository overlap across pages by immutable identity", async
       return response(200, []);
     }
     fetches.push(parsed.pathname);
+    if (isLocalizedProjectPath(parsed.pathname)) {
+      return response(404, { message: "Not Found" });
+    }
     const name = parsed.pathname.split("/")[3];
     return response(200, {
       encoding: "base64",
-      content: encodedContent(project(name)),
+      content: encodedContent(projectMarkdown(name)),
     });
   };
 
@@ -426,7 +564,7 @@ test("deduplicates repository overlap across pages by immutable identity", async
     );
     assert.equal(
       fetches.filter((pathname) => pathname.includes("/one/contents/")).length,
-      1,
+      3,
     );
   } finally {
     await rm(directory, { recursive: true, force: true });
@@ -491,9 +629,12 @@ test("rejects unsafe and duplicate slugs", async (t) => {
       if (parsed.pathname === "/users/test-owner/repos") {
         return response(200, [repository("unsafe")]);
       }
+      if (isLocalizedProjectPath(parsed.pathname)) {
+        return response(404, { message: "Not Found" });
+      }
       return response(200, {
         encoding: "base64",
-        content: encodedContent(project("../unsafe")),
+        content: encodedContent(projectMarkdown("../unsafe")),
       });
     };
     try {
@@ -504,7 +645,7 @@ test("rejects unsafe and duplicate slugs", async (t) => {
           apiBase: "https://github.test",
           outputPath,
         }),
-        /invalid Project fields/,
+        /invalid Markdown project identity/,
       );
     } finally {
       await rm(directory, { recursive: true, force: true });
@@ -523,9 +664,12 @@ test("rejects unsafe and duplicate slugs", async (t) => {
             : [],
         );
       }
+      if (isLocalizedProjectPath(parsed.pathname)) {
+        return response(404, { message: "Not Found" });
+      }
       return response(200, {
         encoding: "base64",
-        content: encodedContent(project("same")),
+        content: encodedContent(projectMarkdown("same")),
       });
     };
     try {
@@ -553,9 +697,12 @@ test("preserves the previous snapshot when reconciliation fails", async () => {
       if (parsed.pathname === "/users/test-owner/repos") {
         return response(200, [repository("stable")]);
       }
+      if (isLocalizedProjectPath(parsed.pathname)) {
+        return response(404, { message: "Not Found" });
+      }
       return response(200, {
         encoding: "base64",
-        content: encodedContent(project("stable")),
+        content: encodedContent(projectMarkdown("stable")),
       });
     },
     owner: "test-owner",
@@ -601,10 +748,13 @@ test("replaces the snapshot completely so deleted files disappear", async () => 
           : [repository("keep")],
       );
     }
+    if (isLocalizedProjectPath(parsed.pathname)) {
+      return response(404, { message: "Not Found" });
+    }
     const name = parsed.pathname.split("/")[3];
     return response(200, {
       encoding: "base64",
-      content: encodedContent(project(name)),
+      content: encodedContent(projectMarkdown(name)),
     });
   };
 

@@ -15,6 +15,8 @@ type PageShellProps = {
   locale: Locale;
   navigation: Dictionary["navigation"];
   disableTextSelection?: boolean;
+  containerClassName?: string;
+  showNavigation?: boolean;
 };
 
 export function PageShell({
@@ -22,13 +24,15 @@ export function PageShell({
   locale,
   navigation,
   disableTextSelection = false,
+  containerClassName: customContainerClassName,
+  showNavigation = true,
 }: PageShellProps) {
   return (
     <main
       className={`${pageClassName} ${disableTextSelection ? "select-none" : ""}`}
     >
-      <div className={containerClassName}>
-        <SiteNavigation dictionary={navigation} />
+      <div className={customContainerClassName ?? containerClassName}>
+        {showNavigation ? <SiteNavigation dictionary={navigation} /> : null}
         {children}
         <SiteFooter locale={locale} dictionary={navigation} />
       </div>

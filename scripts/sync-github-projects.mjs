@@ -4,6 +4,7 @@ import { mkdir, rename, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import nextEnv from "@next/env";
+import matter from "gray-matter";
 
 const { loadEnvConfig } = nextEnv;
 
@@ -14,7 +15,28 @@ export const DEFAULT_OUTPUT_PATH = path.join(
   ".cache",
   "github-projects.json",
 );
-export const PROJECT_FILE_PATH = ".portfolio/project.json";
+export const PROJECT_FILE_PATH = ".portfolio/project.md";
+export const LEGACY_PROJECT_FILE_PATH = ".portfolio/project.json";
+const LOCALIZED_PROJECT_FILE_PATHS = {
+  pt: ".portfolio/project.pt.md",
+  ja: ".portfolio/project.ja.md",
+};
+
+const BASE_MARKDOWN_KEYS = [
+  "description",
+  "highlights",
+  "metaDescription",
+  "name",
+  "repositoryUrl",
+  "slug",
+  "summary",
+];
+const TRANSLATED_MARKDOWN_KEYS = [
+  "description",
+  "highlights",
+  "metaDescription",
+  "summary",
+];
 
 /** Load environment files using the same precedence as Next.js. */
 export function loadGithubProjectSyncEnv(
@@ -177,6 +199,115 @@ function validateProject(value, context) {
   };
 }
 
+function hasLevelOneHeading(content) {
+  return /^ {0,3}#(?:[ \t]+|$)/m.test(content);
+}
+
+function validateMarkdownTranslation(data, content, context, expectedKeys) {
+  if (
+    !isRecord(data) ||
+    !hasExactKeys(data, expectedKeys) ||
+    !nonEmptyString(data.description) ||
+    !nonEmptyString(data.metaDescription) ||
+    !nonEmptyString(data.summary) ||
+    !Array.isArray(data.highlights) ||
+    data.highlights.length === 0 ||
+    !data.highlights.every(nonEmptyString) ||
+    !nonEmptyString(content) ||
+    hasLevelOneHeading(content)
+  ) {
+    throw new Error(`${context} has invalid Markdown project fields.`);
+  }
+
+  return {
+    description: data.description,
+    metaDescription: data.metaDescription,
+    summary: data.summary,
+    highlights: data.highlights,
+    content: content.trim(),
+  };
+}
+
+function parseProjectMarkdown(source, context) {
+  let parsed;
+  try {
+    parsed = matter(source);
+  } catch (error) {
+    throw new Error(`${context} has invalid front matter.`, { cause: error });
+  }
+
+  const translation = validateMarkdownTranslation(
+    parsed.data,
+    parsed.content,
+    context,
+    BASE_MARKDOWN_KEYS,
+  );
+  if (
+    typeof parsed.data.slug !== "string" ||
+    !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(parsed.data.slug) ||
+    !nonEmptyString(parsed.data.name) ||
+    !isSafeRepositoryUrl(parsed.data.repositoryUrl)
+  ) {
+    throw new Error(`${context} has invalid Markdown project identity.`);
+  }
+
+  return {
+    slug: parsed.data.slug,
+    name: parsed.data.name,
+    repositoryUrl: parsed.data.repositoryUrl,
+    translation,
+  };
+}
+
+function parseProjectTranslationMarkdown(source, context) {
+  let parsed;
+  try {
+    parsed = matter(source);
+  } catch (error) {
+    throw new Error(`${context} has invalid front matter.`, { cause: error });
+  }
+
+  return validateMarkdownTranslation(
+    parsed.data,
+    parsed.content,
+    context,
+    TRANSLATED_MARKDOWN_KEYS,
+  );
+}
+
+function sectionsToMarkdown(sections) {
+  return sections
+    .map(
+      (section) => `## ${section.title}\n\n${section.paragraphs.join("\n\n")}`,
+    )
+    .join("\n\n");
+}
+
+function normalizeLegacyProject(project, assetBaseUrl) {
+  return {
+    slug: project.slug,
+    name: project.name,
+    repositoryUrl: project.repositoryUrl,
+    assetBaseUrl,
+    translations: Object.fromEntries(
+      Object.entries(project.translations).map(([locale, translation]) => [
+        locale,
+        {
+          description: translation.description,
+          metaDescription: translation.metaDescription,
+          summary: translation.summary,
+          highlights: translation.highlights,
+          content: sectionsToMarkdown(translation.sections),
+        },
+      ]),
+    ),
+  };
+}
+
+function projectAssetBaseUrl(owner, repository, ref) {
+  return `https://raw.githubusercontent.com/${encodeURIComponent(owner)}/${encodeURIComponent(repository)}/${encodeURIComponent(ref)}/.portfolio/`;
+}
+
 function apiHeaders(token) {
   const headers = {
     Accept: "application/vnd.github+json",
@@ -275,7 +406,7 @@ function nextPageFromLink(response, apiBaseUrl) {
   return nextUrl;
 }
 
-function decodeProjectContent(body, context) {
+function decodeFileContent(body, context) {
   if (
     !isRecord(body) ||
     body.encoding !== "base64" ||
@@ -284,14 +415,59 @@ function decodeProjectContent(body, context) {
     throw new Error(`${context} did not return base64 file content.`);
   }
 
+  return Buffer.from(body.content, "base64").toString("utf8");
+}
+
+function decodeLegacyProjectContent(body, context) {
   let parsed;
   try {
-    parsed = JSON.parse(Buffer.from(body.content, "base64").toString("utf8"));
+    parsed = JSON.parse(decodeFileContent(body, context));
   } catch {
     throw new Error(`${context} is not valid JSON.`);
   }
 
   return validateProject(parsed, context);
+}
+
+async function getRepositoryFile({
+  apiBase,
+  fetchImpl,
+  owner,
+  path: filePath,
+  ref,
+  repository,
+  timeoutMs,
+  token,
+}) {
+  const url = new URL(
+    `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repository)}/contents/${filePath}`,
+    apiBase,
+  );
+  url.searchParams.set("ref", ref);
+  const response = await fetchWithTimeout(
+    fetchImpl,
+    url.toString(),
+    { headers: apiHeaders(token) },
+    timeoutMs,
+  );
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  let body;
+  try {
+    body = await response.json();
+  } catch {
+    body = null;
+  }
+  if (!response.ok) {
+    throw new Error(
+      `GitHub project file request failed (${response.status}) for ${repository}${responseDiagnostics(response, body)}`,
+    );
+  }
+
+  return { body, context: `${repository}/${filePath}` };
 }
 
 function repositoryIdentity(repo) {
@@ -416,38 +592,78 @@ export async function syncGithubProjects({
     }
     repositoryIdentities.add(identity);
 
-    const contentUrl = new URL(
-      `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo.name)}/contents/${PROJECT_FILE_PATH}`,
+    const assetBaseUrl = projectAssetBaseUrl(
+      owner,
+      repo.name,
+      repo.default_branch,
+    );
+    const markdownFile = await getRepositoryFile({
       apiBase,
-    );
-    contentUrl.searchParams.set("ref", repo.default_branch);
-    const response = await fetchWithTimeout(
       fetchImpl,
-      contentUrl.toString(),
-      { headers: apiHeaders(token) },
+      owner,
+      path: PROJECT_FILE_PATH,
+      ref: repo.default_branch,
+      repository: repo.name,
       timeoutMs,
-    );
+      token,
+    });
 
-    if (response.status === 404) {
-      continue;
-    }
+    let project;
+    if (markdownFile) {
+      const baseProject = parseProjectMarkdown(
+        decodeFileContent(markdownFile.body, markdownFile.context),
+        markdownFile.context,
+      );
+      const translations = { en: baseProject.translation };
 
-    let body;
-    try {
-      body = await response.json();
-    } catch {
-      body = null;
-    }
-    if (!response.ok) {
-      throw new Error(
-        `GitHub project file request failed (${response.status}) for ${repo.name}${responseDiagnostics(response, body)}`,
+      for (const [locale, filePath] of Object.entries(
+        LOCALIZED_PROJECT_FILE_PATHS,
+      )) {
+        const localizedFile = await getRepositoryFile({
+          apiBase,
+          fetchImpl,
+          owner,
+          path: filePath,
+          ref: repo.default_branch,
+          repository: repo.name,
+          timeoutMs,
+          token,
+        });
+        if (localizedFile) {
+          translations[locale] = parseProjectTranslationMarkdown(
+            decodeFileContent(localizedFile.body, localizedFile.context),
+            localizedFile.context,
+          );
+        }
+      }
+
+      project = {
+        slug: baseProject.slug,
+        name: baseProject.name,
+        repositoryUrl: baseProject.repositoryUrl,
+        assetBaseUrl,
+        translations,
+      };
+    } else {
+      const legacyFile = await getRepositoryFile({
+        apiBase,
+        fetchImpl,
+        owner,
+        path: LEGACY_PROJECT_FILE_PATH,
+        ref: repo.default_branch,
+        repository: repo.name,
+        timeoutMs,
+        token,
+      });
+      if (!legacyFile) {
+        continue;
+      }
+      project = normalizeLegacyProject(
+        decodeLegacyProjectContent(legacyFile.body, legacyFile.context),
+        assetBaseUrl,
       );
     }
 
-    const project = decodeProjectContent(
-      body,
-      `${repo.name}/${PROJECT_FILE_PATH}`,
-    );
     if (slugs.has(project.slug)) {
       throw new Error(`Duplicate project slug: ${project.slug}.`);
     }
@@ -462,7 +678,7 @@ export async function syncGithubProjects({
   );
 
   const snapshot = {
-    version: 1,
+    version: 2,
     owner,
     generatedAt: now.toISOString(),
     projects,
@@ -503,7 +719,7 @@ async function main() {
     try {
       const snapshot = JSON.parse(readFileSync(DEFAULT_OUTPUT_PATH, "utf8"));
       if (
-        snapshot?.version !== 1 ||
+        snapshot?.version !== 2 ||
         typeof snapshot.generatedAt !== "string" ||
         typeof snapshot.owner !== "string" ||
         !Array.isArray(snapshot.projects)

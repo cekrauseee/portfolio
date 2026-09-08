@@ -8,10 +8,12 @@ code lives under `src/features`. Site identity is canonical in
 `src/config/site.ts`, while `src/content/portfolio.ts` adds profile details,
 social links, and the validated project snapshot.
 
-The home page and project case studies are React Server Components. Interactive
-forms and the guestbook globe cross client boundaries. The guestbook keeps
-serializable message contracts in `src/features/guestbook/message.ts`; persistence,
-cache, geolocation, moderation, and HTTP orchestration stay under
+The home page is a React Server Component with small client islands for project
+expansion, viewport stabilization, and preferences. Project Markdown is rendered
+on the server and passed into the collapsible project list. Interactive forms and
+the guestbook globe also cross client boundaries. The guestbook keeps serializable
+message contracts in `src/features/guestbook/message.ts`; persistence, cache,
+geolocation, moderation, and HTTP orchestration stay under
 `src/features/guestbook/server`. Project synchronization runs at development
 startup or build time and never during visitor requests.
 
@@ -59,7 +61,7 @@ that effective theme.
 | `src/features/meeting-scheduling`       | Scheduling form, validation, calendar access, and notification                            |
 | `src/features/guestbook`                | Shared guestbook contracts, server integrations, and globe UI                             |
 | `src/content/portfolio.ts`              | Profile, social links, and normalized project contract                                    |
-| `src/content/project.ts`                | Shared `Project` and `ProjectSection` types                                               |
+| `src/content/project.ts`                | Shared project identity, translation, and Markdown content types                          |
 | `src/content/github-projects.ts`        | Validated build-time snapshot loader                                                      |
 | `src/lib/redis.ts`                      | Shared local and production Redis client selection                                        |
 | `src/lib/abuse-protection.ts`           | Bot checks, identities, rate limits, locks, and deduplication                             |
@@ -70,24 +72,29 @@ that effective theme.
 ## Build-time project content
 
 Public repositories owned by the explicit `GITHUB_OWNER` opt in with
-`.portfolio/project.json`. The sync paginates GitHub, rejects private repositories,
-validates each exact project record, deduplicates immutable repository identities
-and slugs, sorts deterministically, and atomically replaces
-`.cache/github-projects.json`.
+`.portfolio/project.md`. The English file contains identity and editorial front
+matter plus a Markdown body. Optional `.portfolio/project.pt.md` and
+`.portfolio/project.ja.md` files contain localized editorial front matter and
+body content. The sync paginates GitHub, rejects private repositories, validates
+each record, deduplicates immutable repository identities and slugs, sorts
+deterministically, and atomically replaces `.cache/github-projects.json`.
 
 The snapshot loader revalidates the complete file and binds it to the configured
 owner. Writer and reader both require a string slug matching the same safe
-pattern. The localized convention keeps identity fields at the project level and
-editorial fields under `translations`; it requires English and accepts Portuguese
-and Japanese. Legacy English-only records remain valid and are normalized to the
-same internal shape during migration.
+pattern. English is required; Portuguese and Japanese are optional. The
+synchronizer temporarily accepts the previous JSON convention and converts its
+sections to Markdown so repositories can migrate independently. The application
+and snapshot contract use only the normalized Markdown body.
 
-`generateStaticParams` enumerates project slugs from the build-time snapshot and
-rejects unknown slugs. It does not make the current project HTML fully static:
-the unprefixed URL resolves locale from request cookies and headers, and those
-Next.js request-time APIs opt the route into dynamic rendering. Fully static HTML
-per language would require locale-bearing URLs and generation of every
-`{ locale, slug }` pair.
+Project Markdown renders CommonMark on the server through controlled components
+inside the home page's collapsible entries. Raw HTML is ignored. Relative image
+paths resolve against the source repository, use `next/image`, and remain
+restricted to the configured GitHub owner. Markdown bodies start at level-two
+headings so their content nests under the home page's projects section.
+
+There is no `/projects` index or dedicated project route. The unprefixed home URL
+resolves locale from request cookies and headers; localized project content is
+selected during that request and rendered into the same canonical page.
 
 Tests create their snapshot from a neutral committed fixture, removing hidden
 dependence on prior local commands.
@@ -251,7 +258,10 @@ reproducible from the committed lockfile.
 - The explicit language preference is the `portfolio-locale` cookie; locale state is not stored in `localStorage`.
 - Theme defaults to `system`; `portfolio-theme` is a readable one-year cookie.
 - Theme class application happens before paint, system preference changes update live, and dark utilities plus WebGL use the effective theme.
-- The home page remains a Server Component and does not require hydration.
+- The home page remains a Server Component; only interactive project and
+  preference controls hydrate on the client.
+- Projects have no dedicated route; their case studies expand inline on the home
+  page.
 - Content changes belong in `src/content/portfolio.ts`, not duplicated across
   components or prompts.
 - Shared UI belongs in `src/components`; capability-specific UI and integration

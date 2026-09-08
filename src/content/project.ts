@@ -1,22 +1,18 @@
 import type { Locale } from "@/i18n/config";
 
-export type ProjectSection = {
-  readonly title: string;
-  readonly paragraphs: readonly string[];
-};
-
 export type ProjectTranslation = {
   readonly description: string;
   readonly metaDescription: string;
   readonly summary: string;
   readonly highlights: readonly string[];
-  readonly sections: readonly ProjectSection[];
+  readonly content: string;
 };
 
 export type Project = {
   readonly slug: string;
   readonly name: string;
   readonly repositoryUrl: string;
+  readonly assetBaseUrl: string;
   readonly translations: Readonly<
     Partial<Record<Locale, ProjectTranslation>>
   > & {
@@ -40,6 +36,7 @@ export function localizeProject(
     slug: project.slug,
     name: project.name,
     repositoryUrl: project.repositoryUrl,
+    assetBaseUrl: project.assetBaseUrl,
     ...translation,
     contentLocale,
   };

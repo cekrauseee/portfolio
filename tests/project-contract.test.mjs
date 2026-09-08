@@ -11,6 +11,25 @@ function projectWithSlug(slug) {
   return {
     slug,
     name: "fixture-owner/numeric",
+    repositoryUrl: "https://github.com/fixture-owner/numeric",
+    assetBaseUrl:
+      "https://raw.githubusercontent.com/fixture-owner/numeric/main/.portfolio/",
+    translations: {
+      en: {
+        description: "Fixture project.",
+        metaDescription: "Fixture project metadata.",
+        summary: "Fixture project summary.",
+        highlights: ["Fixtures"],
+        content: "## Product\n\nFixture details.",
+      },
+    },
+  };
+}
+
+function legacyProjectWithSlug(slug) {
+  return {
+    slug,
+    name: "fixture-owner/numeric",
     description: "Fixture project.",
     repositoryUrl: "https://github.com/fixture-owner/numeric",
     metaDescription: "Fixture project metadata.",
@@ -25,22 +44,22 @@ test("localized projects select requested content and fall back to English", () 
     slug: "localized",
     name: "fixture-owner/localized",
     repositoryUrl: "https://github.com/fixture-owner/localized",
+    assetBaseUrl:
+      "https://raw.githubusercontent.com/fixture-owner/localized/main/.portfolio/",
     translations: {
       en: {
         description: "English description.",
         metaDescription: "English metadata.",
         summary: "English summary.",
         highlights: ["Fixtures"],
-        sections: [{ title: "Product", paragraphs: ["English details."] }],
+        content: "## Product\n\nEnglish details.",
       },
       pt: {
         description: "Descrição em português.",
         metaDescription: "Metadados em português.",
         summary: "Resumo em português.",
         highlights: ["Fixtures"],
-        sections: [
-          { title: "Produto", paragraphs: ["Detalhes em português."] },
-        ],
+        content: "## Produto\n\nDetalhes em português.",
       },
     },
   };
@@ -58,20 +77,22 @@ test("project reader accepts localized content and rejects unsupported locales",
     slug: "localized",
     name: "fixture-owner/localized",
     repositoryUrl: "https://github.com/fixture-owner/localized",
+    assetBaseUrl:
+      "https://raw.githubusercontent.com/fixture-owner/localized/main/.portfolio/",
     translations: {
       en: {
         description: "Description.",
         metaDescription: "Metadata.",
         summary: "Summary.",
         highlights: ["Fixtures"],
-        sections: [{ title: "Product", paragraphs: ["Details."] }],
+        content: "## Product\n\nDetails.",
       },
     },
   };
 
   try {
     const [parsed] = parseGithubProjectsSnapshot({
-      version: 1,
+      version: 2,
       owner: "fixture-owner",
       generatedAt: "2026-08-19T00:00:00.000Z",
       projects: [localized],
@@ -81,7 +102,7 @@ test("project reader accepts localized content and rejects unsupported locales",
     assert.throws(
       () =>
         parseGithubProjectsSnapshot({
-          version: 1,
+          version: 2,
           owner: "fixture-owner",
           generatedAt: "2026-08-19T00:00:00.000Z",
           projects: [
@@ -139,11 +160,14 @@ test("project writer and reader both reject non-string slugs", async () => {
               },
             ]);
           }
+          if (parsed.pathname.endsWith("/.portfolio/project.md")) {
+            return new Response(null, { status: 404 });
+          }
           return Response.json({
             encoding: "base64",
-            content: Buffer.from(JSON.stringify(projectWithSlug(123))).toString(
-              "base64",
-            ),
+            content: Buffer.from(
+              JSON.stringify(legacyProjectWithSlug(123)),
+            ).toString("base64"),
           });
         },
       }),

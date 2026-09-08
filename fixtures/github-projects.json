@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "owner": "fixture-owner",
   "generatedAt": "2026-08-18T12:00:00.000Z",
   "projects": [
@@ -7,48 +7,28 @@
       "slug": "fixture-project",
       "name": "fixture-owner/fixture-project",
       "repositoryUrl": "https://github.com/fixture-owner/fixture-project",
+      "assetBaseUrl": "https://raw.githubusercontent.com/fixture-owner/fixture-project/main/.portfolio/",
       "translations": {
         "en": {
           "description": "A deterministic fixture project.",
           "metaDescription": "A deterministic fixture project for the GitHub build path.",
           "summary": "A deterministic fixture used to verify snapshot-backed rendering without network access.",
           "highlights": ["Next.js", "Fixtures"],
-          "sections": [
-            {
-              "title": "Product",
-              "paragraphs": [
-                "This record exists only for deterministic build verification."
-              ]
-            }
-          ]
+          "content": "## Product\n\nThis record exists only for deterministic build verification."
         },
         "pt": {
           "description": "Um projeto de fixture determinístico.",
           "metaDescription": "Um projeto de fixture determinístico para o fluxo de build do GitHub.",
           "summary": "Uma fixture determinística usada para verificar a renderização baseada em snapshot sem acesso à rede.",
           "highlights": ["Next.js", "Fixtures"],
-          "sections": [
-            {
-              "title": "Produto",
-              "paragraphs": [
-                "Este registro existe apenas para a verificação determinística do build."
-              ]
-            }
-          ]
+          "content": "## Produto\n\nEste registro existe apenas para a verificação determinística do build."
         },
         "ja": {
           "description": "決定論的なフィクスチャプロジェクトです。",
           "metaDescription": "GitHubのビルド経路を検証するための決定論的なフィクスチャプロジェクトです。",
           "summary": "ネットワークアクセスなしでスナップショットベースのレンダリングを検証するための決定論的なフィクスチャです。",
           "highlights": ["Next.js", "フィクスチャ"],
-          "sections": [
-            {
-              "title": "プロダクト",
-              "paragraphs": [
-                "このレコードは決定論的なビルド検証のためだけに存在します。"
-              ]
-            }
-          ]
+          "content": "## プロダクト\n\nこのレコードは決定論的なビルド検証のためだけに存在します。"
         }
       }
     }

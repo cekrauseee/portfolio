@@ -1,6 +1,5 @@
 import type { MetadataRoute } from "next";
 import { site } from "@/config/site";
-import { projects } from "@/content/portfolio";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
@@ -24,10 +23,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "daily",
       priority: 0.6,
     },
-    ...projects.map((project) => ({
-      url: `${site.url}/projects/${project.slug}`,
-      changeFrequency: "monthly" as const,
-      priority: 0.7,
-    })),
   ];
 }
