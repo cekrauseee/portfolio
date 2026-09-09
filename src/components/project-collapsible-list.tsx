@@ -1,8 +1,19 @@
 "use client";
 
-import { Children, type ReactNode, useEffect, useRef, useState } from "react";
+import {
+  Children,
+  type ReactNode,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { focusVisibleClassName, toggleSoundProps } from "@/components/links";
-import { stabilizeViewportAnchor } from "@/lib/viewport-scroll";
+import {
+  accommodateExpandedContent,
+  releaseCollapsedViewport,
+  stabilizeViewportAnchor,
+} from "@/lib/viewport-scroll";
 
 const PANEL_TRANSITION_MS = 500;
 
@@ -27,6 +38,23 @@ export function ProjectCollapsibleList({
   const rootRef = useRef<HTMLDivElement>(null);
   const cancelAnchorRef = useRef<(() => void) | null>(null);
   const contents = Children.toArray(children);
+  const previousSlug = useRef<string | null>(null);
+
+  useLayoutEffect(() => {
+    const previous = previousSlug.current;
+    previousSlug.current = openSlug;
+    const slug = openSlug ?? previous;
+    if (!slug || !rootRef.current || cancelAnchorRef.current) {
+      return;
+    }
+    const panel = document.getElementById(`${idPrefix}-${slug}-panel`);
+    const article = panel?.closest("article");
+    if (panel && article) {
+      return openSlug
+        ? accommodateExpandedContent(article, panel, previous !== null)
+        : releaseCollapsedViewport(rootRef.current, panel);
+    }
+  }, [idPrefix, openSlug]);
 
   function preserveViewportPosition(anchor: HTMLElement) {
     cancelAnchorRef.current?.();
@@ -86,13 +114,9 @@ export function ProjectCollapsibleList({
     frame = requestAnimationFrame(keepAnchorStable);
   }
 
-  function toggleProject(slug: string, trigger: HTMLButtonElement) {
+  function toggleProject(slug: string) {
     cancelAnchorRef.current?.();
     const nextSlug = openSlug === slug ? null : slug;
-
-    if (openSlug && nextSlug && openSlug !== nextSlug) {
-      preserveViewportPosition(trigger);
-    }
 
     setOpenSlug(nextSlug);
   }
@@ -177,9 +201,7 @@ export function ProjectCollapsibleList({
                 aria-expanded={isOpen}
                 className={`${focusVisibleClassName} group block w-full cursor-pointer touch-manipulation text-left`}
                 id={triggerId}
-                onClick={(event) =>
-                  toggleProject(project.slug, event.currentTarget)
-                }
+                onClick={() => toggleProject(project.slug)}
                 type="button"
               >
                 <span className="block text-[0.9375rem] leading-relaxed font-medium text-black/85 transition-colors group-hover:text-black dark:text-white/85 dark:group-hover:text-white">
@@ -198,20 +220,18 @@ export function ProjectCollapsibleList({
             <div
               aria-hidden={!isOpen}
               aria-labelledby={triggerId}
-              className={`grid transition-[grid-template-rows,opacity] ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none ${
+              className={`grid transition-[grid-template-rows,opacity] duration-[500ms,200ms] ease-[cubic-bezier(0.4,0,0.2,1),ease-out] motion-reduce:transition-none ${
                 isOpen
                   ? "grid-rows-[1fr] opacity-100"
                   : "pointer-events-none grid-rows-[0fr] opacity-0"
               }`}
-              style={{ transitionDuration: `${PANEL_TRANSITION_MS}ms` }}
               id={panelId}
               inert={isOpen ? undefined : true}
               role="region"
             >
               <div className="min-h-0 overflow-x-visible overflow-y-clip">
                 <div
-                  className={`origin-top-left pb-1 transition-transform ease-[cubic-bezier(0.2,0.9,0.3,1.15)] motion-reduce:transform-none motion-reduce:transition-none ${isOpen ? "translate-y-0 scale-100" : "translate-y-2 scale-[0.98]"}`}
-                  style={{ transitionDuration: `${PANEL_TRANSITION_MS}ms` }}
+                  className={`origin-top-left pb-1 transition-transform duration-500 ease-[cubic-bezier(0.2,0.9,0.3,1.15)] motion-reduce:transform-none motion-reduce:transition-none ${isOpen ? "translate-y-0 scale-100" : "translate-y-2 scale-[0.98]"}`}
                 >
                   {contents[index]}
                 </div>

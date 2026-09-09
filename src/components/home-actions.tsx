@@ -3,6 +3,7 @@
 import { type ReactNode, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { accommodateAction } from "@/lib/action-viewport";
+import { releaseCollapsedViewport } from "@/lib/viewport-scroll";
 import {
   dismissSoundProps,
   linkSoundProps,
@@ -27,13 +28,18 @@ export function HomeActions({
 }) {
   const [active, setActive] = useState<string | null>(initialAction);
   const root = useRef<HTMLDivElement>(null);
+  const previousAction = useRef<string | null>(null);
   useLayoutEffect(() => {
-    if (!active || !root.current) {
+    const panelId = active ?? previousAction.current;
+    previousAction.current = active;
+    if (!panelId || !root.current) {
       return;
     }
-    const panel = document.getElementById(`action-${active}-panel`);
+    const panel = document.getElementById(`action-${panelId}-panel`);
     if (panel) {
-      return accommodateAction(root.current, panel);
+      return active
+        ? accommodateAction(root.current, panel)
+        : releaseCollapsedViewport(root.current, panel);
     }
   }, [active]);
   const triggers = useRef(new Map<string, HTMLButtonElement>());
@@ -98,7 +104,7 @@ export function HomeActions({
             aria-labelledby={`action-${action.id}-trigger`}
             aria-hidden={active !== action.id}
             inert={active !== action.id ? true : undefined}
-            className={`grid transition-[grid-template-rows,opacity] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none ${active === action.id ? "grid-rows-[1fr] opacity-100" : "pointer-events-none grid-rows-[0fr] opacity-0"}`}
+            className={`grid transition-[grid-template-rows,opacity] duration-[500ms,200ms] ease-[cubic-bezier(0.4,0,0.2,1),ease-out] motion-reduce:transition-none ${active === action.id ? "grid-rows-[1fr] opacity-100" : "pointer-events-none grid-rows-[0fr] opacity-0"}`}
           >
             <div className="min-h-0 overflow-x-visible overflow-y-clip">
               <div

@@ -36,10 +36,22 @@ rendered React content across the server/client boundary, not render callbacks.
 - Opening uses `src/lib/action-viewport.ts` to accommodate the action within
   the visible viewport over 500ms. An already visible panel does not scroll;
   a fitting panel is centered where scroll bounds allow, and a tall one aligns
-  near the top. Scroll is clamped naturally, with no added blank space.
+  near the top. Scroll follows the panel's measured height so centering and
+  expansion share a single rhythm, with no added blank space.
   Wheel, touch, pointer, keyboard, external scrolling or viewport resizing
   cancels the adjustment. Field edits and results never trigger recentering.
-- Height/opacity transitions and restrained translation match the homepage;
+- Closing releases only the scroll distance that will no longer fit in the
+  shortened page, following the panel's height. Native scroll clamping at the
+  page end does not cancel this adjustment; manual input still does. Closing
+  never restores a saved scroll position. Projects and experiences share this
+  release behavior. On opening, their heading and expanded content are
+  accommodated together: leave a fully visible item still, center one that
+  fits, and align long content near the top. A shrinking previous sibling is
+  accounted for in the same adjustment so switching items retains the heading
+  as a reading reference. All adjustments yield to manual interaction.
+- Layout uses 500ms ease-in-out with a separate 200ms opacity transition;
+  the content retains its restrained bounce. Reversing a toggle continues from
+  the current rendered height. Intrinsic height excludes decorative transforms;
   reduced motion disables transitions. There is no nested scroll container.
 - The close control follows content. Future long results should add an accessible
   close control near their beginning too, without creating a separate overlay.
