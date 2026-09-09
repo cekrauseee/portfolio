@@ -4,7 +4,7 @@ export const ja: Dictionary = {
   site: {
     title: "cekrause",
     description:
-      "リスボンを拠点に、人とエージェントのためのプロダクト、インターフェース、ツールを丁寧につくるソフトウェアエンジニア。",
+      "リスボンでソフトウェアエンジニアをしています。人やaiエージェントが使うプロダクト、インターフェース、ツールをつくっています。",
     role: "ソフトウェアエンジニア",
     location: "リスボン",
   },
@@ -14,93 +14,95 @@ export const ja: Dictionary = {
     languageNavigation: "言語",
     appearanceNavigation: "表示",
     externalLinkNewTab: "（新しいタブで開きます）",
-    languages: { en: "English", pt: "Português", ja: "日本語" },
+    languages: { en: "english", pt: "português", ja: "日本語" },
     appearance: { system: "システム", light: "ライト", dark: "ダーク" },
   },
   home: {
     projects: "プロジェクト",
     bio: {
       intro:
-        "リスボンを拠点に、人とエージェントのためのプロダクト、インターフェース、ツールをつくるソフトウェアエンジニアです。",
+        "リスボンでソフトウェアエンジニアをしています。人やaiエージェントが使うプロダクト、インターフェース、ツールをつくっています。",
       process:
-        "アイデアをソフトウェアにすること、そして使い心地を考えることが好きです。",
+        "アイデアを形にするのが好きです。使う人のことを考えながら、細かいところまでつくっています。",
       interests:
-        "主にtypescriptとnode.jsを使っています。最近は、aiエージェントの連携や、役立つ文脈を保つ方法を探っています。",
+        "主にtypescriptとnode.jsを使っています。最近は、aiエージェントが連携して働く仕組みや、必要な文脈を引き継ぐ方法を試しています。",
     },
     experience: {
-      title: "経験",
+      title: "これまでの仕事",
       entries: {
         teamIt: {
           role: "ソフトウェアエンジニア",
           period: "2026年2月–7月",
           description:
-            "r&dディレクターと要件を整理し、面接を支援するデスクトップaiアシスタントをmicrosoft storeでの公開まで開発しました。退職前には、コンサルタントが実際の会議で使っていました。",
+            "面接を手助けするデスクトップaiアシスタントをつくりました。研究開発の責任者と必要な機能を考え、開発からmicrosoft storeでの公開まで担当しました。会社を離れるころには、一部のコンサルタントが実際の会議で使っていました。",
         },
         clinia: {
           role: "ソフトウェアエンジニア",
           period: "2023年11月–2025年11月",
           description:
-            "インターンとして入社し、その後エンジニアとして働きました。クリニック向けソフトウェア、ビジュアルなワークフロー、初のaiエージェントに携わりました。その後は安定性の改善や、バックエンドとaiの設計変更にも取り組みました。",
+            "インターンとして入り、そのままエンジニアとして働きました。クリニック向けのソフトウェアで、画面上で組み立てる自動化の仕組みや、初めてのaiエージェントの開発に携わりました。システムを安定させる作業や、バックエンドとaiの設計の見直しにも取り組みました。",
         },
         killing: {
           role: "itインターン",
           period: "2022年9月–2023年4月",
           description:
-            "itサポートと並行して、営業担当者の顧客訪問チェックリストを開発し、本番運用につなげました。工場設備を監視するツールのプロトタイプもつくりました。",
+            "itサポートの仕事をしながら、顧客訪問用のチェックリストアプリをつくり、実際の業務で使われるようになりました。工場設備の状態を確認するツールも試作しました。",
         },
       },
     },
     contact: {
+      close: "閉じる",
       description:
-        "新しい仕事やフリーランスの相談を受け付けています。取り組んでいることを聞かせてください。",
-      schedule: "面談を予約",
-      roleFit: "募集内容を比較",
+        "転職やフリーランスの仕事のお話も歓迎しています。今取り組んでいることを、聞かせてもらえたらうれしいです。",
+      schedule: "話す時間を予約",
+      roleFit: "求人と経験を比べる",
     },
     guestbook: {
       title: "ゲストブック",
     },
   },
   fit: {
-    title: "適性を確認",
-    description: "募集内容を貼り付けると、経験との適性を比較できます。",
+    title: "求人と経験を比べる",
+    description:
+      "求人の説明を貼り付けると、私の経験とどのくらい合っているかを確認できます。",
     back: "戻る",
     form: {
       roleDescription: "募集内容",
       placeholder: "5年以上の経験を持つシニアソフトウェアエンジニア",
-      assess: "適性を確認",
-      assessing: "適性を確認中…",
-      assessment: "適性の評価",
-      assessmentReady: "適性の評価が完了しました。",
-      emptyDescription: "適性を確認する前に、募集内容を貼り付けてください。",
+      assess: "求人と経験を比べる",
+      assessing: "求人と経験を比較中…",
+      assessment: "比較結果",
+      assessmentReady: "比較結果ができました。",
+      emptyDescription: "求人やプロジェクトの説明を貼り付けてください。",
       invalidDescription: "募集内容は16,000文字以内で入力してください。",
       descriptionRejected:
-        "この内容は仕事の機会として評価できません。募集またはプロジェクトの説明のみを入力してください。",
+        "この内容では比較できません。求人やプロジェクトの説明だけを入力してください。",
       rateLimited:
-        "適性確認の試行回数が多すぎます。少し待ってからもう一度お試しください。",
-      requestDenied: "この募集内容の適性を確認できませんでした。",
+        "続けて比較できる回数を超えました。少し待ってからもう一度お試しください。",
+      requestDenied: "この求人と経験を比較できませんでした。",
       serviceUnavailable:
-        "現在、適性を確認できません。しばらくしてからもう一度お試しください。",
-      unableToAssess: "適性を確認できませんでした。もう一度お試しください。",
+        "現在、求人と経験を比較できません。しばらくしてからもう一度お試しください。",
+      unableToAssess: "比較できませんでした。もう一度お試しください。",
       connectionError:
-        "適性を確認できませんでした。接続を確認して、もう一度お試しください。",
+        "比較できませんでした。接続を確認して、もう一度お試しください。",
       characterCount: "{count} / {max}",
-      scheduleConversation: "面談を予約",
+      scheduleConversation: "話す時間を予約",
     },
   },
   schedule: {
-    title: "面談を予約",
-    description: "Henrique Krauseとの1時間の面談の時間を選択してください。",
+    title: "話す時間を予約",
+    description:
+      "話せる日時を選んでください。1時間ほどお話しできればと思っています。",
     back: "戻る",
     form: {
       name: "名前",
       email: "メールアドレス",
       date: "日付",
       time: "時刻",
-      namePlaceholder: "Alex Morgan",
+      namePlaceholder: "alex morgan",
       emailPlaceholder: "alex@example.com",
       chooseTime: "時刻を選択",
-      dateHint:
-        "すべての日付を選択できます。時刻はお使いのタイムゾーンで表示されます。",
+      dateHint: "日時はお使いのタイムゾーンで表示されます。",
       timeHint: "選択した時刻から1時間です。",
       enterName: "名前を入力してください。",
       validName: "名前は2文字以上120文字以内で入力してください。",
@@ -110,39 +112,38 @@ export const ja: Dictionary = {
       futureDate: "今日以降の日付を選択してください。",
       chooseTimeError: "時刻を選択してください。",
       futureTime: "現在より後の時刻を選択してください。",
-      conflict:
-        "その時刻は利用できなくなりました。別の時刻を選択してください。",
+      conflict: "その時間は予約できなくなりました。別の時間を選んでください。",
       rateLimited:
-        "予約の試行回数が多すぎます。少し待ってからもう一度お試しください。",
-      requestDenied: "この面談を予約できませんでした。",
+        "続けて予約できる回数を超えました。少し待ってからもう一度お試しください。",
+      requestDenied: "予約できませんでした。",
       serviceUnavailable:
-        "現在、面談を予約できません。しばらくしてからもう一度お試しください。",
+        "現在、予約できません。しばらくしてからもう一度お試しください。",
       unableToSchedule:
-        "面談を予約できませんでした。入力内容を確認して、もう一度お試しください。",
+        "予約できませんでした。入力内容を確認して、もう一度お試しください。",
       connectionError:
-        "面談を予約できませんでした。接続を確認して、もう一度お試しください。",
-      booking: "面談を予約中…",
-      book: "面談を予約",
-      bookingStatus: "面談を予約しています。",
-      success:
-        "面談を予約しました。カレンダーの招待状をメールでご確認ください。",
-      meetingDetails: "面談の詳細を開く",
+        "予約できませんでした。接続を確認して、もう一度お試しください。",
+      booking: "予約中…",
+      book: "話す時間を予約",
+      bookingStatus: "予約しています。",
+      success: "予約ができました。カレンダーへの招待メールをご確認ください。",
+      meetingDetails: "予約の詳細を見る",
       externalLinkNewTab: "（新しいタブで開きます）",
     },
   },
   guestbook: {
-    title: "訪問者からのメッセージ",
+    title: "訪れた人のメッセージ",
     description:
-      "地球儀にメッセージを残してください。世界中の訪問者が光の点として表示されます。",
+      "ここにメッセージを残せます。一つひとつのメッセージが、地球儀の上に光の点として表示されます。",
     back: "戻る",
     newTitle: "メッセージを残す",
-    newDescription: "地球儀に表示されるメッセージを残せます。",
+    newDescription:
+      "地球儀に残すメッセージを書いてください。サイトを訪れた人なら誰でも読めます。",
     backToGlobe: "地球儀に戻る",
     form: {
       name: "名前",
       message: "メッセージ",
-      namePlaceholder: "Alex Morgan",
-      messagePlaceholder: "あなたの仕事についてもっと知りたいです。",
+      namePlaceholder: "alex morgan",
+      messagePlaceholder: "プロジェクト、楽しく見させてもらいました。",
       enterName: "名前を入力してください。",
       nameTooLong: "名前は{max}文字以内で入力してください。",
       writeMessage: "メッセージを入力してください。",
@@ -150,9 +151,9 @@ export const ja: Dictionary = {
       contentRejected:
         "このメッセージは公開できません。名前とメッセージを見直して、もう一度お試しください。",
       locationUnavailable:
-        "メッセージを地球儀のどこに表示するか判定できませんでした。しばらくしてからもう一度お試しください。",
+        "地球儀に表示する位置を確認できませんでした。しばらくしてからもう一度お試しください。",
       rateLimited:
-        "公開の試行回数が多すぎます。少し待ってからもう一度お試しください。",
+        "続けて投稿できる回数を超えました。少し待ってからもう一度お試しください。",
       requestDenied: "このメッセージを公開できませんでした。",
       serviceUnavailable:
         "現在、メッセージを公開できません。しばらくしてからもう一度お試しください。",
@@ -164,7 +165,7 @@ export const ja: Dictionary = {
       publish: "メッセージを公開",
       publishingStatus: "メッセージを公開しています。",
       success: "メッセージを地球儀に表示しました。",
-      redirecting: "メッセージを地球儀に表示しました。移動中…",
+      redirecting: "メッセージを公開しました。地球儀に戻ります…",
     },
     globe: {
       loading: "地球儀を読み込み中",
@@ -179,7 +180,7 @@ export const ja: Dictionary = {
       locationUnavailable: "位置情報を利用できません。もう一度お試しください。",
       messageCountOne: "{count}件のメッセージ",
       messageCountMany: "{count}件のメッセージ",
-      visitorMessages: "訪問者からのメッセージ",
+      visitorMessages: "訪れた人のメッセージ",
       message: "メッセージ",
       nearbyMessages: "近くのメッセージ（{count}件）",
       close: "閉じる",
@@ -196,7 +197,7 @@ export const ja: Dictionary = {
   },
   notFound: {
     title: "ページが見つかりません",
-    description: "このアドレスには何もありません。",
+    description: "このアドレスのページは見つかりませんでした。",
     home: "ポートフォリオに戻る",
   },
 };

@@ -2,44 +2,44 @@
 slug: portfolio
 name: cekrause/portfolio
 repositoryUrl: https://github.com/cekrauseee/portfolio
-description: a place to share my projects and talk about work.
+description: a place to share what i make and talk about ideas.
 metaDescription: >-
-  my software engineering portfolio, with project notes, a tool for comparing
-  roles, meeting scheduling, and a visitor guestbook on a globe.
+  my software engineering portfolio: what i've been building, a little about my
+  work, and a few ways to get in touch.
 summary: >-
-  i built my portfolio around project notes kept in their own repositories and
-  collected from github during the build. it also has a tool for comparing roles
-  with the published work and experience, calendar and meet scheduling, and a
-  moderated guestbook on an interactive globe.
+  i made this site to bring together what i've been building and share a little
+  about each project. the notes live alongside the code and come together here
+  during the build. you can also compare a job with my experience, book a
+  conversation, or leave a note on the globe.
 highlights:
-  - project notes kept with their source
-  - expandable projects in three languages
-  - role comparison and meeting scheduling
-  - a visitor guestbook on a globe
+  - project notes kept alongside the code
+  - a small journal in three languages
+  - room to talk about work
+  - a globe with notes from visitors
 ---
 
-i built this site to give my projects a home and some room to explain them. the
-page stays simple: a narrow column, text links, and project notes that open where
-you are.
+this is where i collect what i've been building. i write a little about each
+project: what it does, my part in it, and why i made certain decisions.
 
-## keeping it easy to update
+i kept the page close to a small journal, with a single column, text links, and
+projects that open right in the list. it's available in english, portuguese, and
+japanese.
 
-each project keeps its copy in a `.portfolio` folder inside its own repository.
-the site collects those files from github during the build, so adding another
-project follows the same process as updating one that's already here.
+## notes alongside the code
 
-the files use markdown, with room for images and separate translations. the site
-supports english, portuguese, and japanese.
+each project's text lives in a `.portfolio/project.md` file in its own repository,
+with separate files for translations. during the build, the site looks for those
+files in my public github repositories and brings the projects together here.
 
-## a few ways to interact
+that lets me update a project's description in the same place i work on it. markdown
+leaves room for text and images without needing a separate editor.
 
-you can compare a role description with my published work and experience or book
-a conversation through my calendar. scheduling checks availability and sends an
+## let’s talk
+
+i added a few ways to start a conversation. you can compare a job with the work
+and experience i've shared, or find a time in my calendar. booking sends an
 invitation with a google meet link.
 
-i also worked through what happens when a booking request is interrupted or sent
-again, so a retry can recover the original meeting without creating another one.
-
-the guestbook is a more playful part of the site. visitors can leave a note that
-appears as a point of light on a globe. messages are moderated before they appear,
-and the public forms have usage limits.
+the guestbook is the more playful part: leave a note, and after moderation it
+becomes a point of light on the globe. i like giving people who stop by a place
+to leave a little trace.
