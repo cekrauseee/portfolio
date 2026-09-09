@@ -15,7 +15,7 @@ export function ThemeSwitcher({
   const { preference, setPreference } = useTheme();
 
   return (
-    <fieldset className="w-max min-w-0">
+    <fieldset className="w-max min-w-0" data-theme-switcher>
       <legend className="sr-only">{label}</legend>
       <div className="flex max-w-full flex-wrap items-center gap-x-2 gap-y-1">
         {themePreferences.map((candidate) => (

@@ -119,9 +119,9 @@ export function ProjectCollapsibleList({
         !rootRef.current ||
         !(event.target instanceof Element) ||
         rootRef.current.contains(event.target) ||
-        // Translating the page preserves the expanded item. Closing it here
-        // would race the locale FLIP with the panel's 500ms collapse.
-        event.target.closest("[data-locale-switcher]")
+        // Locale and theme changes preserve the expanded item. Closing it here
+        // would interrupt the preference transition and collapse the panel.
+        event.target.closest("[data-locale-switcher], [data-theme-switcher]")
       ) {
         return;
       }
