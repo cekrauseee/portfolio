@@ -3,7 +3,7 @@
 import type { SubmitEvent } from "react";
 import { useRef, useState } from "react";
 import {
-  actionClassName,
+  softLinkClassName,
   actionSoundProps,
   ExternalLink,
   focusVisibleClassName,
@@ -271,7 +271,7 @@ export function MeetingScheduler({
     return (
       <div className="flex flex-col gap-2">
         <label
-          className={`font-medium ${error ? "text-red-700 dark:text-red-400" : ""}`}
+          className={`text-[0.8125rem] font-medium ${error ? "text-red-700 dark:text-red-400" : ""}`}
           htmlFor={`meeting-${name}`}
         >
           {label}
@@ -297,13 +297,13 @@ export function MeetingScheduler({
   };
 
   const inputClass = (name: FieldName) =>
-    `w-full border bg-transparent px-3 py-3 text-base leading-6 outline-none placeholder:text-black/45 dark:placeholder:text-white/45 ${focusVisibleClassName} ${
+    `w-full min-w-0 rounded-full border bg-black/[0.035] px-4 py-2.5 [font-family:inherit] text-base normal-case leading-6 transition-[background-color,border-color] duration-200 motion-reduce:transition-none dark:bg-white/[0.04] placeholder:text-black/45 dark:placeholder:text-white/45 ${focusVisibleClassName} ${
       errors[name]
         ? "border-red-700 focus:border-red-700 dark:border-red-400 dark:focus:border-red-400"
-        : "border-black/20 focus:border-black dark:border-white/25 dark:focus:border-white"
+        : "border-transparent focus:bg-black/[0.06] dark:focus:bg-white/[0.08]"
     }`;
   return (
-    <div lang={localeTag(locale)}>
+    <div className="text-sm leading-relaxed" lang={localeTag(locale)}>
       <form className="flex flex-col gap-5" onSubmit={handleSubmit} noValidate>
         {field(
           "name",
@@ -381,7 +381,7 @@ export function MeetingScheduler({
             </select>
             <svg
               aria-hidden="true"
-              className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2"
+              className="pointer-events-none absolute top-1/2 right-4 size-4 -translate-y-1/2"
               fill="none"
               viewBox="0 0 16 16"
             >
@@ -403,7 +403,7 @@ export function MeetingScheduler({
         ) : null}
         <button
           {...actionSoundProps}
-          className={`${actionClassName} disabled:cursor-not-allowed disabled:bg-black/45 dark:disabled:bg-white/45`}
+          className={`${softLinkClassName} min-h-9 w-fit cursor-pointer bg-black/[0.07] [font-family:inherit] disabled:cursor-wait disabled:opacity-50 dark:bg-white/[0.08]`}
           disabled={submitting}
           type="submit"
         >

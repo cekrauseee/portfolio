@@ -1,5 +1,6 @@
 import type { Metadata, ResolvingMetadata } from "next";
-import Link from "next/link";
+import { HomeActions } from "@/components/home-actions";
+import { MeetingScheduler } from "@/features/meeting-scheduling/meeting-scheduler";
 import { Inter } from "next/font/google";
 import {
   ExternalLink,
@@ -79,7 +80,7 @@ export default async function Home() {
     <PageShell
       locale={locale}
       navigation={dictionary.navigation}
-      containerClassName={`${inter.className} home-project-focus mx-auto flex w-full max-w-xl flex-col gap-10 overflow-clip px-8 pb-2 text-[0.9375rem] leading-relaxed font-normal text-black/65 sm:gap-12 dark:text-white/70 [&_footer_button]:rounded-full [&_footer_button]:px-2 [&_footer_button]:text-[0.8125rem] [&_footer_button]:leading-5 [&_footer_button]:lowercase [&_footer_button]:no-underline [&_footer_button]:transition-[background-color,color,scale] [&_footer_button]:duration-200 [&_footer_button]:ease-out [&_footer_button:hover]:bg-black/[0.05] [&_footer_button:focus-visible]:bg-black/[0.05] motion-safe:[&_footer_button:active]:scale-[0.97] motion-reduce:[&_footer_button]:transition-none dark:[&_footer_button:hover]:bg-white/[0.08] dark:[&_footer_button:focus-visible]:bg-white/[0.08] [&_footer_button[aria-pressed=true]]:bg-black/[0.05] [&_footer_button[aria-pressed=true]]:font-medium dark:[&_footer_button[aria-pressed=true]]:bg-white/[0.08]`}
+      containerClassName={`${inter.className} home-project-focus [&_[data-action-background]]:transition-[filter,opacity] [&_[data-action-background]]:duration-300 motion-reduce:[&_[data-action-background]]:transition-none [&>footer]:transition-[filter,opacity] [&>footer]:duration-300 motion-reduce:[&>footer]:transition-none [&:has([data-action-open=true])_[data-action-background]:not(:focus-within)]:blur-[1.5px] [&:has([data-action-open=true])_[data-action-background]:not(:focus-within)]:opacity-50 [&:has([data-action-open=true])>footer:not(:focus-within)]:blur-[1.5px] [&:has([data-action-open=true])>footer:not(:focus-within)]:opacity-50 mx-auto flex w-full max-w-xl flex-col gap-10 overflow-clip px-8 pb-2 text-[0.9375rem] leading-relaxed font-normal text-black/65 sm:gap-12 dark:text-white/70 [&_footer_button]:rounded-full [&_footer_button]:px-2 [&_footer_button]:text-[0.8125rem] [&_footer_button]:leading-5 [&_footer_button]:lowercase [&_footer_button]:no-underline [&_footer_button]:transition-[background-color,color,scale] [&_footer_button]:duration-200 [&_footer_button]:ease-out [&_footer_button:hover]:bg-black/[0.05] [&_footer_button:focus-visible]:bg-black/[0.05] motion-safe:[&_footer_button:active]:scale-[0.97] motion-reduce:[&_footer_button]:transition-none dark:[&_footer_button:hover]:bg-white/[0.08] dark:[&_footer_button:focus-visible]:bg-white/[0.08] [&_footer_button[aria-pressed=true]]:bg-black/[0.05] [&_footer_button[aria-pressed=true]]:font-medium dark:[&_footer_button[aria-pressed=true]]:bg-white/[0.08]`}
       showNavigation={false}
     >
       <script
@@ -88,7 +89,7 @@ export default async function Home() {
           __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
         }}
       />
-      <header className="flex flex-col gap-3 lowercase">
+      <header data-action-background className="flex flex-col gap-3 lowercase">
         <h1 className="animate-journal-enter mb-1 origin-left text-2xl leading-tight font-medium tracking-tight text-black motion-reduce:animate-none dark:text-white">
           {profile.name}.
         </h1>
@@ -103,24 +104,32 @@ export default async function Home() {
         ))}
       </header>
 
-      <ProjectList
-        dictionary={dictionary.home}
-        projectDictionary={dictionary.projects}
-        locale={locale}
-      />
-
-      <ExperienceList dictionary={dictionary.home.experience} />
+      <div data-action-background>
+        <ProjectList
+          dictionary={dictionary.home}
+          projectDictionary={dictionary.projects}
+          locale={locale}
+        />
+      </div>
+      <div data-action-background>
+        <ExperienceList dictionary={dictionary.home.experience} />
+      </div>
 
       <div
         className="animate-journal-enter flex origin-left flex-col gap-4 lowercase motion-reduce:animate-none"
         style={{ animationDelay: "290ms" }}
       >
-        <p className="text-pretty">{dictionary.home.contact.description}</p>
+        <p data-action-background className="text-pretty">
+          {dictionary.home.contact.description}
+        </p>
         <nav
           aria-label={dictionary.navigation.primaryLinks}
           className="flex flex-col gap-3 text-sm leading-relaxed"
         >
-          <div className="flex flex-wrap gap-x-5 gap-y-2">
+          <div
+            data-action-background
+            className="flex flex-wrap gap-x-5 gap-y-2"
+          >
             <a
               {...linkSoundProps}
               className={quietLinkClassName}
@@ -139,28 +148,37 @@ export default async function Home() {
               </ExternalLink>
             ))}
           </div>
-          <div className="flex flex-wrap gap-x-5 gap-y-2">
-            <Link
-              {...linkSoundProps}
-              className={quietLinkClassName}
-              href="/schedule"
-            >
-              {dictionary.home.contact.schedule}
-            </Link>
-            <Link
-              {...linkSoundProps}
-              className={quietLinkClassName}
-              href="/fit"
-            >
-              {dictionary.home.contact.roleFit}
-            </Link>
-            <Link
-              {...linkSoundProps}
-              className={quietLinkClassName}
-              href="/guestbook"
-            >
-              {dictionary.home.guestbook.title}
-            </Link>
+          <div id="schedule" className="scroll-mt-6">
+            <HomeActions
+              closeLabel={dictionary.home.contact.close}
+              actions={[
+                {
+                  id: "schedule",
+                  label: dictionary.home.contact.schedule,
+                  content: (
+                    <>
+                      <p className="mb-5 text-pretty">
+                        {dictionary.schedule.description}
+                      </p>
+                      <MeetingScheduler
+                        locale={locale}
+                        dictionary={dictionary.schedule.form}
+                      />
+                    </>
+                  ),
+                },
+                {
+                  id: "fit",
+                  label: dictionary.home.contact.roleFit,
+                  href: "/fit",
+                },
+                {
+                  id: "guestbook",
+                  label: dictionary.home.guestbook.title,
+                  href: "/guestbook",
+                },
+              ]}
+            />
           </div>
         </nav>
       </div>

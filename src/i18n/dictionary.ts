@@ -34,7 +34,12 @@ export type Dictionary = {
         }
       >;
     };
-    contact: { description: string; schedule: string; roleFit: string };
+    contact: {
+      description: string;
+      schedule: string;
+      roleFit: string;
+      close: string;
+    };
     guestbook: { title: string };
   };
   fit: {
