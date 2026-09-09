@@ -1,3 +1,4 @@
+import type { Metadata, ResolvingMetadata } from "next";
 import Link from "next/link";
 import { Inter } from "next/font/google";
 import {
@@ -19,6 +20,32 @@ const inter = Inter({
   display: "swap",
 });
 
+const homeTitle = "henrique krause";
+const homeDescription =
+  "software engineer in lisbon. i like turning ideas into software and caring about how it feels to use.";
+
+export async function generateMetadata(
+  _props: PageProps<"/">,
+  parent: ResolvingMetadata,
+): Promise<Metadata> {
+  const inherited = await parent;
+
+  return {
+    title: { absolute: homeTitle },
+    description: homeDescription,
+    openGraph: {
+      ...inherited.openGraph,
+      title: homeTitle,
+      description: homeDescription,
+    },
+    twitter: {
+      ...inherited.twitter,
+      title: homeTitle,
+      description: homeDescription,
+    },
+  };
+}
+
 export default async function Home() {
   const locale = await getRequestLocale();
   const dictionary = await getDictionary(locale);
@@ -28,8 +55,8 @@ export default async function Home() {
     "@type": "ProfilePage",
     "@id": `${canonicalUrl}/#profile-page`,
     url: canonicalUrl,
-    name: site.title,
-    description: dictionary.site.description,
+    name: homeTitle,
+    description: homeDescription,
     inLanguage: localeDetails[locale].languageTag,
     mainEntity: {
       "@type": "Person",
