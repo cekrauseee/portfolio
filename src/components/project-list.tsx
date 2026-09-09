@@ -17,19 +17,18 @@ export function ProjectList({
   const projects = getProjects(locale);
   return (
     <section
-      className="project-focus-anchor flex flex-col lowercase"
+      className="flex flex-col lowercase"
       aria-labelledby="projects-heading"
     >
       <h2
         id="projects-heading"
-        className="home-enter-item mb-4 text-sm leading-relaxed font-medium text-black/60 dark:text-white/65"
+        className="animate-journal-enter mb-4 origin-left text-sm leading-relaxed font-medium text-black/60 motion-reduce:animate-none dark:text-white/65"
         style={{ animationDelay: "110ms" }}
       >
         {dictionary.projects}
       </h2>
 
       <ProjectCollapsibleList
-        marksProjectFocus
         projects={projects.map((project) => ({
           slug: project.slug,
           name: project.name,
@@ -44,7 +43,7 @@ export function ProjectList({
               content={project.content}
             />
 
-            <p className="mt-4 text-sm lowercase">
+            <p className="-mx-4 mt-4 text-sm lowercase">
               <ExternalLink
                 appearance="soft"
                 href={project.repositoryUrl}

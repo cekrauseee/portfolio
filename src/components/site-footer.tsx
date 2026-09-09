@@ -10,7 +10,7 @@ export function SiteFooter({
   dictionary: Dictionary["navigation"];
 }) {
   return (
-    <footer className="mt-auto w-full">
+    <footer className="animate-journal-footer mt-auto w-full origin-left motion-reduce:animate-none">
       <Preferences locale={locale} dictionary={dictionary} />
     </footer>
   );

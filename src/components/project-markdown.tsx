@@ -65,7 +65,9 @@ function markdownComponents(): Components {
       </a>
     ),
     strong: ({ children }) => (
-      <strong className="text-foreground font-medium">{children}</strong>
+      <strong className="text-foreground dark:text-foreground-dark font-medium">
+        {children}
+      </strong>
     ),
     ul: ({ children }) => (
       <ul className="mt-3 list-disc space-y-2 pl-5 text-[0.9375rem] leading-relaxed font-normal text-black/65 marker:text-black/30 dark:text-white/70 dark:marker:text-white/30">
@@ -88,7 +90,7 @@ function markdownComponents(): Components {
       </code>
     ),
     pre: ({ children }) => (
-      <pre className="mt-5 overflow-x-auto bg-black/[0.035] p-4 text-sm leading-relaxed font-normal select-text dark:bg-white/[0.06] [&_code]:bg-transparent [&_code]:p-0">
+      <pre className="mt-5 overflow-x-auto bg-black/[0.035] p-4 text-sm leading-relaxed font-normal dark:bg-white/[0.06] [&_code]:bg-transparent [&_code]:p-0">
         {children}
       </pre>
     ),
@@ -120,7 +122,7 @@ export function ProjectMarkdown({
   content: string;
 }) {
   return (
-    <div className="mt-4 select-text [&>h4+p]:mt-2 [&>h5+p]:mt-2 [&>h6+p]:mt-2">
+    <div className="mt-4 [&>h4+p]:mt-2 [&>h5+p]:mt-2 [&>h6+p]:mt-2">
       <ReactMarkdown
         components={markdownComponents()}
         skipHtml

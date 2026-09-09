@@ -52,7 +52,7 @@ export default async function Home() {
     <PageShell
       locale={locale}
       navigation={dictionary.navigation}
-      containerClassName={`${inter.className} home-project-focus mx-auto flex w-full max-w-xl flex-col gap-10 px-4 text-[0.9375rem] leading-relaxed font-normal text-black/65 select-text sm:gap-12 dark:text-white/70 [&_footer_button]:rounded-full [&_footer_button]:px-2 [&_footer_button]:text-[0.8125rem] [&_footer_button]:leading-5 [&_footer_button]:lowercase [&_footer_button]:no-underline [&_footer_button]:transition-[background-color,color,scale] [&_footer_button]:duration-200 [&_footer_button]:ease-out [&_footer_button:hover]:bg-black/[0.05] [&_footer_button:focus-visible]:bg-black/[0.05] motion-safe:[&_footer_button:active]:scale-[0.97] motion-reduce:[&_footer_button]:transition-none dark:[&_footer_button:hover]:bg-white/[0.08] dark:[&_footer_button:focus-visible]:bg-white/[0.08] [&_footer_button[aria-pressed=true]]:bg-black/[0.05] [&_footer_button[aria-pressed=true]]:font-medium dark:[&_footer_button[aria-pressed=true]]:bg-white/[0.08]`}
+      containerClassName={`${inter.className} home-project-focus mx-auto flex w-full max-w-xl flex-col gap-10 overflow-clip px-8 pb-2 text-[0.9375rem] leading-relaxed font-normal text-black/65 sm:gap-12 dark:text-white/70 [&_footer_button]:rounded-full [&_footer_button]:px-2 [&_footer_button]:text-[0.8125rem] [&_footer_button]:leading-5 [&_footer_button]:lowercase [&_footer_button]:no-underline [&_footer_button]:transition-[background-color,color,scale] [&_footer_button]:duration-200 [&_footer_button]:ease-out [&_footer_button:hover]:bg-black/[0.05] [&_footer_button:focus-visible]:bg-black/[0.05] motion-safe:[&_footer_button:active]:scale-[0.97] motion-reduce:[&_footer_button]:transition-none dark:[&_footer_button:hover]:bg-white/[0.08] dark:[&_footer_button:focus-visible]:bg-white/[0.08] [&_footer_button[aria-pressed=true]]:bg-black/[0.05] [&_footer_button[aria-pressed=true]]:font-medium dark:[&_footer_button[aria-pressed=true]]:bg-white/[0.08]`}
       showNavigation={false}
     >
       <script
@@ -62,20 +62,16 @@ export default async function Home() {
         }}
       />
       <header className="flex flex-col gap-3 lowercase">
-        <h1 className="home-enter-item mb-1 text-2xl leading-tight font-medium tracking-tight text-black dark:text-white">
+        <h1 className="animate-journal-enter mb-1 origin-left text-2xl leading-tight font-medium tracking-tight text-black motion-reduce:animate-none dark:text-white">
           {profile.name}.
         </h1>
-        {[
-          dictionary.home.bio.intro,
-          dictionary.home.bio.process,
-          dictionary.home.bio.interests,
-        ].map((paragraph, index) => (
+        {(["intro", "process", "interests"] as const).map((section, index) => (
           <p
-            className="home-enter-item text-pretty"
-            key={paragraph}
+            className="animate-journal-enter origin-left text-pretty motion-reduce:animate-none"
+            key={section}
             style={{ animationDelay: `${30 + index * 30}ms` }}
           >
-            {paragraph}
+            {dictionary.home.bio[section]}
           </p>
         ))}
       </header>
@@ -89,7 +85,7 @@ export default async function Home() {
       <ExperienceList dictionary={dictionary.home.experience} />
 
       <div
-        className="home-enter-item flex flex-col gap-4 lowercase"
+        className="animate-journal-enter flex origin-left flex-col gap-4 lowercase motion-reduce:animate-none"
         style={{ animationDelay: "290ms" }}
       >
         <p className="text-pretty">{dictionary.home.contact.description}</p>

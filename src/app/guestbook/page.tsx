@@ -34,7 +34,7 @@ export default async function GuestbookPage() {
   const viewerLocation = resolveGeoFromHeaders(requestHeaders);
 
   return (
-    <main className="bg-background fixed inset-0">
+    <main className="bg-background dark:bg-background-dark fixed inset-0">
       <link
         rel="preload"
         href={COUNTRIES_GEOJSON_URL}

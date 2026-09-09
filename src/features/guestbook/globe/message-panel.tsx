@@ -26,7 +26,7 @@ export function HoverTooltip({
     .join(", ");
 
   return (
-    <div className="bg-background text-foreground pointer-events-none w-max max-w-[min(14rem,calc(100vw-1.5rem))] -translate-y-8 px-3 py-2 text-center text-sm leading-5 break-words select-none">
+    <div className="bg-background text-foreground dark:bg-background-dark dark:text-foreground-dark pointer-events-none w-max max-w-[min(14rem,calc(100vw-1.5rem))] -translate-y-8 px-3 py-2 text-center text-sm leading-5 break-words">
       <p className="font-medium text-pretty">
         {point.messages.length === 1
           ? firstMessage.name
@@ -59,7 +59,7 @@ export function MessagePanel({
   return (
     <aside
       aria-label={dictionary.visitorMessages}
-      className="bg-background text-foreground absolute [inset-inline-start:calc(1rem+env(safe-area-inset-left))] [inset-inline-end:calc(1rem+env(safe-area-inset-right))] bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-40 flex max-h-[min(60dvh,28rem)] flex-col p-4 outline outline-black/10 sm:[inset-inline-start:auto] sm:w-80 dark:outline-white/15"
+      className="bg-background text-foreground dark:bg-background-dark dark:text-foreground-dark absolute [inset-inline-start:calc(1rem+env(safe-area-inset-left))] [inset-inline-end:calc(1rem+env(safe-area-inset-right))] bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-40 flex max-h-[min(60dvh,28rem)] flex-col p-4 outline outline-black/10 sm:[inset-inline-start:auto] sm:w-80 dark:outline-white/15"
       onWheel={(event) => event.stopPropagation()}
     >
       <header className="flex shrink-0 items-start justify-between gap-4">

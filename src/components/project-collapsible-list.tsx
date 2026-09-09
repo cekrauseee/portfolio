@@ -18,12 +18,10 @@ export function ProjectCollapsibleList({
   projects,
   children,
   idPrefix = "project",
-  marksProjectFocus = false,
 }: {
   projects: readonly CollapsiblePreview[];
   children: ReactNode;
   idPrefix?: string;
-  marksProjectFocus?: boolean;
 }) {
   const [openSlug, setOpenSlug] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -120,7 +118,10 @@ export function ProjectCollapsibleList({
       if (
         !rootRef.current ||
         !(event.target instanceof Element) ||
-        rootRef.current.contains(event.target)
+        rootRef.current.contains(event.target) ||
+        // Translating the page preserves the expanded item. Closing it here
+        // would race the locale FLIP with the panel's 500ms collapse.
+        event.target.closest("[data-locale-switcher]")
       ) {
         return;
       }
@@ -163,16 +164,13 @@ export function ProjectCollapsibleList({
 
         return (
           <article
-            className={`home-enter-item project-collapsible-item transition-[filter,opacity] duration-300 ease-out motion-reduce:transition-none ${
+            className={`animate-journal-fade origin-left transition-[filter,opacity] duration-300 ease-out motion-reduce:animate-none motion-reduce:transition-none ${
               isDimmed ? "opacity-35 blur-[1.5px]" : "blur-0 opacity-100"
             }`}
-            data-project-expanded={
-              marksProjectFocus && isOpen ? "true" : undefined
-            }
             key={project.slug}
             style={{ animationDelay: `${Math.min(140 + index * 30, 290)}ms` }}
           >
-            <h3>
+            <h3 className="animate-journal-bounce origin-left motion-reduce:animate-none">
               <button
                 {...toggleSoundProps}
                 aria-controls={panelId}
@@ -200,7 +198,7 @@ export function ProjectCollapsibleList({
             <div
               aria-hidden={!isOpen}
               aria-labelledby={triggerId}
-              className={`project-collapsible-panel grid transition-[grid-template-rows,opacity] ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none ${
+              className={`grid transition-[grid-template-rows,opacity] ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none ${
                 isOpen
                   ? "grid-rows-[1fr] opacity-100"
                   : "pointer-events-none grid-rows-[0fr] opacity-0"
@@ -210,7 +208,7 @@ export function ProjectCollapsibleList({
               inert={isOpen ? undefined : true}
               role="region"
             >
-              <div className="min-h-0 overflow-hidden">
+              <div className="min-h-0 overflow-x-visible overflow-y-clip">
                 <div
                   className={`origin-top-left pb-1 transition-transform ease-[cubic-bezier(0.2,0.9,0.3,1.15)] motion-reduce:transform-none motion-reduce:transition-none ${isOpen ? "translate-y-0 scale-100" : "translate-y-2 scale-[0.98]"}`}
                   style={{ transitionDuration: `${PANEL_TRANSITION_MS}ms` }}

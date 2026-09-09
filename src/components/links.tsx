@@ -9,7 +9,7 @@ export const textLinkClassName = `${linkFocusClassName} underline [text-decorati
 
 export const quietLinkClassName = `${linkFocusClassName} min-h-6 font-medium no-underline text-black/85 transition-colors duration-200 ease-out hover:text-black motion-reduce:transition-none dark:text-white/85 dark:hover:text-white`;
 
-export const softLinkClassName = `${linkFocusClassName} inline-flex min-h-8 items-center rounded-full bg-transparent px-3 py-1 text-[0.8125rem] leading-5 font-medium text-black/80 no-underline transition-[background-color,color,scale] duration-200 ease-out hover:bg-black/[0.05] hover:text-black focus-visible:bg-black/[0.05] motion-safe:active:scale-[0.97] motion-reduce:transition-none dark:text-white/85 dark:hover:bg-white/[0.08] dark:hover:text-white dark:focus-visible:bg-white/[0.08]`;
+export const softLinkClassName = `${linkFocusClassName} inline-flex min-h-8 items-center rounded-full bg-transparent px-4 py-1 text-[0.8125rem] leading-5 font-medium text-black/80 no-underline transition-[background-color,color,scale] duration-200 ease-out hover:bg-black/[0.05] hover:text-black focus-visible:bg-black/[0.05] motion-safe:active:scale-[0.97] motion-reduce:transition-none dark:text-white/85 dark:hover:bg-white/[0.08] dark:hover:text-white dark:focus-visible:bg-white/[0.08]`;
 
 export const actionClassName = `${linkFocusClassName} inline-flex w-fit cursor-pointer items-center justify-center bg-black px-4 py-2 text-sm text-white no-underline hover:bg-black/80 dark:bg-white dark:text-black dark:hover:bg-white/80`;
 

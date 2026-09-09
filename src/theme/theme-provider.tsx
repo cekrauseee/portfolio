@@ -19,6 +19,8 @@ import {
   THEME_MEDIA_QUERY,
   type ThemePreference,
 } from "@/theme/config";
+import { flushSync } from "react-dom";
+import { transitionTheme } from "@/theme/theme-transition";
 
 type ThemeContextValue = {
   preference: ThemePreference;
@@ -118,8 +120,12 @@ export function ThemeProvider({
   const setPreference = useCallback((nextPreference: ThemePreference) => {
     const secure = window.location.protocol === "https:";
     document.cookie = serializeThemeCookie(nextPreference, secure);
-    setPreferenceState(nextPreference);
-    setIsDark(applyTheme(nextPreference));
+    transitionTheme(() => {
+      flushSync(() => {
+        setPreferenceState(nextPreference);
+        setIsDark(applyTheme(nextPreference));
+      });
+    });
   }, []);
 
   return (

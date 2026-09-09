@@ -14,7 +14,7 @@ export function ExperienceList({
     >
       <h2
         id="experience-heading"
-        className="home-enter-item mb-4 text-sm leading-relaxed font-medium text-black/60 dark:text-white/65"
+        className="animate-journal-enter mb-4 origin-left text-sm leading-relaxed font-medium text-black/60 motion-reduce:animate-none dark:text-white/65"
       >
         {dictionary.title}
       </h2>

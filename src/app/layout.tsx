@@ -106,12 +106,12 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       lang={localeDetails[locale].languageTag}
       data-theme={preference}
       suppressHydrationWarning
-      className={`${geistSans.variable} ${initialDark ? "dark" : ""} bg-background min-h-full min-w-0 overscroll-none [-webkit-text-size-adjust:100%] [text-size-adjust:100%]`}
+      className={`${geistSans.variable} ${initialDark ? "dark" : ""} bg-background dark:bg-background-dark min-h-full min-w-0 overscroll-none scheme-light [-webkit-text-size-adjust:100%] [text-size-adjust:100%] has-[.home-project-focus]:h-dvh has-[.home-project-focus]:overflow-hidden dark:scheme-dark`}
     >
       <head>
         <ThemeScript />
       </head>
-      <body className="bg-background text-foreground min-h-full min-w-0 overscroll-none font-sans text-sm leading-5 antialiased">
+      <body className="bg-background text-foreground dark:bg-background-dark dark:text-foreground-dark min-h-full min-w-0 overscroll-none font-sans text-sm leading-5 antialiased select-none has-[.home-project-focus]:h-dvh has-[.home-project-focus]:min-h-0 has-[.home-project-focus]:overflow-hidden">
         <ThemeProvider initialPreference={preference}>
           <InteractionSounds />
           {children}

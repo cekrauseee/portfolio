@@ -1,10 +1,11 @@
 "use client";
 
-import { useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { preferenceOptionClassName } from "@/components/preference-option";
 import { toggleSoundProps } from "@/components/links";
 import { setLocalePreference } from "@/i18n/actions";
 import { locales, type Locale } from "@/i18n/config";
+import { requestLocaleTransition } from "@/i18n/locale-transition";
 import { stabilizeViewportAnchor } from "@/lib/viewport-scroll";
 
 const languageAnchorStorageKey = "portfolio-language-anchor";
@@ -22,6 +23,40 @@ export function LanguageSwitcher({
     {},
   );
   const anchorFrameRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const releaseAnchor = () => {
+      sessionStorage.removeItem(languageAnchorStorageKey);
+      if (anchorFrameRef.current !== null) {
+        cancelAnimationFrame(anchorFrameRef.current);
+        anchorFrameRef.current = null;
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (
+        [
+          "ArrowUp",
+          "ArrowDown",
+          "PageUp",
+          "PageDown",
+          "Home",
+          "End",
+          " ",
+          "Tab",
+        ].includes(event.key)
+      ) {
+        releaseAnchor();
+      }
+    };
+    window.addEventListener("wheel", releaseAnchor, { passive: true });
+    window.addEventListener("touchmove", releaseAnchor, { passive: true });
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("wheel", releaseAnchor);
+      window.removeEventListener("touchmove", releaseAnchor);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, []);
 
   useLayoutEffect(() => {
     const storedAnchor = sessionStorage.getItem(languageAnchorStorageKey);
@@ -58,10 +93,10 @@ export function LanguageSwitcher({
 
     sessionStorage.removeItem(languageAnchorStorageKey);
 
-    let remainingFrames = window.matchMedia("(prefers-reduced-motion: reduce)")
-      .matches
-      ? 2
-      : 36;
+    // Text is already committed. Correct its new layout before paint and once
+    // on the next frame, without holding focus/scroll for an entrance animation.
+    let remainingFrames = 2;
+    buttonRefs.current[locale]?.focus({ preventScroll: true });
 
     function keepButtonStable() {
       const button = buttonRefs.current[locale];
@@ -76,12 +111,11 @@ export function LanguageSwitcher({
       if (remainingFrames > 0) {
         anchorFrameRef.current = requestAnimationFrame(keepButtonStable);
       } else {
-        button.focus({ preventScroll: true });
         anchorFrameRef.current = null;
       }
     }
 
-    anchorFrameRef.current = requestAnimationFrame(keepButtonStable);
+    keepButtonStable();
 
     return () => {
       if (anchorFrameRef.current !== null) {
@@ -96,6 +130,7 @@ export function LanguageSwitcher({
       <legend className="sr-only">{label}</legend>
       <form
         action={setLocalePreference}
+        data-locale-switcher
         className="flex max-w-full flex-wrap items-center gap-x-2 gap-y-1"
       >
         {locales.map((candidate) => (
@@ -104,7 +139,15 @@ export function LanguageSwitcher({
             className={`${preferenceOptionClassName} ${candidate === locale ? "font-medium underline" : ""}`}
             onClick={(event) => {
               if (candidate === locale) {
+                event.preventDefault();
                 return;
+              }
+
+              const content = event.currentTarget.closest<HTMLElement>(
+                "[data-locale-content]",
+              );
+              if (content) {
+                requestLocaleTransition(content, candidate);
               }
 
               sessionStorage.setItem(

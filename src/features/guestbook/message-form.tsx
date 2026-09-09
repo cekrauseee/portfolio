@@ -159,7 +159,7 @@ export function MessageForm({
   }
 
   const inputClass = (name: FieldName) =>
-    `w-full border bg-transparent px-3 py-3 text-base leading-6 text-foreground outline-none placeholder:text-black/45 dark:placeholder:text-white/45 ${focusVisibleClassName} ${
+    `w-full border bg-transparent px-3 py-3 text-base leading-6 text-foreground outline-none placeholder:text-black/45 dark:text-foreground-dark dark:placeholder:text-white/45 ${focusVisibleClassName} ${
       errors[name]
         ? "border-red-700 focus:border-red-700 dark:border-red-400 dark:focus:border-red-400"
         : "border-black/20 focus:border-black dark:border-white/25 dark:focus:border-white"
