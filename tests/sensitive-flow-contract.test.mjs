@@ -41,7 +41,7 @@ test("fit guardrail rejection has localized field guidance", () => {
     error: { code: "description_rejected", operationId: "fit-operation" },
   });
   assert.equal(code, "description_rejected");
-  assert.match(en.fit.form.descriptionRejected, /role or project description/);
+  assert.match(en.fit.form.descriptionRejected, /job or project description/);
 });
 
 test("meeting client and server share exact identity validation", () => {
