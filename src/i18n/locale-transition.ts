@@ -133,7 +133,7 @@ export function animateChangedText(
             { opacity, clipPath: "inset(0px 0 0)", offset: 1 },
           ]
         : [{ opacity: opacity * 0.65 }, { opacity }],
-      { duration: expanded ? 220 : 180, easing: "ease-out" },
+      { duration: expanded ? 180 : 150, easing: "ease-out" },
     );
     return animation;
   });

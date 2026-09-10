@@ -56,7 +56,7 @@ export function animateLocaleLayout(
     }
     animations.push(
       element.animate([{ translate: `0 ${offset}px` }, { translate: "0 0" }], {
-        duration: 220,
+        duration: 180,
         easing: "ease-out",
         composite: "add",
       }),

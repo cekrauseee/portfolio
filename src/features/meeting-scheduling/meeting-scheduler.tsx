@@ -1,5 +1,7 @@
 "use client";
 
+import { AnimatedButtonLabel } from "@/components/animated-button-label";
+
 import type { SubmitEvent } from "react";
 import { useRef, useState } from "react";
 import {
@@ -8,6 +10,7 @@ import {
   ExternalLink,
   focusVisibleClassName,
 } from "@/components/links";
+import { FieldFeedback, FormErrorFeedback } from "@/components/form-feedback";
 import {
   meetingErrorMessage,
   parseMeetingErrorCode,
@@ -269,37 +272,28 @@ export function MeetingScheduler({
   ) => {
     const error = errors[name];
     return (
-      <div className="flex flex-col gap-2">
+      <div>
         <label
-          className={`text-[0.8125rem] font-medium ${error ? "text-red-700 dark:text-red-400" : ""}`}
+          className={`text-[0.8125rem] font-medium transition-colors duration-150 ease-out motion-reduce:transition-none ${error ? "text-red-700 dark:text-red-400" : ""}`}
           htmlFor={`meeting-${name}`}
         >
           {label}
         </label>
-        {control}
-        {error ? (
-          <p
-            className="text-red-700 dark:text-red-400"
-            id={`meeting-${name}-error`}
-          >
-            {error}
-          </p>
-        ) : hint ? (
-          <p
-            className="text-black/60 dark:text-white/65"
-            id={`meeting-${name}-hint`}
-          >
-            {hint}
-          </p>
-        ) : null}
+        <div className="mt-2">{control}</div>
+        <FieldFeedback
+          error={error}
+          errorId={`meeting-${name}-error`}
+          hint={hint}
+          hintId={hint ? `meeting-${name}-hint` : undefined}
+        />
       </div>
     );
   };
 
   const inputClass = (name: FieldName) =>
-    `w-full min-w-0 rounded-full border bg-black/[0.035] px-4 py-2.5 [font-family:inherit] text-base normal-case leading-6 transition-[background-color,border-color] duration-200 motion-reduce:transition-none dark:bg-white/[0.04] placeholder:text-black/45 dark:placeholder:text-white/45 ${focusVisibleClassName} ${
+    `w-full min-w-0 rounded-full border bg-black/[0.035] px-4 py-2.5 [font-family:inherit] text-base normal-case leading-6 transition-[background-color,border-color,outline-color] duration-150 ease-out motion-reduce:transition-none dark:bg-white/[0.04] placeholder:text-black/45 dark:placeholder:text-white/45 ${focusVisibleClassName} ${
       errors[name]
-        ? "border-red-700 focus:border-red-700 dark:border-red-400 dark:focus:border-red-400"
+        ? "border-red-700 focus:border-red-700 focus-visible:outline-red-700 dark:border-red-400 dark:focus:border-red-400 dark:focus-visible:outline-red-400"
         : "border-transparent focus:bg-black/[0.06] dark:focus:bg-white/[0.08]"
     }`;
   return (
@@ -396,19 +390,19 @@ export function MeetingScheduler({
           </div>,
           dictionary.timeHint,
         )}
-        {generalError ? (
-          <p className="text-red-700 dark:text-red-400" role="alert">
-            {generalError}
-          </p>
-        ) : null}
-        <button
-          {...actionSoundProps}
-          className={`${softLinkClassName} min-h-9 w-fit cursor-pointer bg-black/[0.07] [font-family:inherit] disabled:cursor-wait disabled:opacity-50 dark:bg-white/[0.08]`}
-          disabled={submitting}
-          type="submit"
-        >
-          {submitting ? dictionary.booking : dictionary.book}
-        </button>
+        <div>
+          <FormErrorFeedback message={generalError} />
+          <button
+            {...actionSoundProps}
+            className={`${softLinkClassName} min-h-9 w-fit cursor-pointer !bg-black/[0.07] [font-family:inherit] disabled:cursor-wait disabled:opacity-50 dark:!bg-white/[0.08]`}
+            disabled={submitting}
+            type="submit"
+          >
+            <AnimatedButtonLabel state={submitting}>
+              {submitting ? dictionary.booking : dictionary.book}
+            </AnimatedButtonLabel>
+          </button>
+        </div>
       </form>
       <p aria-live="polite" className="sr-only" role="status">
         {submitting ? dictionary.bookingStatus : success}

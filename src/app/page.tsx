@@ -1,6 +1,9 @@
 import type { Metadata, ResolvingMetadata } from "next";
+import { Fragment } from "react";
 import { HomeActions } from "@/components/home-actions";
+import { Guestbook } from "@/features/guestbook/guestbook";
 import { MeetingScheduler } from "@/features/meeting-scheduling/meeting-scheduler";
+import { RoleFitForm } from "@/features/role-fit/role-fit-form";
 import { Inter } from "next/font/google";
 import {
   ExternalLink,
@@ -80,7 +83,7 @@ export default async function Home() {
     <PageShell
       locale={locale}
       navigation={dictionary.navigation}
-      containerClassName={`${inter.className} home-project-focus [&_[data-action-background]]:transition-[filter,opacity] [&_[data-action-background]]:duration-300 motion-reduce:[&_[data-action-background]]:transition-none [&>footer]:transition-[filter,opacity] [&>footer]:duration-300 motion-reduce:[&>footer]:transition-none [&:has([data-action-open=true])_[data-action-background]:not(:focus-within)]:blur-[1.5px] [&:has([data-action-open=true])_[data-action-background]:not(:focus-within)]:opacity-50 [&:has([data-action-open=true])>footer:not(:focus-within)]:blur-[1.5px] [&:has([data-action-open=true])>footer:not(:focus-within)]:opacity-50 mx-auto flex w-full max-w-xl flex-col gap-10 overflow-clip px-8 pb-2 text-[0.9375rem] leading-relaxed font-normal text-black/65 sm:gap-12 dark:text-white/70 [&_footer_button]:rounded-full [&_footer_button]:px-2 [&_footer_button]:text-[0.8125rem] [&_footer_button]:leading-5 [&_footer_button]:lowercase [&_footer_button]:no-underline [&_footer_button]:transition-[background-color,color,scale] [&_footer_button]:duration-200 [&_footer_button]:ease-out [&_footer_button:hover]:bg-black/[0.05] [&_footer_button:focus-visible]:bg-black/[0.05] motion-safe:[&_footer_button:active]:scale-[0.97] motion-reduce:[&_footer_button]:transition-none dark:[&_footer_button:hover]:bg-white/[0.08] dark:[&_footer_button:focus-visible]:bg-white/[0.08] [&_footer_button[aria-pressed=true]]:bg-black/[0.05] [&_footer_button[aria-pressed=true]]:font-medium dark:[&_footer_button[aria-pressed=true]]:bg-white/[0.08]`}
+      containerClassName={`${inter.className} home-project-focus [&_[data-action-background]]:transition-[filter,opacity] [&_[data-action-background]]:duration-[240ms] motion-reduce:[&_[data-action-background]]:transition-none [&:has([data-action-open=true])_[data-action-background]:not(:focus-within)]:blur-[1.5px] [&:has([data-action-open=true])_[data-action-background]:not(:focus-within)]:opacity-50 mx-auto flex w-full max-w-xl flex-col gap-10 overflow-clip px-8 pb-2 text-[0.9375rem] leading-relaxed font-normal text-black/65 sm:gap-12 dark:text-white/70 [&_footer_button]:rounded-full [&_footer_button]:px-2 [&_footer_button]:text-[0.8125rem] [&_footer_button]:leading-5 [&_footer_button]:lowercase [&_footer_button]:no-underline [&_footer_button]:transition-[background-color,color,scale] [&_footer_button]:duration-150 [&_footer_button]:ease-out [&_footer_button:hover]:bg-black/[0.05] [&_footer_button:focus-visible]:bg-black/[0.05] motion-safe:[&_footer_button:active]:scale-[0.97] motion-reduce:[&_footer_button]:transition-none dark:[&_footer_button:hover]:bg-white/[0.08] dark:[&_footer_button:focus-visible]:bg-white/[0.08] [&_footer_button[aria-pressed=true]]:bg-black/[0.05] [&_footer_button[aria-pressed=true]]:font-medium dark:[&_footer_button[aria-pressed=true]]:bg-white/[0.08]`}
       showNavigation={false}
     >
       <script
@@ -97,7 +100,7 @@ export default async function Home() {
           <p
             className="animate-journal-enter origin-left text-pretty motion-reduce:animate-none"
             key={section}
-            style={{ animationDelay: `${30 + index * 30}ms` }}
+            style={{ animationDelay: `${25 + index * 25}ms` }}
           >
             {dictionary.home.bio[section]}
           </p>
@@ -117,7 +120,7 @@ export default async function Home() {
 
       <div
         className="animate-journal-enter flex origin-left flex-col gap-4 lowercase motion-reduce:animate-none"
-        style={{ animationDelay: "290ms" }}
+        style={{ animationDelay: "220ms" }}
       >
         <p data-action-background className="text-pretty">
           {dictionary.home.contact.description}
@@ -156,7 +159,7 @@ export default async function Home() {
                   id: "schedule",
                   label: dictionary.home.contact.schedule,
                   content: (
-                    <>
+                    <Fragment key="schedule">
                       <p className="mb-5 text-pretty">
                         {dictionary.schedule.description}
                       </p>
@@ -164,18 +167,35 @@ export default async function Home() {
                         locale={locale}
                         dictionary={dictionary.schedule.form}
                       />
-                    </>
+                    </Fragment>
                   ),
                 },
                 {
                   id: "fit",
                   label: dictionary.home.contact.roleFit,
-                  href: "/fit",
+                  content: (
+                    <Fragment key="fit">
+                      <p className="mb-5 text-pretty">
+                        {dictionary.fit.description}
+                      </p>
+                      <RoleFitForm
+                        closeLabel={dictionary.home.contact.close}
+                        locale={locale}
+                        dictionary={dictionary.fit.form}
+                      />
+                    </Fragment>
+                  ),
                 },
                 {
                   id: "guestbook",
-                  label: dictionary.home.guestbook.title,
-                  href: "/guestbook",
+                  label: dictionary.home.contact.guestbook,
+                  content: (
+                    <Guestbook
+                      key="guestbook"
+                      locale={locale}
+                      dictionary={dictionary.guestbook}
+                    />
+                  ),
                 },
               ]}
             />

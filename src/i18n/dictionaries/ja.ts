@@ -56,25 +56,62 @@ export const ja: Dictionary = {
         "転職やフリーランスの仕事のお話も歓迎しています。今取り組んでいることを、聞かせてもらえたらうれしいです。",
       schedule: "話す時間を予約",
       roleFit: "求人と経験を比べる",
-    },
-    guestbook: {
-      title: "ゲストブック",
+      guestbook: "ゲストブック",
     },
   },
+  guestbook: {
+    publicNotice: "ここに投稿したメッセージは公開されます。",
+    writeMessage: "メッセージを残す",
+    backToMessages: "メッセージ一覧に戻る",
+    name: "名前またはニックネーム",
+    namePlaceholder: "alex",
+    message: "メッセージ",
+    messagePlaceholder: "ひとこと残す…",
+    send: "投稿する",
+    sending: "送信中…",
+    sendingStatus: "メッセージを送信しています。",
+    success: "メッセージをゲストブックに追加しました。",
+    enterName: "名前またはニックネームを入力してください。",
+    validName: "名前またはニックネームは80文字以内で入力してください。",
+    enterMessage: "送信するメッセージを入力してください。",
+    validMessage: "メッセージは500文字以内で入力してください。",
+    messageRejected:
+      "このメッセージは投稿できません。表現を変えてお試しください。",
+    rateLimited:
+      "短時間に送信できる回数を超えました。少し待ってからもう一度お試しください。",
+    requestDenied: "このメッセージを投稿できませんでした。",
+    serviceUnavailable:
+      "現在、ゲストブックを利用できません。しばらくしてからもう一度お試しください。",
+    submissionConflict:
+      "この送信を再試行できませんでした。もう一度送信してください。",
+    unableToSend: "メッセージを投稿できませんでした。もう一度お試しください。",
+    connectionError:
+      "メッセージを投稿できませんでした。接続を確認して、もう一度お試しください。",
+    loading: "メッセージを読み込み中…",
+    loadingStatus: "ゲストブックのメッセージを読み込んでいます。",
+    loadError: "ゲストブックを読み込めませんでした。もう一度お試しください。",
+    retry: "もう一度試す",
+    empty: "まだメッセージはありません。",
+    seeMore: "もっと見る",
+    seeLess: "折りたたむ",
+    loadingMore: "さらに読み込み中…",
+    loadingMoreStatus: "ゲストブックのメッセージをさらに読み込んでいます。",
+    loadMoreError:
+      "追加のメッセージを読み込めませんでした。もう一度お試しください。",
+    loadedMore: "追加のメッセージを読み込みました。",
+  },
   fit: {
-    title: "求人と経験を比べる",
-    description:
-      "求人の説明を貼り付けると、私の経験とどのくらい合っているかを確認できます。",
-    back: "戻る",
+    description: "募集内容を貼り付けると、これまでの仕事と照らし合わせます。",
     form: {
       roleDescription: "募集内容",
-      placeholder: "5年以上の経験を持つシニアソフトウェアエンジニア",
+      placeholder:
+        "シニアソフトウェアエンジニア\ntypescriptで信頼性の高いプロダクトを開発…",
       assess: "求人と経験を比べる",
       assessing: "求人と経験を比較中…",
-      assessment: "比較結果",
+      assessment: "経験との比較",
       assessmentReady: "比較結果ができました。",
       emptyDescription: "求人やプロジェクトの説明を貼り付けてください。",
-      invalidDescription: "募集内容は16,000文字以内で入力してください。",
+      invalidDescription: "募集内容は16,000文字以内にしてください。",
       descriptionRejected:
         "この内容では比較できません。求人やプロジェクトの説明だけを入力してください。",
       rateLimited:
@@ -85,7 +122,7 @@ export const ja: Dictionary = {
       unableToAssess: "比較できませんでした。もう一度お試しください。",
       connectionError:
         "比較できませんでした。接続を確認して、もう一度お試しください。",
-      characterCount: "{count} / {max}",
+      characterCount: "{count} / {max}文字",
       scheduleConversation: "話す時間を予約",
     },
   },
@@ -128,63 +165,6 @@ export const ja: Dictionary = {
       success: "予約ができました。カレンダーへの招待メールをご確認ください。",
       meetingDetails: "予約の詳細を見る",
       externalLinkNewTab: "（新しいタブで開きます）",
-    },
-  },
-  guestbook: {
-    title: "訪れた人のメッセージ",
-    description:
-      "ここにメッセージを残せます。一つひとつのメッセージが、地球儀の上に光の点として表示されます。",
-    back: "戻る",
-    newTitle: "メッセージを残す",
-    newDescription:
-      "地球儀に残すメッセージを書いてください。サイトを訪れた人なら誰でも読めます。",
-    backToGlobe: "地球儀に戻る",
-    form: {
-      name: "名前",
-      message: "メッセージ",
-      namePlaceholder: "alex morgan",
-      messagePlaceholder: "プロジェクト、楽しく見させてもらいました。",
-      enterName: "名前を入力してください。",
-      nameTooLong: "名前は{max}文字以内で入力してください。",
-      writeMessage: "メッセージを入力してください。",
-      messageTooLong: "メッセージは{max}文字以内で入力してください。",
-      contentRejected:
-        "このメッセージは公開できません。名前とメッセージを見直して、もう一度お試しください。",
-      locationUnavailable:
-        "地球儀に表示する位置を確認できませんでした。しばらくしてからもう一度お試しください。",
-      rateLimited:
-        "続けて投稿できる回数を超えました。少し待ってからもう一度お試しください。",
-      requestDenied: "このメッセージを公開できませんでした。",
-      serviceUnavailable:
-        "現在、メッセージを公開できません。しばらくしてからもう一度お試しください。",
-      unableToPublish:
-        "メッセージを公開できませんでした。しばらくしてからもう一度お試しください。",
-      connectionError:
-        "メッセージを公開できませんでした。接続を確認して、もう一度お試しください。",
-      publishing: "公開中…",
-      publish: "メッセージを公開",
-      publishingStatus: "メッセージを公開しています。",
-      success: "メッセージを地球儀に表示しました。",
-      redirecting: "メッセージを公開しました。地球儀に戻ります…",
-    },
-    globe: {
-      loading: "地球儀を読み込み中",
-      loadBordersError: "国境を読み込めませんでした。",
-      leaveMessage: "メッセージを残す",
-      centerGlobe: "地球儀を中央に戻す",
-      centering: "中央に移動中…",
-      useMyLocation: "現在地を使う",
-      requestingLocation: "現在地を確認中…",
-      locationDenied:
-        "位置情報へのアクセスが拒否されました。ブラウザの権限または設定を確認してください。",
-      locationUnavailable: "位置情報を利用できません。もう一度お試しください。",
-      messageCountOne: "{count}件のメッセージ",
-      messageCountMany: "{count}件のメッセージ",
-      visitorMessages: "訪れた人のメッセージ",
-      message: "メッセージ",
-      nearbyMessages: "近くのメッセージ（{count}件）",
-      close: "閉じる",
-      empty: "まだメッセージはありません。最初のメッセージを残してください。",
     },
   },
   projects: {

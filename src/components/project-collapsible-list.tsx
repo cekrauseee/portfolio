@@ -15,7 +15,7 @@ import {
   stabilizeViewportAnchor,
 } from "@/lib/viewport-scroll";
 
-const PANEL_TRANSITION_MS = 500;
+const PANEL_TRANSITION_MS = 400;
 
 type CollapsiblePreview = {
   slug: string;
@@ -188,11 +188,11 @@ export function ProjectCollapsibleList({
 
         return (
           <article
-            className={`animate-journal-fade origin-left transition-[filter,opacity] duration-300 ease-out motion-reduce:animate-none motion-reduce:transition-none ${
+            className={`animate-journal-fade origin-left transition-[filter,opacity] duration-[240ms] ease-out motion-reduce:animate-none motion-reduce:transition-none ${
               isDimmed ? "opacity-35 blur-[1.5px]" : "blur-0 opacity-100"
             }`}
             key={project.slug}
-            style={{ animationDelay: `${Math.min(140 + index * 30, 290)}ms` }}
+            style={{ animationDelay: `${Math.min(100 + index * 25, 220)}ms` }}
           >
             <h3 className="animate-journal-bounce origin-left motion-reduce:animate-none">
               <button
@@ -220,7 +220,7 @@ export function ProjectCollapsibleList({
             <div
               aria-hidden={!isOpen}
               aria-labelledby={triggerId}
-              className={`grid transition-[grid-template-rows,opacity] duration-[500ms,200ms] ease-[cubic-bezier(0.4,0,0.2,1),ease-out] motion-reduce:transition-none ${
+              className={`grid transition-[grid-template-rows,opacity] duration-[400ms,160ms] ease-[cubic-bezier(0.4,0,0.2,1),ease-out] motion-reduce:transition-none ${
                 isOpen
                   ? "grid-rows-[1fr] opacity-100"
                   : "pointer-events-none grid-rows-[0fr] opacity-0"
@@ -231,7 +231,7 @@ export function ProjectCollapsibleList({
             >
               <div className="min-h-0 overflow-x-visible overflow-y-clip">
                 <div
-                  className={`origin-top-left pb-1 transition-transform duration-500 ease-[cubic-bezier(0.2,0.9,0.3,1.15)] motion-reduce:transform-none motion-reduce:transition-none ${isOpen ? "translate-y-0 scale-100" : "translate-y-2 scale-[0.98]"}`}
+                  className={`origin-top-left pb-1 transition-transform duration-[400ms] ease-[cubic-bezier(0.2,0.9,0.3,1.15)] motion-reduce:transform-none motion-reduce:transition-none ${isOpen ? "translate-y-0 scale-100" : "translate-y-2 scale-[0.98]"}`}
                 >
                   {contents[index]}
                 </div>

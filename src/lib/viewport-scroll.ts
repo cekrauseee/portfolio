@@ -34,6 +34,81 @@ export function getViewportScroller(root: HTMLElement) {
     : (document.scrollingElement as HTMLElement);
 }
 
+/** Follow a growing response until the visitor takes control of the viewport. */
+export function createStreamingScrollFollower(root: HTMLElement) {
+  const scroller = getViewportScroller(root);
+  const main = root.closest<HTMLElement>("main");
+  const windowTarget = window;
+  const viewport = windowTarget.visualViewport;
+  const events = ["wheel", "touchstart", "pointerdown", "keydown"] as const;
+  let active = true;
+  let expected = scroller.scrollTop;
+
+  function cancel() {
+    if (!active) {
+      return;
+    }
+    active = false;
+    for (const event of events) {
+      windowTarget.removeEventListener(event, cancel, true);
+    }
+    windowTarget.removeEventListener("resize", cancel);
+    viewport?.removeEventListener("resize", cancel);
+    scroller.removeEventListener("scroll", handleScroll);
+  }
+
+  function handleScroll() {
+    if (Math.abs(scroller.scrollTop - expected) > 1) {
+      cancel();
+    }
+  }
+
+  function follow(edge: HTMLElement) {
+    if (
+      !active ||
+      !root.isConnected ||
+      !edge.isConnected ||
+      Math.abs(scroller.scrollTop - expected) > 1
+    ) {
+      cancel();
+      return;
+    }
+
+    const bounds = main?.getBoundingClientRect();
+    const viewportBottom =
+      (viewport?.offsetTop ?? 0) +
+      (viewport?.height ?? windowTarget.innerHeight);
+    const bottom =
+      Math.min(viewportBottom, bounds?.bottom ?? viewportBottom) - 24;
+    const overflow = edge.getBoundingClientRect().bottom - bottom;
+    if (overflow <= 0.5) {
+      return;
+    }
+
+    const maxScroll = Math.max(
+      0,
+      scroller.scrollHeight - scroller.clientHeight,
+    );
+    scroller.scrollTo({
+      top: Math.min(scroller.scrollTop + overflow, maxScroll),
+      behavior: "instant",
+    });
+    expected = scroller.scrollTop;
+  }
+
+  for (const event of events) {
+    windowTarget.addEventListener(event, cancel, {
+      capture: true,
+      passive: true,
+    });
+  }
+  windowTarget.addEventListener("resize", cancel);
+  viewport?.addEventListener("resize", cancel);
+  scroller.addEventListener("scroll", handleScroll, { passive: true });
+
+  return { cancel, follow };
+}
+
 /** Follow the panel's actual layout, including interrupted CSS transitions. */
 export function followPanelHeight(
   root: HTMLElement,
@@ -52,7 +127,7 @@ export function followPanelHeight(
   const viewport = window.visualViewport;
   const duration = matchMedia("(prefers-reduced-motion: reduce)").matches
     ? 0
-    : 500;
+    : 400;
   let frame = 0;
   let started: number | undefined;
   let expected = start;
@@ -137,6 +212,63 @@ export function releaseCollapsedViewport(
   );
 }
 
+/** Wait for async content before measuring an opening panel, yielding to input. */
+export function accommodateReadyContent(
+  root: HTMLElement,
+  panel: HTMLElement,
+  switching = false,
+) {
+  const pending = () =>
+    panel.querySelector('[data-action-layout-pending="true"]');
+  if (!pending()) {
+    return accommodateExpandedContent(root, panel, switching);
+  }
+
+  const scroller = getViewportScroller(root);
+  const events = [
+    "wheel",
+    "touchstart",
+    "pointerdown",
+    "keydown",
+    "resize",
+  ] as const;
+  let stopFollowing = () => {};
+  const observer = new MutationObserver(() => {
+    if (pending()) {
+      return;
+    }
+    stopWaiting();
+    if (root.isConnected) {
+      stopFollowing = accommodateExpandedContent(root, panel, switching);
+    }
+  });
+  function stopWaiting() {
+    observer.disconnect();
+    for (const event of events) {
+      window.removeEventListener(event, cancel, true);
+    }
+    scroller.removeEventListener("scroll", cancel);
+    window.removeEventListener("scroll", cancel, true);
+    window.visualViewport?.removeEventListener("resize", cancel);
+  }
+  function cancel() {
+    stopWaiting();
+    stopFollowing();
+  }
+  for (const event of events) {
+    window.addEventListener(event, cancel, { capture: true, passive: true });
+  }
+  scroller.addEventListener("scroll", cancel, { passive: true });
+  window.addEventListener("scroll", cancel, { capture: true, passive: true });
+  window.visualViewport?.addEventListener("resize", cancel);
+  observer.observe(panel, {
+    attributes: true,
+    subtree: true,
+    attributeFilter: ["data-action-layout-pending"],
+  });
+  return cancel;
+}
+
 /** Accommodate a disclosure once, keeping its heading with the visible content. */
 export function accommodateExpandedContent(
   root: HTMLElement,
@@ -154,10 +286,26 @@ export function accommodateExpandedContent(
       bounds?.bottom ?? window.innerHeight,
     ) - 24;
   const rootTop = root.getBoundingClientRect().top;
+  let collapsingHeightBefore = 0;
+  if (switching) {
+    for (
+      let sibling = panel.previousElementSibling as HTMLElement | null;
+      sibling;
+      sibling = sibling.previousElementSibling as HTMLElement | null
+    ) {
+      if (sibling.getAttribute("aria-hidden") === "true") {
+        collapsingHeightBefore += sibling.getBoundingClientRect().height;
+      }
+    }
+  }
   // Measure the intrinsic content, excluding its decorative translation.
   const content = panel.firstElementChild?.firstElementChild as HTMLElement;
   const finalHeight = content.offsetHeight;
-  const height = panel.getBoundingClientRect().top - rootTop + finalHeight;
+  const height =
+    panel.getBoundingClientRect().top -
+    collapsingHeightBefore -
+    rootTop +
+    finalHeight;
   const alreadyVisible = rootTop >= top && rootTop + height <= bottom;
   if (alreadyVisible && !switching) {
     return () => {};

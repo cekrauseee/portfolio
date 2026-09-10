@@ -29,7 +29,7 @@ test("growing and shrinking copy moves blocks vertically without scaling them", 
       { translate: "0 0" },
     ]);
     assert.deepEqual(animations[0].options, {
-      duration: 220,
+      duration: 180,
       easing: "ease-out",
       composite: "add",
     });

@@ -127,7 +127,7 @@ test("translated text starts on the native clock, once per nested branch", (t) =
     { opacity: 0.5 },
   ]);
   assert.deepEqual(animations[0].options, {
-    duration: 180,
+    duration: 150,
     easing: "ease-out",
   });
   assert.deepEqual(animateChangedText(root, after, after), []);
@@ -269,8 +269,8 @@ test("layout and text play together and release clipping after the longer moveme
   playLocaleTransition(f.root, "pt");
   assert.equal(f.animations.length, 2);
   assert.equal(f.root.dataset.localeLayout, "true");
-  assert.equal(f.animations[0].options.duration, 180);
-  assert.equal(f.animations[1].options.duration, 220);
+  assert.equal(f.animations[0].options.duration, 150);
+  assert.equal(f.animations[1].options.duration, 180);
   f.frame();
   assert.ok(f.animations.every((animation) => animation.played));
   f.animations[0].finish();
@@ -329,7 +329,7 @@ test("expanded translations reveal existing and inserted copy once in final geom
       { opacity: 0, offset: 0.2 },
       { opacity: 1, clipPath: "inset(0px 0 0)", offset: 1 },
     ]);
-    assert.equal(animations[0].options.duration, 220);
+    assert.equal(animations[0].options.duration, 180);
   }
   assert.deepEqual(animateChangedText(f.root, after, after), []);
 });

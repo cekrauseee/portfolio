@@ -11,14 +11,14 @@
     var(--font-geist-sans), "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo",
     sans-serif;
 
-  --animate-journal-enter: journal-enter 420ms cubic-bezier(0.2, 0.9, 0.3, 1.15)
+  --animate-journal-enter: journal-enter 360ms cubic-bezier(0.2, 0.9, 0.3, 1.15)
     backwards;
-  --animate-journal-fade: journal-fade 420ms cubic-bezier(0.2, 0.9, 0.3, 1.15)
+  --animate-journal-fade: journal-fade 360ms cubic-bezier(0.2, 0.9, 0.3, 1.15)
     backwards;
-  --animate-journal-bounce: journal-bounce 420ms
+  --animate-journal-bounce: journal-bounce 360ms
     cubic-bezier(0.2, 0.9, 0.3, 1.15) backwards;
-  --animate-journal-footer: journal-enter 420ms
-    cubic-bezier(0.2, 0.9, 0.3, 1.15) 320ms backwards;
+  --animate-journal-footer: journal-enter 360ms
+    cubic-bezier(0.2, 0.9, 0.3, 1.15) 240ms backwards;
 
   @keyframes journal-enter {
     from {

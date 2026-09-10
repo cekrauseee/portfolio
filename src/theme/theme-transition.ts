@@ -112,7 +112,7 @@ export function transitionTheme(update: () => void) {
       return;
     }
     const animation = element.animate([before, after], {
-      duration: 250,
+      duration: 200,
       easing: "ease-in-out",
     });
     if (startTime !== null) {

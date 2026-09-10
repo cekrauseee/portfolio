@@ -118,7 +118,7 @@ test("inherited labels use the final palette and the same clock as their parent"
     assert.equal(animation.frames[1].color, "rgb(240, 240, 240)");
     assert.equal(animation.startTime, 1234);
     assert.deepEqual(animation.options, {
-      duration: 250,
+      duration: 200,
       easing: "ease-in-out",
     });
     assert.equal(

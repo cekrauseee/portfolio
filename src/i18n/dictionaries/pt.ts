@@ -56,39 +56,75 @@ export const pt: Dictionary = {
         "estou aberto a uma nova vaga ou a projetos freelance. me conta no que você está trabalhando.",
       schedule: "agendar uma conversa",
       roleFit: "comparar uma vaga",
-    },
-    guestbook: {
-      title: "livro de visitas",
+      guestbook: "livro de visitas",
     },
   },
+  guestbook: {
+    publicNotice:
+      "as mensagens publicadas aqui ficam visíveis para todo mundo.",
+    writeMessage: "deixar uma mensagem",
+    backToMessages: "voltar às mensagens",
+    name: "nome ou apelido",
+    namePlaceholder: "alex",
+    message: "mensagem",
+    messagePlaceholder: "deixe uma mensagem…",
+    send: "publicar mensagem",
+    sending: "enviando…",
+    sendingStatus: "enviando sua mensagem.",
+    success: "sua mensagem já está no livro de visitas.",
+    enterName: "digite seu nome ou apelido.",
+    validName: "use no máximo 80 caracteres no nome ou apelido.",
+    enterMessage: "escreva uma mensagem antes de enviar.",
+    validMessage: "use no máximo 500 caracteres na mensagem.",
+    messageRejected:
+      "essa mensagem não pode ser publicada. tente escrever de outro jeito.",
+    rateLimited:
+      "muitas mensagens de uma vez. espere um pouco e tente de novo.",
+    requestDenied: "não foi possível publicar essa mensagem.",
+    serviceUnavailable:
+      "o livro de visitas está indisponível agora. tente de novo daqui a pouco.",
+    submissionConflict:
+      "não foi possível repetir esse envio. envie a mensagem de novo.",
+    unableToSend: "não foi possível publicar essa mensagem. tente de novo.",
+    connectionError:
+      "não foi possível publicar essa mensagem. confira sua conexão e tente de novo.",
+    loading: "carregando mensagens…",
+    loadingStatus: "carregando as mensagens do livro de visitas.",
+    loadError: "não foi possível carregar o livro de visitas. tente de novo.",
+    retry: "tentar de novo",
+    empty: "ainda não há mensagens.",
+    seeMore: "ver mais",
+    seeLess: "ver menos",
+    loadingMore: "carregando mais…",
+    loadingMoreStatus: "carregando mais mensagens do livro de visitas.",
+    loadMoreError: "não foi possível carregar mais mensagens. tente de novo.",
+    loadedMore: "mais mensagens do livro de visitas foram carregadas.",
+  },
   fit: {
-    title: "comparar com minha experiência",
     description:
-      "cole a descrição de uma vaga para ver como ela se encaixa na minha experiência.",
-    back: "voltar",
+      "cole a descrição da vaga e eu comparo com o trabalho que já fiz.",
     form: {
       roleDescription: "descrição da vaga",
       placeholder:
-        "engenheiro de software sênior com 5 anos de experiência ou mais",
-      assess: "comparar com minha experiência",
+        "engenheiro de software sênior\nconstrua produtos confiáveis com typescript…",
+      assess: "comparar a vaga",
       assessing: "comparando…",
-      assessment: "resultado da comparação",
+      assessment: "como a vaga se compara",
       assessmentReady: "a comparação está pronta.",
-      emptyDescription: "cole a descrição de uma vaga para fazer a comparação.",
+      emptyDescription: "cole a descrição da vaga para comparar.",
       invalidDescription:
-        "cole uma descrição de vaga com no máximo 16.000 caracteres.",
+        "use uma descrição de vaga com no máximo 16.000 caracteres.",
       descriptionRejected:
-        "esse conteúdo não pode ser usado na comparação. cole apenas a descrição da vaga ou do projeto.",
+        "não dá para comparar esse conteúdo. cole apenas a descrição da vaga ou do projeto.",
       rateLimited:
         "muitas tentativas de comparação. espere um pouco e tente de novo.",
-      requestDenied:
-        "não foi possível comparar esta vaga com minha experiência.",
+      requestDenied: "não foi possível comparar esta vaga.",
       serviceUnavailable:
         "a comparação está indisponível no momento. tente de novo daqui a pouco.",
-      unableToAssess: "não foi possível fazer a comparação. tente de novo.",
+      unableToAssess: "não foi possível comparar esta vaga. tente de novo.",
       connectionError:
-        "não foi possível fazer a comparação. confira sua conexão e tente de novo.",
-      characterCount: "{count} / {max}",
+        "não foi possível comparar esta vaga. confira sua conexão e tente de novo.",
+      characterCount: "{count} / {max} caracteres",
       scheduleConversation: "agendar uma conversa",
     },
   },
@@ -131,63 +167,6 @@ export const pt: Dictionary = {
       success: "conversa agendada. o convite chega por e-mail.",
       meetingDetails: "ver detalhes da conversa",
       externalLinkNewTab: " (abre em uma nova aba)",
-    },
-  },
-  guestbook: {
-    title: "livro de visitas",
-    description:
-      "deixe uma mensagem por aqui. cada mensagem aparece como um ponto de luz no globo.",
-    back: "voltar",
-    newTitle: "deixe uma mensagem",
-    newDescription:
-      "escreva uma mensagem para deixar no globo. ela ficará visível para quem visitar o site.",
-    backToGlobe: "voltar ao globo",
-    form: {
-      name: "nome",
-      message: "mensagem",
-      namePlaceholder: "alex morgan",
-      messagePlaceholder: "passei por aqui e gostei de conhecer seus projetos.",
-      enterName: "digite seu nome.",
-      nameTooLong: "use no máximo {max} caracteres no nome.",
-      writeMessage: "escreva uma mensagem.",
-      messageTooLong: "use no máximo {max} caracteres na mensagem.",
-      contentRejected:
-        "esta mensagem não pode ser publicada. revise o nome e a mensagem e tente de novo.",
-      locationUnavailable:
-        "não foi possível encontrar sua localização para colocar a mensagem no globo. tente de novo mais tarde.",
-      rateLimited:
-        "muitas tentativas de publicação. espere um pouco e tente de novo.",
-      requestDenied: "não foi possível publicar esta mensagem.",
-      serviceUnavailable:
-        "não dá para publicar agora. tente de novo daqui a pouco.",
-      unableToPublish:
-        "não foi possível publicar sua mensagem. tente de novo mais tarde.",
-      connectionError:
-        "não foi possível publicar sua mensagem. confira sua conexão e tente de novo.",
-      publishing: "publicando…",
-      publish: "publicar mensagem",
-      publishingStatus: "publicando sua mensagem.",
-      success: "sua mensagem está no globo.",
-      redirecting: "mensagem publicada. voltando ao globo…",
-    },
-    globe: {
-      loading: "carregando o globo",
-      loadBordersError: "não foi possível carregar as fronteiras dos países.",
-      leaveMessage: "deixar uma mensagem",
-      centerGlobe: "centralizar globo",
-      centering: "centralizando…",
-      useMyLocation: "usar minha localização",
-      requestingLocation: "buscando sua localização…",
-      locationDenied:
-        "o acesso à localização foi negado. confira as permissões ou configurações do navegador.",
-      locationUnavailable: "a localização está indisponível. tente de novo.",
-      messageCountOne: "{count} mensagem",
-      messageCountMany: "{count} mensagens",
-      visitorMessages: "mensagens de visitantes",
-      message: "mensagem",
-      nearbyMessages: "{count} mensagens próximas",
-      close: "fechar",
-      empty: "ainda não há mensagens. deixe a primeira.",
     },
   },
   projects: {

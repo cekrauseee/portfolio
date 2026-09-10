@@ -23,7 +23,7 @@ export function ProjectList({
       <h2
         id="projects-heading"
         className="animate-journal-enter mb-4 origin-left text-sm leading-relaxed font-medium text-black/60 motion-reduce:animate-none dark:text-white/65"
-        style={{ animationDelay: "110ms" }}
+        style={{ animationDelay: "90ms" }}
       >
         {dictionary.projects}
       </h2>
