@@ -16,13 +16,13 @@ The site includes:
 - a curated list of projects with inline expandable case studies;
 - a role-fit assessment grounded in the published portfolio content;
 - one-hour meeting scheduling through Google Calendar;
+- a public inline guestbook with paginated messages and lightweight moderation;
 - an optional best-effort Resend notification to the owner;
-- a moderated visitor guestbook displayed on an interactive globe;
 - responsive light and dark presentation for desktop and mobile browsers.
 
 The site does not provide an interactive terminal, authentication, visitor
-accounts, or a content management system. Postgres persists approved guestbook
-messages only.
+accounts, or a content management system. The guestbook uses the shared Drizzle
+database setup; see [Guestbook](guestbook.md) for its operating contract.
 
 ## Core concepts
 

@@ -23,13 +23,14 @@ npm run dev
 1. rejects an unsupported Node version;
 2. requires `GITHUB_OWNER` in `.env.local`;
 3. installs exactly `package-lock.json` with `npm ci`;
-4. verifies that Docker is running;
-5. adds local Redis, Postgres, and anonymous-session values when missing;
-6. replaces the obsolete example database port `5432` with `5433`;
-7. validates the local service and protection values;
-8. starts Redis and Postgres and waits for their health checks;
-9. verifies Redis, applies the committed Drizzle migrations, verifies the live
-   schema, and idempotently seeds demo messages.
+4. validates the Drizzle schema and migration state;
+5. verifies that Docker is running;
+6. adds local Redis, Postgres, and anonymous-session values when missing;
+7. replaces the obsolete example database port `5432` with `5433`;
+8. validates the local service and protection values;
+9. starts Redis and Postgres and waits for their health checks;
+10. applies and verifies local database migrations;
+11. verifies Redis and tests the guestbook in isolated Postgres databases.
 
 The script preserves custom values, writes `.env.local` atomically, refuses to
 follow a symlink, and applies mode `0600`. Exported shell variables do not replace
@@ -43,40 +44,20 @@ volume.
 
 ## Environment configuration
 
-### Visitor database
+### Database foundation
 
-The guestbook stores approved messages in Postgres. Standalone database commands
-load `.env.local` with Next.js environment precedence and otherwise use the local
-Compose connection on port `5433`.
+`src/db/schema.ts` defines the guestbook table. `src/db/client.ts` provides Neon
+HTTP in production or node-postgres locally. Database commands load `.env.local`
+with Next.js precedence and otherwise use local Postgres on port `5433`.
 
-After changing `src/features/guestbook/server/db/schema.ts`, run
-`npm run db:generate -- --name=<migration-name>` and review the generated SQL and
-snapshot under `drizzle/`. Apply it locally with `npm run db:migrate`, then run
-`npm run db:verify`. `npm run db:check` rejects invalid migration history or a
-schema change that has no committed migration. Run `npm run db:seed` to add
-missing demo records. The seed is idempotent and does not delete visitor data.
-`npm run db:studio` opens Drizzle Studio for the configured database.
+For schema changes, run `npm run db:generate -- --name=<migration-name>` and review
+the generated SQL and snapshot. Apply locally with `npm run db:migrate`, then run
+`npm run db:verify`. `npm run db:check` validates migration history and schema
+coverage. Production delivery runs these checks before the deploy hook using a
+direct `DATABASE_URL` secret in the protected GitHub production environment.
 
-The initial migration uses `IF NOT EXISTS` so databases prepared by the previous
-`db:push` workflow can be enrolled without deleting their messages. The required
-schema verification immediately after migration still rejects incompatible
-tables, columns, or indexes. Missing objects are created, but a divergent existing
-schema is not repaired automatically: `db:verify` must fail before deployment and
-the difference requires an audited migration. The new versioned workflow uses the project-specific
-`drizzle.__portfolio_migrations` log, isolating it from abandoned local migration
-history created before migrations became part of this repository.
-
-In production, keep the pooled Neon connection as `DATABASE_URL` in Vercel and
-store the direct connection as `DATABASE_URL_UNPOOLED` in the protected GitHub
-`production` environment. Neon recommends direct connections for ORM schema
-migrations. The production workflows apply pending migrations and verify the live
-schema before invoking their Deploy Hook. Do not seed production unless the demo
-messages are intentionally wanted there.
-
-Because migrations run while the previous Vercel deployment is still serving
-traffic, each migration must remain compatible with that deployed code. Use an
-expand-and-contract sequence across separate releases for column renames,
-required columns, and destructive changes.
+See [Guestbook](guestbook.md) for the legacy replacement, safe rollout sequence,
+name cookie, moderation commands, API behavior, and isolated integration tests.
 
 ### Project content
 
@@ -114,17 +95,9 @@ public-only sync with its production `GITHUB_OWNER` and optional `GITHUB_TOKEN`.
 
 Local development uses `REDIS_URL`. Production ignores it and accepts only
 `KV_REST_API_URL` with `KV_REST_API_TOKEN`. The public `POST /api/fit`,
-`POST /api/meetings`, `POST /api/guestbook`, and legacy `POST /api/visitor-globe` routes have no in-memory
+`POST /api/meetings`, and `POST /api/guestbook` routes have no in-memory
 runtime fallback and return `503` before external work when BotID, the signed
 session, or shared storage is unavailable.
-
-The guestbook also uses Redis for a five-minute global message snapshot. Cache
-commands have a short abortable deadline and do not retry. Read and fill failures
-fall back to Postgres. Failed invalidation can leave the old snapshot available
-until its TTL expires. The seed and unseed commands mutate Postgres in a
-transaction, then advance the shared cache generation after the commit. When a
-cache is configured, an invalidation failure makes the command fail after the
-database change; both commands are safe to rerun.
 
 `ANON_SESSION_SECRET` must contain at least 32 characters. `npm run setup`
 generates a longer local value. Redis keys contain HMAC-derived identities rather
@@ -133,14 +106,13 @@ than raw cookies, IP addresses, role descriptions, or meeting data.
 ### Structured logs
 
 Sensitive operations emit one Pino wide event after completion:
-`guestbook_submission`, `fit_assessment`, or `meeting_scheduling`. Search
+`fit_assessment`, `meeting_scheduling`, or `guestbook_publish`. Search
 production Runtime Logs by `operation_id`, or by the Vercel `request_id` when
 present. Events contain terminal stage, outcome, duration, and safe integration
-metadata. They do not contain visitor names, messages, role descriptions, email
-addresses, coordinates, meeting times or links, raw IP addresses, cookies,
-idempotency values, or anonymous safety identities. Guestbook records only
-`device`, `vercel`, or `unavailable` as its location source. Production output
-remains structured JSON; `pino-pretty` formats the same records locally.
+metadata. They do not contain visitor names, role descriptions, email addresses,
+meeting times or links, guestbook messages, raw IP addresses, cookies, idempotency values, or
+anonymous safety identities. Production output remains structured JSON;
+`pino-pretty` formats the same records locally.
 
 Public request bodies, operation error payloads, and OpenAI guardrail decisions
 are validated with Zod schemas. Extend the existing feature schema instead of
@@ -151,9 +123,9 @@ TypeScript linting uses the project service and rejects references marked
 unless compatibility with an external contract makes the deprecated API
 unavoidable and the exception is documented inline.
 
-### Role-fit assessment and moderation
+### Role-fit assessment
 
-Set `OPENAI_API_KEY` to enable `/fit` and visitor-message moderation. The role-fit
+Set `OPENAI_API_KEY` to enable the homepage role comparison. The `/api/fit`
 endpoint accepts at most 16,000 characters, disables OpenAI response storage,
 sends a privacy-safe safety identifier, and runs a 20-second input guardrail
 before the 60-second evaluator. Neither call retries automatically. The Redis
@@ -173,14 +145,12 @@ strength, and optional Resend group. Runtime guards remain fail closed.
 
 Production deployment order:
 
-1. configure the GitHub `production` environment secrets
-   `DATABASE_URL_UNPOOLED` and `VERCEL_DEPLOY_HOOK_URL`;
+1. configure `VERCEL_DEPLOY_HOOK_URL` in the GitHub `production` environment;
 2. connect Upstash through the Vercel Marketplace;
 3. configure the required environment variables;
 4. enable BotID;
-5. merge only after CI validates the committed migrations;
-6. let the production workflow migrate and verify Postgres before its Vercel Deploy
-   Hook runs;
+5. merge only after CI passes;
+6. let the production workflow invoke its Vercel Deploy Hook;
 7. verify allowed, blocked, rate-limited, and unavailable responses;
 8. configure Vercel WAF rules and OpenAI spending controls.
 
@@ -199,15 +169,13 @@ Production deployment order:
 
 ### Database
 
-| Command                                | Purpose                                                  |
-| -------------------------------------- | -------------------------------------------------------- |
-| `npm run db:generate -- --name=<name>` | Generate a reviewed migration from schema changes        |
-| `npm run db:migrate`                   | Apply pending migrations to the configured database      |
-| `npm run db:check`                     | Validate migration history and schema coverage           |
-| `npm run db:verify`                    | Compare the configured database with the schema          |
-| `npm run db:seed`                      | Add demo messages and invalidate the message cache       |
-| `npm run db:unseed`                    | Remove only guestbook demo messages and invalidate cache |
-| `npm run db:studio`                    | Open Drizzle Studio for the configured database          |
+| Command                                | Purpose                                             |
+| -------------------------------------- | --------------------------------------------------- |
+| `npm run db:generate -- --name=<name>` | Generate a reviewed migration from schema changes   |
+| `npm run db:migrate`                   | Apply pending migrations to the configured database |
+| `npm run db:check`                     | Validate migration history and schema coverage      |
+| `npm run db:verify`                    | Compare the configured database with the schema     |
+| `npm run db:studio`                    | Open Drizzle Studio for the configured database     |
 
 ### Project content and integrations
 
@@ -227,7 +195,7 @@ Production deployment order:
 | `npm run lint`          | Run ESLint                                              |
 | `npm run typecheck`     | Generate Next.js types and run TypeScript               |
 | `npm test`              | Prepare the neutral fixture and run deterministic tests |
-| `npm run test:postgres` | Verify visitor-message persistence in Postgres          |
+| `npm run test:postgres` | Verify the generic Drizzle connection to Postgres       |
 | `npm run test:redis`    | Exercise the configured local Redis adapter             |
 
 ## Testing
@@ -240,10 +208,7 @@ npm run lint
 npm test
 npm run test:redis
 npm run db:check
-npm run db:migrate
-npm run db:verify
 npm run test:postgres
-npm run db:seed
 npm run env:validate
 npm run typecheck
 PROJECTS_SYNC_SKIP=1 npm run build
@@ -255,16 +220,13 @@ reading or replacing the development snapshot in `.cache/github-projects.json`.
 Tests that need project data read the committed neutral fixture directly, so the
 suite does not depend on a previous sync. Integration modules and runners live
 under `tests/integration/`; `scripts/` is reserved for operational commands.
-`npm run check` aggregates the
-first three quality commands and type checking. The Redis and Postgres integration
-checks require the local services started by `npm run setup` or
-`npm run services:up`; run `db:migrate` before the Postgres test when the schema
-is not prepared.
+`npm run check` aggregates the first three quality commands and type checking. The
+Redis and Postgres integration checks require the local services started by
+`npm run setup` or `npm run services:up`.
 
 CI runs the same quality checks, provisions Redis and Postgres containers,
-checks the committed migration history, migrates and verifies Postgres, exercises
-both real adapters, seeds the database, validates Compose, and builds the
-committed GitHub fixture without contacting GitHub.
+validates the Drizzle migration history, exercises both real adapters, validates
+Compose, and builds the committed GitHub fixture without contacting GitHub.
 
 Dependabot checks npm packages and GitHub Actions every Monday. It groups
 production and development patch/minor updates separately; major updates remain
@@ -278,15 +240,12 @@ so forks run the same deterministic checks. Actions use `.nvmrc` rather than an
 independent Node version literal.
 
 After quality checks pass on `main`, one serialized production job installs the
-committed lockfile, applies pending migrations, verifies the live schema, and
-calls the Vercel Deploy Hook. The protected GitHub `production` environment must
-provide `DATABASE_URL_UNPOOLED` and `VERCEL_DEPLOY_HOOK_URL`; Vercel keeps the
-pooled runtime `DATABASE_URL` because Actions secrets are not forwarded to builds.
-`vercel.json` disables Git-based automatic deployments. This gate covers delivery
-initiated by the repository's production workflows; dashboard, CLI, API, and direct
-Deploy Hook deployments bypass it and are operationally prohibited. Keep the
-repository connection because the approved Deploy Hooks depend on it.
+committed lockfile and calls the Vercel Deploy Hook. The protected GitHub
+`production` environment must provide `VERCEL_DEPLOY_HOOK_URL`. `vercel.json`
+disables Git-based automatic deployments. Delivery stays within the repository's
+production workflows; keep the repository connection because the approved Deploy
+Hooks depend on it.
 
-The scheduled reconciliation workflow uses the same serialized
-migration-before-deploy sequence. The Vercel build then performs the authoritative
-project sync using its production `GITHUB_OWNER` and optional `GITHUB_TOKEN`.
+The scheduled reconciliation workflow uses the same serialized deploy sequence.
+The Vercel build then performs the authoritative project sync using its production
+`GITHUB_OWNER` and optional `GITHUB_TOKEN`.

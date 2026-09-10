@@ -32,14 +32,14 @@ Usage:
 
 Requires Node.js 22.23.2, Docker with Compose, and GITHUB_OWNER in .env.local.
 Installs the exact lockfile, writes missing local service values, starts Redis
-and Postgres, verifies Redis, applies database migrations, verifies the schema,
-and seeds demo messages.`);
+and Postgres, and verifies both local service connections.`);
   process.exit(0);
 }
 
 requireSupportedNode();
 requireLocalOwner();
 run("npm", ["ci"]);
+run("npm", ["run", "db:check"]);
 requireDocker();
 ensureLocalEnvValue("REDIS_URL", () => localRedisUrl);
 ensureLocalEnvValue("ANON_SESSION_SECRET", () =>
@@ -51,10 +51,10 @@ ensureLocalEnvValue("DATABASE_URL", () => localDatabaseUrl, [
 validateLocalConfiguration();
 chmodSync(envPath, 0o600);
 run("npm", ["run", "services:up"]);
-run("npm", ["run", "test:redis"]);
 run("npm", ["run", "db:migrate"]);
 run("npm", ["run", "db:verify"]);
-run("npm", ["run", "db:seed"]);
+run("npm", ["run", "test:redis"]);
+run("npm", ["run", "test:postgres"]);
 
 console.log("\nDevelopment setup complete.");
 console.log("Run npm run dev and open http://localhost:3000.");
@@ -168,14 +168,22 @@ function validateLocalConfiguration() {
   }
 
   const databaseUrl = localEnvValue("DATABASE_URL");
+  let parsedDatabaseUrl;
   try {
-    const protocol = new URL(databaseUrl).protocol;
-    if (protocol !== "postgres:" && protocol !== "postgresql:") {
+    parsedDatabaseUrl = new URL(databaseUrl);
+    if (!["postgres:", "postgresql:"].includes(parsedDatabaseUrl.protocol)) {
       throw new Error("unsupported protocol");
     }
   } catch {
     throw new Error(
       "DATABASE_URL in .env.local must be a valid postgres:// URL.",
+    );
+  }
+  if (
+    !["localhost", "127.0.0.1", "[::1]"].includes(parsedDatabaseUrl.hostname)
+  ) {
+    throw new Error(
+      "npm run setup only migrates a local Postgres database. Use the approved delivery workflow for hosted databases.",
     );
   }
 }

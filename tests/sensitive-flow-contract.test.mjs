@@ -63,7 +63,6 @@ test("sensitive operations no longer emit fragmented feature logs", () => {
   const sources = [
     "../src/app/api/fit/route.ts",
     "../src/app/api/meetings/route.ts",
-    "../src/features/guestbook/server/message-cache.ts",
     "../src/features/meeting-scheduling/schedule-meeting.ts",
   ].map((path) => readFileSync(new URL(path, import.meta.url), "utf8"));
 

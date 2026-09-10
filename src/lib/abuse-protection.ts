@@ -10,8 +10,12 @@ export {
   setRedisAdapterForTests,
 } from "@/lib/redis";
 
-// Keep the visitorGlobe operation key stable for existing Redis rate-limit buckets.
 export const LIMITS = {
+  guestbook: {
+    session: { window: 3, day: 10 },
+    ip: { window: 15, day: 50 },
+    windowSeconds: 600,
+  },
   fit: {
     session: { window: 5, day: 20 },
     ip: { window: 25, day: 100 },
@@ -22,18 +26,13 @@ export const LIMITS = {
     ip: { window: 15, day: 50 },
     windowSeconds: 600,
   },
-  visitorGlobe: {
-    session: { window: 3, day: 10 },
-    ip: { window: 15, day: 50 },
-    windowSeconds: 600,
-  },
 } as const;
 
 // A 16,000-character role description can exceed 64 KiB once encoded as JSON.
 export const BODY_LIMITS = {
+  guestbook: 8 * 1024,
   fit: 128 * 1024,
   meetings: 8 * 1024,
-  visitorGlobe: 4 * 1024,
 } as const;
 
 type Operation = keyof typeof LIMITS;

@@ -9,13 +9,10 @@ code lives under `src/features`. Site identity is canonical in
 social links, and the validated project snapshot.
 
 The home page is a React Server Component with small client islands for project
-expansion, viewport stabilization, and preferences. Project Markdown is rendered
-on the server and passed into the collapsible project list. Interactive forms and
-the guestbook globe also cross client boundaries. The guestbook keeps serializable
-message contracts in `src/features/guestbook/message.ts`; persistence, cache,
-geolocation, moderation, and HTTP orchestration stay under
-`src/features/guestbook/server`. Project synchronization runs at development
-startup or build time and never during visitor requests.
+expansion, viewport stabilization, preferences, and interactive forms. Project
+Markdown is rendered on the server and passed into the collapsible project list.
+Project synchronization runs at development startup or build time and never
+during visitor requests.
 
 ## Internationalization
 
@@ -46,8 +43,8 @@ separate URLs.
 Theme defaults to `system` and persists in the readable, one-year
 `portfolio-theme` cookie. The head script applies the effective `dark` class
 before paint; client preference changes and live system changes update the
-browser theme color immediately. Existing dark utilities and WebGL colors follow
-that effective theme.
+browser theme color immediately. Existing dark utilities follow that effective
+theme.
 
 ## Components
 
@@ -59,7 +56,7 @@ that effective theme.
 | `src/theme`                             | Theme preference, effective class, browser color, persistence, and live updates           |
 | `src/features/role-fit`                 | Role-fit form, input parsing, prompt context, and OpenAI request                          |
 | `src/features/meeting-scheduling`       | Scheduling form, validation, calendar access, and notification                            |
-| `src/features/guestbook`                | Shared guestbook contracts, server integrations, and globe UI                             |
+| `src/db`                                | Guestbook Drizzle schema and shared database client                                       |
 | `src/content/portfolio.ts`              | Profile, social links, and normalized project contract                                    |
 | `src/content/project.ts`                | Shared project identity, translation, and Markdown content types                          |
 | `src/content/github-projects.ts`        | Validated build-time snapshot loader                                                      |
@@ -115,54 +112,12 @@ is called. Temporary protection responses can carry `Retry-After` as an HTTP
 signal. Each UI maps stable error codes to localized guidance and never displays
 the header's numeric value.
 
-Zod schemas define the request and error-response boundaries for guestbook,
-role-fit, and meeting scheduling. The same meeting name and email schemas are
+Zod schemas define the request and error-response boundaries for role-fit and
+meeting scheduling. The same meeting name and email schemas are
 used by client-side guidance and server validation. OpenAI guardrail decisions
 use that same approach through the SDK's Zod-backed Structured Outputs parser;
 prompts describe classification policy while the schema alone owns response
 serialization.
-
-## Guestbook and globe
-
-Approved guestbook messages are persisted in Postgres and returned oldest first.
-`/api/guestbook` is the canonical Route Handler; `/api/visitor-globe` remains a
-thin compatibility adapter. The globe controller, scene primitives, geometry
-calculations, and message overlays live in separate cohesive modules. When
-browser geolocation permission is already granted, the message form submits
-validated device coordinates. The server prefers those coordinates, falls back
-to trusted Vercel IP-geolocation headers, and rejects the submission only when
-neither source is valid. Device coordinates do not imply country or city labels,
-so both remain null. A `prompt` permission state never triggers an automatic
-browser prompt. The globe and message form share one consent-aware device
-location module for permission policy, browser access, request options, and
-coordinate validation.
-
-OpenAI moderation uses a bounded request with automatic retries disabled and
-fails closed before persistence when classification is unavailable. A five-minute
-Redis snapshot caches the global message collection independently
-of the request-specific viewer location. Each Redis cache command has a short
-abortable deadline and does not retry, so a degraded cache cannot hold a
-visitor request indefinitely. Successful inserts advance a generation key, so
-concurrent readers cannot restore an obsolete snapshot after a write. Postgres
-remains authoritative: cache read and fill failures fall back to the database
-and never turn a committed message into a failed response. If cache
-invalidation fails after a successful insert, readers can continue serving the
-old snapshot until its five-minute TTL expires; the committed message is then
-included when that snapshot is replaced. Cache failures emit structured Pino
-events containing only a stage and sanitized error metadata. The deployed Redis
-cache prefix and `visitorGlobe` abuse operation remain legacy identifiers
-intentionally, avoiding cache and rate-limit migrations during the bounded-context
-rename.
-
-Guestbook failures return a stable error code and opaque operation ID instead of
-internal exception text. Every submission emits one `guestbook_submission` wide
-event after completion. The event records the terminal stage, outcome, status,
-total and stage durations, protection and moderation decisions, safe provider
-metadata, and cache invalidation state. It never records the submitted name or
-message, coordinates, cookies, raw IP addresses, or safety identity. The event
-records only `device`, `vercel`, or `unavailable` as its location source. Pino
-emits structured JSON in production; local development uses `pino-pretty` for
-the same event.
 
 ## Role-fit assessment
 
@@ -231,20 +186,15 @@ exists.
 ## Production configuration
 
 The `prebuild` lifecycle validates all critical production environment variables,
-including the Postgres connection, secret strength, URLs, and optional groups
-before project synchronization or compilation. Runtime guards remain fail closed,
-but ordinary deployment mistakes are rejected during the build.
+including secret strength, URLs, and optional groups before project
+synchronization or compilation. Runtime guards remain fail closed, but ordinary
+deployment mistakes are rejected during the build.
 
-Drizzle schema changes are represented by reviewed SQL and snapshots under
-`drizzle/`. CI rejects schema changes without a committed migration. Both the
-main-branch and scheduled production workflows serialize delivery, apply pending
-migrations, verify the live schema, and only then invoke the Vercel Deploy Hook.
-The database records applied migrations in the project-specific
-`drizzle.__portfolio_migrations` log. Runtime database access preserves the
-native Neon HTTP and node-postgres driver types behind their shared query API.
-This guarantee applies to delivery initiated
-by these workflows; Vercel dashboard, CLI, API, and direct Deploy Hook deployments
-bypass the gate and are operationally prohibited.
+The guestbook uses `src/db/schema.ts` and the shared Neon/node-postgres client.
+CI validates migration history and tests fresh and legacy upgrades in isolated
+Postgres databases. Production delivery applies and verifies migrations before
+the deploy hook. See [Guestbook](guestbook.md) for cursor pagination, typed
+moderation, idempotent publication, owner controls, and the legacy replacement.
 
 Node.js is pinned through `.nvmrc`, `package.json`, `.npmrc`, CI, and matching
 Node type definitions. Local setup uses `npm ci`, so dependency installation is
@@ -256,7 +206,7 @@ reproducible from the committed lockfile.
 - Locale selection never changes a public URL; each route has one canonical and sitemap URL, with no `hreflang` variants.
 - The explicit language preference is the `portfolio-locale` cookie; locale state is not stored in `localStorage`.
 - Theme defaults to `system`; `portfolio-theme` is a readable one-year cookie.
-- Theme class application happens before paint, system preference changes update live, and dark utilities plus WebGL use the effective theme.
+- Theme class application happens before paint, system preference changes update live, and dark utilities use the effective theme.
 - The home page remains a Server Component; only interactive project and
   preference controls hydrate on the client.
 - Projects have no dedicated route; their case studies expand inline on the home
@@ -266,7 +216,6 @@ reproducible from the committed lockfile.
 - Shared UI belongs in `src/components`; capability-specific UI and integration
   code belong in `src/features`.
 - Protected operations never continue without shared Redis storage.
-- Guestbook message caching fails open and keeps Postgres as its source of truth.
 - Calendar replay requires the original operation metadata and never authorizes
   access based only on a slot or attendee email.
 - External work has deadlines shorter than the locks that serialize it.
@@ -277,6 +226,6 @@ reproducible from the committed lockfile.
 - Internal navigation uses Next.js `Link`; external navigation uses safe native anchors.
 - Cards remain fully clickable and keyboard focus remains visible.
 - Mobile layout preserves keyboard focus, safe-area insets, and no horizontal overflow.
-- Non-globe pages share one responsive 36rem maximum-width shell.
+- Pages share one responsive 36rem maximum-width shell.
 - Component styling uses Tailwind utilities; global CSS stays limited to
   application-wide tokens and defaults.

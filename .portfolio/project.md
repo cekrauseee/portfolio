@@ -10,12 +10,11 @@ summary: >-
   i made this site to bring together what i've been building and share a little
   about each project. the notes live alongside the code and come together here
   during the build. you can also compare a job with my experience, book a
-  conversation, or leave a note on the globe.
+  conversation.
 highlights:
   - project notes kept alongside the code
   - a small journal in three languages
   - room to talk about work
-  - a globe with notes from visitors
 ---
 
 this is where i collect what i've been building. i write a little about each
@@ -39,7 +38,3 @@ leaves room for text and images without needing a separate editor.
 i added a few ways to start a conversation. you can compare a job with the work
 and experience i've shared, or find a time in my calendar. booking sends an
 invitation with a google meet link.
-
-the guestbook is the more playful part: leave a note, and after moderation it
-becomes a point of light on the globe. i like giving people who stop by a place
-to leave a little trace.

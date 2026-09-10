@@ -6,13 +6,11 @@ metaDescription: >-
 summary: >-
   fiz este site para reunir meus projetos e contar um pouco sobre cada
   um. os textos ficam nos próprios repositórios e aparecem aqui quando o site é gerado.
-  também dá para comparar uma vaga com minha experiência, agendar uma conversa
-  ou deixar uma mensagem no globo.
+  também dá para comparar uma vaga com minha experiência ou agendar uma conversa.
 highlights:
   - textos dos projetos junto do código
   - um pequeno diário em três idiomas
   - espaço para conversar sobre trabalho
-  - um globo com mensagens de quem passou por aqui
 ---
 
 aqui reúno meus projetos e conto um pouco sobre cada um: o que faz, qual foi a
@@ -39,7 +37,3 @@ um editor separado.
 também dá para comparar uma vaga com a minha experiência ou escolher um horário
 para conversar comigo. ao agendar, você recebe um convite com o link do
 google meet.
-
-o livro de visitas é a parte mais descontraída: você deixa uma mensagem e, depois
-da moderação, ela vira um ponto de luz no globo. gosto da ideia de guardar uma
-lembrança de quem passou por aqui.

@@ -8,7 +8,7 @@ const databaseUrl =
   "postgres://portfolio:portfolio@127.0.0.1:5433/portfolio";
 
 export default defineConfig({
-  schema: "./src/features/guestbook/server/db/schema.ts",
+  schema: "./src/db/schema.ts",
   out: "./drizzle",
   dialect: "postgresql",
   schemaFilter: ["public"],

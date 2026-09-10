@@ -76,15 +76,10 @@ jobs:
         run: npm run test:redis
       - name: Validate production environment
         run: npm run env:validate
-      - name: Test Postgres persistence
+      - name: Test Drizzle Postgres setup
         env:
           DATABASE_URL: postgres://portfolio:portfolio@127.0.0.1:5433/portfolio
-          REDIS_URL: redis://127.0.0.1:6379
-        run: |
-          npm run db:migrate
-          npm run db:verify
-          npm run test:postgres
-          npm run db:seed
+        run: npm run test:postgres
       - name: Validate Docker Compose
         run: docker compose config --quiet
       - name: Type-check
@@ -95,7 +90,7 @@ jobs:
         run: npm run build
 
   deploy:
-    name: Migrate database and trigger production deployment
+    name: Trigger production deployment
     needs: quality
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -113,14 +108,15 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Apply and verify production database migrations
+      - name: Migrate and verify production database
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL_UNPOOLED }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           if [ -z "$DATABASE_URL" ]; then
-            echo "::error::Missing the DATABASE_URL_UNPOOLED GitHub Actions secret."
+            echo "::error::Missing the direct DATABASE_URL GitHub Actions secret."
             exit 1
           fi
+          npm run db:check
           npm run db:migrate
           npm run db:verify
       - name: Trigger Vercel deploy hook

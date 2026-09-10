@@ -8,8 +8,8 @@ const { loadEnvConfig } = nextEnv;
 export const MIN_ANON_SESSION_SECRET_LENGTH = 32;
 
 const REQUIRED_PRODUCTION_VALUES = [
-  "GITHUB_OWNER",
   "DATABASE_URL",
+  "GITHUB_OWNER",
   "KV_REST_API_URL",
   "KV_REST_API_TOKEN",
   "ANON_SESSION_SECRET",

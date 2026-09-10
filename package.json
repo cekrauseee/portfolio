@@ -29,17 +29,15 @@
     "db:migrate": "drizzle-kit migrate",
     "db:check": "node scripts/check-database.mjs migrations",
     "db:verify": "node scripts/check-database.mjs schema",
-    "db:seed": "node --import tsx scripts/seed-guestbook.mjs",
-    "db:unseed": "node --import tsx scripts/unseed-guestbook.mjs",
     "db:studio": "drizzle-kit studio",
+    "guestbook:seed": "node scripts/seed-guestbook.mjs",
+    "guestbook:moderate": "node scripts/moderate-guestbook.mjs",
     "projects:sync": "node scripts/sync-github-projects.mjs",
     "calendar:authorize": "node scripts/authorize-google-calendar.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
     "@next/env": "16.3.1",
-    "@react-three/drei": "^10.7.8",
-    "@react-three/fiber": "^9.7.0",
     "@upstash/redis": "^1.38.2",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
@@ -57,8 +55,6 @@
     "react-markdown": "^10.1.0",
     "redis": "^6.2.1",
     "resend": "^6.20.0",
-    "three": "^0.182.0",
-    "ws": "^8.21.3",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -67,7 +63,6 @@
     "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@types/ws": "^8.18.1",
     "drizzle-kit": "1.0.0-rc.4",
     "eslint": "^9",
     "eslint-config-next": "16.3.1",
