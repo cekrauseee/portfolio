@@ -1,18 +1,18 @@
-"use client";
+'use client'
 
-import { preferenceOptionClassName } from "@/components/preference-option";
-import { toggleSoundProps } from "@/components/links";
-import { themePreferences, type ThemePreference } from "@/theme/config";
-import { useTheme } from "@/theme/theme-provider";
+import { preferenceOptionClassName } from '@/components/preference-option'
+import { toggleSoundProps } from '@/components/links'
+import { themePreferences, type ThemePreference } from '@/theme/config'
+import { useTheme } from '@/theme/theme-provider'
 
 export function ThemeSwitcher({
   labels,
   label,
 }: {
-  labels: Record<ThemePreference, string>;
-  label: string;
+  labels: Record<ThemePreference, string>
+  label: string
 }) {
-  const { preference, setPreference } = useTheme();
+  const { preference, setPreference } = useTheme()
 
   return (
     <fieldset className="w-max min-w-0" data-theme-switcher>
@@ -21,7 +21,7 @@ export function ThemeSwitcher({
         {themePreferences.map((candidate) => (
           <button
             {...toggleSoundProps}
-            className={`${preferenceOptionClassName} ${candidate === preference ? "font-medium underline" : ""}`}
+            className={preferenceOptionClassName}
             type="button"
             aria-pressed={candidate === preference}
             key={candidate}
@@ -32,5 +32,5 @@ export function ThemeSwitcher({
         ))}
       </div>
     </fieldset>
-  );
+  )
 }

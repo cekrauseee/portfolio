@@ -17,6 +17,7 @@ The site includes:
 - a role-fit assessment grounded in the published portfolio content;
 - one-hour meeting scheduling through Google Calendar;
 - a public inline guestbook with paginated messages and lightweight moderation;
+- multilingual notes with dedicated reading pages and synchronized narration;
 - an optional best-effort Resend notification to the owner;
 - responsive light and dark presentation for desktop and mobile browsers.
 
@@ -35,7 +36,7 @@ database setup; see [Guestbook](guestbook.md) for its operating contract.
 
 ## Boundaries
 
-- Keep the public handle in the heading as `cekrause`.
+- Use Henrique Krause's name in the visible page identity; keep `cekrause` as the public handle in profile metadata.
 - Keep social accounts and GitHub repositories under `cekrauseee`.
 - Keep portfolio content statically rendered and readable. Restrict client-side
   JavaScript to features that require browser state or interaction.

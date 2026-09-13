@@ -1,1 +1,1 @@
-export { accommodateExpandedContent as accommodateAction } from "@/lib/viewport-scroll";
+export { accommodateExpandedContent as accommodateAction } from '@/lib/viewport-scroll'

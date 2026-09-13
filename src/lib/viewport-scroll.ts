@@ -1,65 +1,64 @@
-export function stabilizeViewportAnchor(
-  anchor: HTMLElement,
-  targetTop: number,
-) {
-  const main = anchor.closest<HTMLElement>("main");
+import { easeMotion, motion } from './motion'
+
+export function stabilizeViewportAnchor(anchor: HTMLElement, targetTop: number) {
+  const main = anchor.closest<HTMLElement>('main')
 
   if (main) {
-    const { overflowY } = window.getComputedStyle(main);
-    const isScrollable = overflowY === "auto" || overflowY === "scroll";
+    const { overflowY } = window.getComputedStyle(main)
+    const isScrollable = overflowY === 'auto' || overflowY === 'scroll'
 
     if (isScrollable) {
-      const delta = anchor.getBoundingClientRect().top - targetTop;
+      const delta = anchor.getBoundingClientRect().top - targetTop
       if (Math.abs(delta) <= 0.5) {
-        return;
+        return
       }
 
-      main.scrollBy({ top: delta, behavior: "instant" });
-      return;
+      main.scrollBy({ top: delta, behavior: 'instant' })
+      return
     }
   }
 
-  const delta = anchor.getBoundingClientRect().top - targetTop;
+  const delta = anchor.getBoundingClientRect().top - targetTop
   if (Math.abs(delta) <= 0.5) {
-    return;
+    return
   }
 
-  window.scrollBy({ top: delta, behavior: "instant" });
+  window.scrollBy({ top: delta, behavior: 'instant' })
 }
 
 export function getViewportScroller(root: HTMLElement) {
-  const main = root.closest<HTMLElement>("main");
+  const main = root.closest<HTMLElement>('main')
   return main && /^(auto|scroll)$/.test(getComputedStyle(main).overflowY)
     ? main
-    : (document.scrollingElement as HTMLElement);
+    : (document.scrollingElement as HTMLElement)
 }
 
 /** Follow a growing response until the visitor takes control of the viewport. */
 export function createStreamingScrollFollower(root: HTMLElement) {
-  const scroller = getViewportScroller(root);
-  const main = root.closest<HTMLElement>("main");
-  const windowTarget = window;
-  const viewport = windowTarget.visualViewport;
-  const events = ["wheel", "touchstart", "pointerdown", "keydown"] as const;
-  let active = true;
-  let expected = scroller.scrollTop;
+  const scroller = getViewportScroller(root)
+  const main = root.closest<HTMLElement>('main')
+  const windowTarget = window
+  const viewport = windowTarget.visualViewport
+  const events = ['wheel', 'touchstart', 'pointerdown', 'keydown'] as const
+  let active = true
+  let expected = scroller.scrollTop
 
   function cancel() {
     if (!active) {
-      return;
+      return
     }
-    active = false;
+    active = false
     for (const event of events) {
-      windowTarget.removeEventListener(event, cancel, true);
+      windowTarget.removeEventListener(event, cancel, true)
     }
-    windowTarget.removeEventListener("resize", cancel);
-    viewport?.removeEventListener("resize", cancel);
-    scroller.removeEventListener("scroll", handleScroll);
+    windowTarget.removeEventListener('resize', cancel)
+    viewport?.removeEventListener('resize', cancel)
+    scroller.removeEventListener('scroll', handleScroll)
   }
 
   function handleScroll() {
     if (Math.abs(scroller.scrollTop - expected) > 1) {
-      cancel();
+      cancel()
     }
   }
 
@@ -70,43 +69,38 @@ export function createStreamingScrollFollower(root: HTMLElement) {
       !edge.isConnected ||
       Math.abs(scroller.scrollTop - expected) > 1
     ) {
-      cancel();
-      return;
+      cancel()
+      return
     }
 
-    const bounds = main?.getBoundingClientRect();
+    const bounds = main?.getBoundingClientRect()
     const viewportBottom =
-      (viewport?.offsetTop ?? 0) +
-      (viewport?.height ?? windowTarget.innerHeight);
-    const bottom =
-      Math.min(viewportBottom, bounds?.bottom ?? viewportBottom) - 24;
-    const overflow = edge.getBoundingClientRect().bottom - bottom;
+      (viewport?.offsetTop ?? 0) + (viewport?.height ?? windowTarget.innerHeight)
+    const bottom = Math.min(viewportBottom, bounds?.bottom ?? viewportBottom) - 24
+    const overflow = edge.getBoundingClientRect().bottom - bottom
     if (overflow <= 0.5) {
-      return;
+      return
     }
 
-    const maxScroll = Math.max(
-      0,
-      scroller.scrollHeight - scroller.clientHeight,
-    );
+    const maxScroll = Math.max(0, scroller.scrollHeight - scroller.clientHeight)
     scroller.scrollTo({
       top: Math.min(scroller.scrollTop + overflow, maxScroll),
-      behavior: "instant",
-    });
-    expected = scroller.scrollTop;
+      behavior: 'instant',
+    })
+    expected = scroller.scrollTop
   }
 
   for (const event of events) {
     windowTarget.addEventListener(event, cancel, {
       capture: true,
       passive: true,
-    });
+    })
   }
-  windowTarget.addEventListener("resize", cancel);
-  viewport?.addEventListener("resize", cancel);
-  scroller.addEventListener("scroll", handleScroll, { passive: true });
+  windowTarget.addEventListener('resize', cancel)
+  viewport?.addEventListener('resize', cancel)
+  scroller.addEventListener('scroll', handleScroll, { passive: true })
 
-  return { cancel, follow };
+  return { cancel, follow }
 }
 
 /** Follow the panel's actual layout, including interrupted CSS transitions. */
@@ -118,27 +112,25 @@ export function followPanelHeight(
   finalHeight: number,
   trackRoot = false,
 ) {
-  const start = scroller.scrollTop;
+  const start = scroller.scrollTop
   if (!trackRoot && Math.abs(target - start) <= 0.5) {
-    return () => {};
+    return () => {}
   }
-  const initialRootTop = root.getBoundingClientRect().top + start;
-  const initialHeight = panel.getBoundingClientRect().height;
-  const viewport = window.visualViewport;
-  const duration = matchMedia("(prefers-reduced-motion: reduce)").matches
-    ? 0
-    : 400;
-  let frame = 0;
-  let started: number | undefined;
-  let expected = start;
-  const events = ["wheel", "touchstart", "pointerdown", "keydown"] as const;
+  const initialRootTop = root.getBoundingClientRect().top + start
+  const initialHeight = panel.getBoundingClientRect().height
+  const viewport = window.visualViewport
+  const duration = matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : motion.duration.page
+  let frame = 0
+  let started: number | undefined
+  let expected = start
+  const events = ['wheel', 'touchstart', 'pointerdown', 'keydown'] as const
   function cancel() {
-    cancelAnimationFrame(frame);
+    cancelAnimationFrame(frame)
     for (const event of events) {
-      window.removeEventListener(event, cancel, true);
+      window.removeEventListener(event, cancel, true)
     }
-    window.removeEventListener("resize", cancel);
-    viewport?.removeEventListener("resize", cancel);
+    window.removeEventListener('resize', cancel)
+    viewport?.removeEventListener('resize', cancel)
   }
   function step(now: number) {
     // A shrinking page can clamp scrollTop before this frame runs. That is
@@ -146,70 +138,53 @@ export function followPanelHeight(
     const boundedExpected = Math.min(
       expected,
       Math.max(0, scroller.scrollHeight - scroller.clientHeight),
-    );
-    if (
-      !root.isConnected ||
-      Math.abs(scroller.scrollTop - boundedExpected) > 1
-    ) {
-      cancel();
-      return;
+    )
+    if (!root.isConnected || Math.abs(scroller.scrollTop - boundedExpected) > 1) {
+      cancel()
+      return
     }
-    started ??= now;
-    const distance = finalHeight - initialHeight;
+    started ??= now
+    const distance = finalHeight - initialHeight
     const progress =
       !duration || now - started >= duration || Math.abs(distance) <= 0.5
         ? 1
         : Math.max(
             0,
-            Math.min(
-              1,
-              (panel.getBoundingClientRect().height - initialHeight) / distance,
-            ),
-          );
+            Math.min(1, (panel.getBoundingClientRect().height - initialHeight) / distance),
+          )
     // A previously open sibling may be shrinking above this heading. Account
     // for that displacement in the same motion, rather than fighting an anchor.
     const rootShift = trackRoot
       ? root.getBoundingClientRect().top + scroller.scrollTop - initialRootTop
-      : 0;
+      : 0
     scroller.scrollTo({
       top: start + (target - start) * progress + rootShift,
-      behavior: "instant",
-    });
-    expected = scroller.scrollTop;
+      behavior: 'instant',
+    })
+    expected = scroller.scrollTop
     if (progress < 1 || (trackRoot && now - started < duration)) {
-      frame = requestAnimationFrame(step);
+      frame = requestAnimationFrame(step)
     } else {
-      cancel();
+      cancel()
     }
   }
   for (const event of events) {
-    window.addEventListener(event, cancel, { capture: true, passive: true });
+    window.addEventListener(event, cancel, { capture: true, passive: true })
   }
-  window.addEventListener("resize", cancel);
-  viewport?.addEventListener("resize", cancel);
-  frame = requestAnimationFrame(step);
-  return cancel;
+  window.addEventListener('resize', cancel)
+  viewport?.addEventListener('resize', cancel)
+  frame = requestAnimationFrame(step)
+  return cancel
 }
 
 /** Release only scroll space that closing removes, without restoring old scroll. */
-export function releaseCollapsedViewport(
-  root: HTMLElement,
-  panel: HTMLElement,
-) {
-  const scroller = getViewportScroller(root);
+export function releaseCollapsedViewport(root: HTMLElement, panel: HTMLElement) {
+  const scroller = getViewportScroller(root)
   const finalMaxScroll = Math.max(
     0,
-    scroller.scrollHeight -
-      panel.getBoundingClientRect().height -
-      scroller.clientHeight,
-  );
-  return followPanelHeight(
-    root,
-    panel,
-    scroller,
-    Math.min(scroller.scrollTop, finalMaxScroll),
-    0,
-  );
+    scroller.scrollHeight - panel.getBoundingClientRect().height - scroller.clientHeight,
+  )
+  return followPanelHeight(root, panel, scroller, Math.min(scroller.scrollTop, finalMaxScroll), 0)
 }
 
 /** Wait for async content before measuring an opening panel, yielding to input. */
@@ -217,56 +192,59 @@ export function accommodateReadyContent(
   root: HTMLElement,
   panel: HTMLElement,
   switching = false,
+  mode: 'expand' | 'hash' = 'expand',
 ) {
-  const pending = () =>
-    panel.querySelector('[data-action-layout-pending="true"]');
+  if (mode === 'hash') {
+    const main = root.closest<HTMLElement>('main') ?? root
+    main.dataset.hashNavigation = 'true'
+  }
+  const open = () =>
+    mode === 'hash'
+      ? animateHashPanel(root, panel, switching)
+      : accommodateExpandedContent(root, panel, switching)
+  const pending = () => panel.querySelector('[data-action-layout-pending="true"]')
   if (!pending()) {
-    return accommodateExpandedContent(root, panel, switching);
+    return open()
   }
 
-  const scroller = getViewportScroller(root);
-  const events = [
-    "wheel",
-    "touchstart",
-    "pointerdown",
-    "keydown",
-    "resize",
-  ] as const;
-  let stopFollowing = () => {};
+  const scroller = getViewportScroller(root)
+  const events = ['wheel', 'touchstart', 'pointerdown', 'keydown', 'resize'] as const
+  let stopFollowing = () => {}
   const observer = new MutationObserver(() => {
     if (pending()) {
-      return;
+      return
     }
-    stopWaiting();
+    stopWaiting()
     if (root.isConnected) {
-      stopFollowing = accommodateExpandedContent(root, panel, switching);
+      stopFollowing = open()
     }
-  });
+  })
   function stopWaiting() {
-    observer.disconnect();
+    observer.disconnect()
     for (const event of events) {
-      window.removeEventListener(event, cancel, true);
+      window.removeEventListener(event, cancel, true)
     }
-    scroller.removeEventListener("scroll", cancel);
-    window.removeEventListener("scroll", cancel, true);
-    window.visualViewport?.removeEventListener("resize", cancel);
+    scroller.removeEventListener('scroll', cancel)
+    window.removeEventListener('scroll', cancel, true)
+    window.visualViewport?.removeEventListener('resize', cancel)
   }
   function cancel() {
-    stopWaiting();
-    stopFollowing();
+    stopWaiting()
+    stopFollowing()
   }
   for (const event of events) {
-    window.addEventListener(event, cancel, { capture: true, passive: true });
+    window.addEventListener(event, cancel, { capture: true, passive: true })
   }
-  scroller.addEventListener("scroll", cancel, { passive: true });
-  window.addEventListener("scroll", cancel, { capture: true, passive: true });
-  window.visualViewport?.addEventListener("resize", cancel);
+  scroller.addEventListener('scroll', cancel, { passive: true })
+  window.addEventListener('scroll', cancel, { capture: true, passive: true })
+  window.visualViewport?.addEventListener('resize', cancel)
   observer.observe(panel, {
     attributes: true,
+    childList: true,
     subtree: true,
-    attributeFilter: ["data-action-layout-pending"],
-  });
-  return cancel;
+    attributeFilter: ['data-action-layout-pending'],
+  })
+  return cancel
 }
 
 /** Accommodate a disclosure once, keeping its heading with the visible content. */
@@ -275,46 +253,159 @@ export function accommodateExpandedContent(
   panel: HTMLElement,
   switching = false,
 ) {
-  const main = root.closest<HTMLElement>("main");
-  const scroller = getViewportScroller(root);
-  const viewport = window.visualViewport;
-  const bounds = main?.getBoundingClientRect();
-  const top = Math.max(viewport?.offsetTop ?? 0, bounds?.top ?? 0) + 24;
+  const geometry = expandedContentGeometry(root, panel, switching)
+  if (!geometry) return () => {}
+  const { scroller, target, finalHeight } = geometry
+  return followPanelHeight(root, panel, scroller, target, finalHeight, true)
+}
+
+function expandedContentGeometry(root: HTMLElement, panel: HTMLElement, switching = false) {
+  const main = root.closest<HTMLElement>('main')
+  const scroller = getViewportScroller(root)
+  const viewport = window.visualViewport
+  const bounds = main?.getBoundingClientRect()
+  const top = Math.max(viewport?.offsetTop ?? 0, bounds?.top ?? 0) + 24
   const bottom =
     Math.min(
       (viewport?.offsetTop ?? 0) + (viewport?.height ?? window.innerHeight),
       bounds?.bottom ?? window.innerHeight,
-    ) - 24;
-  const rootTop = root.getBoundingClientRect().top;
-  let collapsingHeightBefore = 0;
+    ) - 24
+  const rootTop = root.getBoundingClientRect().top
+  let collapsingHeightBefore = 0
   if (switching) {
     for (
       let sibling = panel.previousElementSibling as HTMLElement | null;
       sibling;
       sibling = sibling.previousElementSibling as HTMLElement | null
     ) {
-      if (sibling.getAttribute("aria-hidden") === "true") {
-        collapsingHeightBefore += sibling.getBoundingClientRect().height;
+      if (sibling.getAttribute('aria-hidden') === 'true') {
+        collapsingHeightBefore += sibling.getBoundingClientRect().height
       }
     }
   }
   // Measure the intrinsic content, excluding its decorative translation.
-  const content = panel.firstElementChild?.firstElementChild as HTMLElement;
-  const finalHeight = content.offsetHeight;
-  const height =
-    panel.getBoundingClientRect().top -
-    collapsingHeightBefore -
-    rootTop +
-    finalHeight;
-  const alreadyVisible = rootTop >= top && rootTop + height <= bottom;
+  const content = panel.firstElementChild?.firstElementChild as HTMLElement
+  const finalHeight = content.offsetHeight
+  const height = panel.getBoundingClientRect().top - collapsingHeightBefore - rootTop + finalHeight
+  const alreadyVisible = rootTop >= top && rootTop + height <= bottom
   if (alreadyVisible && !switching) {
-    return () => {};
+    return null
   }
   const targetTop = alreadyVisible
     ? rootTop
     : height <= bottom - top
       ? top + (bottom - top - height) / 2
-      : top;
-  const target = Math.max(0, scroller.scrollTop + rootTop - targetTop);
-  return followPanelHeight(root, panel, scroller, target, finalHeight, true);
+      : top
+  const target = Math.max(0, scroller.scrollTop + rootTop - targetTop)
+  return { scroller, target, finalHeight }
+}
+
+/** Expand in document flow while the viewport travels on the same motion clock. */
+function animateHashPanel(root: HTMLElement, panel: HTMLElement, switching: boolean) {
+  const scroller = getViewportScroller(root)
+  const content = panel.firstElementChild?.firstElementChild as HTMLElement | undefined
+  if (!content) return () => {}
+  let start = scroller.scrollTop
+  const startHeight = panel.getBoundingClientRect().height
+  const rootTop = root.getBoundingClientRect().top + start
+  const geometry = expandedContentGeometry(root, panel, switching)
+  const target = geometry?.target ?? start
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  if (reduced) {
+    scroller.scrollTo({ top: target, behavior: 'instant' })
+    return () => {}
+  }
+
+  const previousHeight = panel.style.getPropertyValue('--hash-panel-height')
+  const previousOpening = panel.dataset.hashOpening
+  panel.style.setProperty('--hash-panel-height', `${startHeight}px`)
+  panel.dataset.hashOpening = 'true'
+  const main = root.closest<HTMLElement>('main') ?? root
+  const viewportHeight = Math.min(
+    scroller.clientHeight,
+    window.visualViewport?.height ?? window.innerHeight,
+  )
+  const arriving = Math.abs(target - start) > viewportHeight / 2
+  const previousOpacity = main.style.getPropertyValue('--hash-page-opacity')
+  const previousArrival = main.dataset.hashArriving
+  if (arriving) {
+    // Reframe before the first animated frame, with the entire page hidden.
+    // Only a short approach remains; the selected item and its neighbors then
+    // appear together while the panel expands in normal document flow.
+    main.style.setProperty('--hash-page-opacity', '0')
+    main.dataset.hashArriving = 'true'
+    scroller.scrollTo({
+      top: Math.max(
+        0,
+        Math.min(
+          scroller.scrollHeight - scroller.clientHeight,
+          target - Math.sign(target - start) * motion.distance.context,
+        ),
+      ),
+      behavior: 'instant',
+    })
+    start = scroller.scrollTop
+  }
+  const events = ['wheel', 'touchstart', 'pointerdown', 'keydown', 'resize'] as const
+  let frame = 0
+  let started: number | undefined
+  let expected = start
+  let stopped = false
+  function cancel() {
+    if (stopped) return
+    stopped = true
+    cancelAnimationFrame(frame)
+    events.forEach((event) => window.removeEventListener(event, cancel, true))
+    window.visualViewport?.removeEventListener('resize', cancel)
+    if (previousHeight) panel.style.setProperty('--hash-panel-height', previousHeight)
+    else panel.style.removeProperty('--hash-panel-height')
+    if (previousOpening === undefined) delete panel.dataset.hashOpening
+    else panel.dataset.hashOpening = previousOpening
+    if (arriving) {
+      if (previousOpacity) main.style.setProperty('--hash-page-opacity', previousOpacity)
+      else main.style.removeProperty('--hash-page-opacity')
+      if (previousArrival === undefined) delete main.dataset.hashArriving
+      else main.dataset.hashArriving = previousArrival
+    }
+  }
+  function step(now: number) {
+    const boundedExpected = Math.min(
+      expected,
+      Math.max(0, scroller.scrollHeight - scroller.clientHeight),
+    )
+    if (!root.isConnected || Math.abs(scroller.scrollTop - boundedExpected) > 1) {
+      cancel()
+      return
+    }
+    started ??= now
+    const progress = Math.min(1, (now - started) / motion.duration.page)
+    const eased = easeMotion(progress)
+    if (arriving) main.style.setProperty('--hash-page-opacity', String(eased))
+    panel.style.setProperty(
+      '--hash-panel-height',
+      `${startHeight + (content!.offsetHeight - startHeight) * eased}px`,
+    )
+    // Layout above the item may be collapsing. Measure that movement after the
+    // height write so the page and its target remain part of one continuous scene.
+    const rootShift = root.getBoundingClientRect().top + scroller.scrollTop - rootTop
+    scroller.scrollTo({
+      top: Math.max(
+        0,
+        Math.min(
+          scroller.scrollHeight - scroller.clientHeight,
+          start + (target + rootShift - start) * eased,
+        ),
+      ),
+      behavior: 'instant',
+    })
+    expected = scroller.scrollTop
+    if (progress < 1) frame = requestAnimationFrame(step)
+    else cancel()
+  }
+  events.forEach((event) =>
+    window.addEventListener(event, cancel, { capture: true, passive: true }),
+  )
+  window.visualViewport?.addEventListener('resize', cancel)
+  frame = requestAnimationFrame(step)
+  return cancel
 }

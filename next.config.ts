@@ -1,20 +1,20 @@
-import type { NextConfig } from "next";
-import { withBotId } from "botid/next/config";
+import type { NextConfig } from 'next'
+import { withBotId } from 'botid/next/config'
 
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: process.env.GITHUB_OWNER
       ? [
           {
-            protocol: "https",
-            hostname: "raw.githubusercontent.com",
-            port: "",
+            protocol: 'https',
+            hostname: 'raw.githubusercontent.com',
+            port: '',
             pathname: `/${process.env.GITHUB_OWNER}/**`,
-            search: "",
+            search: '',
           },
         ]
       : [],
   },
-};
+}
 
-export default withBotId(nextConfig);
+export default withBotId(nextConfig)

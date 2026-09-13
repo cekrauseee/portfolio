@@ -8,53 +8,48 @@ import {
   type MeetingOperation,
   MeetingEventMismatchError,
   validateCalendarConfiguration,
-} from "@/features/meeting-scheduling/google-calendar";
+} from '@/features/meeting-scheduling/google-calendar'
 import {
   MEETING_NOTIFICATION_TIMEOUT_MS,
   MeetingNotificationConfigurationError,
   resolveMeetingNotificationConfiguration,
   sendMeetingNotification,
-} from "@/features/meeting-scheduling/meeting-notification";
-import {
-  MeetingRequestSchema,
-  type MeetingRequest,
-} from "@/features/meeting-scheduling/validation";
-import { safeErrorDetails, type SafeErrorDetails } from "@/lib/safe-error";
+} from '@/features/meeting-scheduling/meeting-notification'
+import { MeetingRequestSchema, type MeetingRequest } from '@/features/meeting-scheduling/validation'
+import { safeErrorDetails, type SafeErrorDetails } from '@/lib/safe-error'
 
-export type { MeetingOperation, MeetingRequest };
+export type { MeetingOperation, MeetingRequest }
 
 export const MEETING_OPERATION_TIMEOUT_MS =
-  CALENDAR_REQUEST_TIMEOUT_MS * 10 + MEETING_NOTIFICATION_TIMEOUT_MS + 20_000;
+  CALENDAR_REQUEST_TIMEOUT_MS * 10 + MEETING_NOTIFICATION_TIMEOUT_MS + 20_000
 
 export type MeetingScheduleDiagnostic = {
   owner_notification?: {
-    outcome: "disabled" | "failed" | "not_applicable" | "sent";
-    error?: SafeErrorDetails;
-  };
-};
+    outcome: 'disabled' | 'failed' | 'not_applicable' | 'sent'
+    error?: SafeErrorDetails
+  }
+}
 
-export type MeetingScheduleObserver = (
-  diagnostic: MeetingScheduleDiagnostic,
-) => void;
+export type MeetingScheduleObserver = (diagnostic: MeetingScheduleDiagnostic) => void
 
 export class MeetingInputError extends Error {}
 export class MeetingConflictError extends Error {}
 export class MeetingConfigurationError extends Error {
   constructor() {
-    super("Meeting scheduling is not configured.");
-    this.name = "MeetingConfigurationError";
+    super('Meeting scheduling is not configured.')
+    this.name = 'MeetingConfigurationError'
   }
 }
 
 export function validateMeetingRequest(body: unknown): MeetingRequest {
-  const parsed = MeetingRequestSchema.safeParse(body);
+  const parsed = MeetingRequestSchema.safeParse(body)
   if (!parsed.success) {
-    throw new MeetingInputError("Provide valid meeting details.");
+    throw new MeetingInputError('Provide valid meeting details.')
   }
-  const { name, email, start, timeZone } = parsed.data;
-  const [datePart, timePart] = start.split("T");
-  const [year, month, day] = datePart.split("-").map(Number);
-  const [hour] = timePart.split(":").map(Number);
+  const { name, email, start, timeZone } = parsed.data
+  const [datePart, timePart] = start.split('T')
+  const [year, month, day] = datePart.split('-').map(Number)
+  const [hour] = timePart.split(':').map(Number)
   if (
     hour > 23 ||
     month < 1 ||
@@ -62,18 +57,18 @@ export function validateMeetingRequest(body: unknown): MeetingRequest {
     day < 1 ||
     day > new Date(Date.UTC(year, month, 0)).getUTCDate()
   ) {
-    throw new MeetingInputError("Provide a valid start time.");
+    throw new MeetingInputError('Provide a valid start time.')
   }
-  const utcStart = localToUtc(start, timeZone);
+  const utcStart = localToUtc(start, timeZone)
   if (utcStart.getTime() <= Date.now()) {
-    throw new MeetingInputError("Choose a future start time.");
+    throw new MeetingInputError('Choose a future start time.')
   }
   return {
     name,
     email,
     start: `${datePart}T${timePart.length === 5 ? `${timePart}:00` : timePart}`,
     timeZone,
-  };
+  }
 }
 
 export async function scheduleMeeting(
@@ -81,82 +76,81 @@ export async function scheduleMeeting(
   operation: MeetingOperation,
   observe?: MeetingScheduleObserver,
 ) {
-  validateMeetingOperation(operation);
+  validateMeetingOperation(operation)
 
-  let calendarConfiguration;
-  let notificationConfiguration;
+  let calendarConfiguration
+  let notificationConfiguration
   try {
-    calendarConfiguration = validateCalendarConfiguration();
-    notificationConfiguration = resolveMeetingNotificationConfiguration();
+    calendarConfiguration = validateCalendarConfiguration()
+    notificationConfiguration = resolveMeetingNotificationConfiguration()
   } catch (error) {
     if (
       error instanceof CalendarConfigurationError ||
       error instanceof MeetingNotificationConfigurationError
     ) {
-      throw new MeetingConfigurationError();
+      throw new MeetingConfigurationError()
     }
-    throw error;
+    throw error
   }
 
-  const startDate = localToUtc(request.start, request.timeZone);
-  const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
-  const config = { calendarId: calendarConfiguration.calendarId };
+  const startDate = localToUtc(request.start, request.timeZone)
+  const endDate = new Date(startDate.getTime() + 60 * 60 * 1000)
+  const config = { calendarId: calendarConfiguration.calendarId }
   const eventInput = {
     ...request,
     start: startDate,
     end: endDate,
     operation,
     config,
-  };
-
-  const existing = await findMeetingEvent(eventInput);
-  if (existing.status === "mismatch") {
-    throw new MeetingConflictError("That time is no longer available.");
   }
-  if (existing.status === "match") {
-    observe?.({ owner_notification: { outcome: "not_applicable" } });
+
+  const existing = await findMeetingEvent(eventInput)
+  if (existing.status === 'mismatch') {
+    throw new MeetingConflictError('That time is no longer available.')
+  }
+  if (existing.status === 'match') {
+    observe?.({ owner_notification: { outcome: 'not_applicable' } })
     return {
       id: existing.data.id,
       meetLink:
-        existing.data.conferenceData?.entryPoints?.find(
-          (entry) => entry.entryPointType === "video",
-        )?.uri ?? undefined,
+        existing.data.conferenceData?.entryPoints?.find((entry) => entry.entryPointType === 'video')
+          ?.uri ?? undefined,
       calendarLink: existing.data.htmlLink ?? undefined,
       replayed: true,
-    };
+    }
   }
   // Cancelled events are deliberately not replayed. Creation restores the
   // deterministic organizer event as a fresh booking after conflict checking.
 
   if (await hasCalendarConflict(startDate, endDate, config)) {
-    const recovered = await findMeetingEventWithRetry(eventInput);
-    if (recovered.status === "match") {
-      observe?.({ owner_notification: { outcome: "not_applicable" } });
+    const recovered = await findMeetingEventWithRetry(eventInput)
+    if (recovered.status === 'match') {
+      observe?.({ owner_notification: { outcome: 'not_applicable' } })
       return {
         id: recovered.data.id,
         meetLink:
           recovered.data.conferenceData?.entryPoints?.find(
-            (entry) => entry.entryPointType === "video",
+            (entry) => entry.entryPointType === 'video',
           )?.uri ?? undefined,
         calendarLink: recovered.data.htmlLink ?? undefined,
         replayed: true,
-      };
+      }
     }
-    throw new MeetingConflictError("That time is no longer available.");
+    throw new MeetingConflictError('That time is no longer available.')
   }
 
-  let event;
+  let event
   try {
-    event = await createMeetingEvent(eventInput);
+    event = await createMeetingEvent(eventInput)
   } catch (error) {
     if (error instanceof MeetingEventMismatchError) {
-      throw new MeetingConflictError("That time is no longer available.");
+      throw new MeetingConflictError('That time is no longer available.')
     }
-    throw error;
+    throw error
   }
   if (event.replayed) {
-    observe?.({ owner_notification: { outcome: "not_applicable" } });
-    return event;
+    observe?.({ owner_notification: { outcome: 'not_applicable' } })
+    return event
   }
 
   try {
@@ -171,23 +165,23 @@ export async function scheduleMeeting(
         idempotencyKey: `meeting-owner/${operation.idempotencyDigest}`,
         configuration: notificationConfiguration,
       },
-    );
+    )
     observe?.({
-      owner_notification: { outcome: sent ? "sent" : "disabled" },
-    });
+      owner_notification: { outcome: sent ? 'sent' : 'disabled' },
+    })
   } catch (error) {
     observe?.({
       owner_notification: {
-        outcome: "failed",
+        outcome: 'failed',
         error: safeErrorDetails(error),
       },
-    });
+    })
   }
-  return event;
+  return event
 }
 
 export function meetingUtcSlot(request: MeetingRequest) {
-  return localToUtc(request.start, request.timeZone).toISOString();
+  return localToUtc(request.start, request.timeZone).toISOString()
 }
 
 function validateMeetingOperation(operation: MeetingOperation | undefined) {
@@ -196,44 +190,38 @@ function validateMeetingOperation(operation: MeetingOperation | undefined) {
     !/^[a-f0-9]{64}$/.test(operation.idempotencyDigest) ||
     !/^[a-f0-9]{64}$/.test(operation.requestDigest)
   ) {
-    throw new Error("A valid meeting operation identity is required.");
+    throw new Error('A valid meeting operation identity is required.')
   }
 }
 
 function localToUtc(local: string, timeZone: string) {
-  const [date, clock] = local.split("T");
-  const [year, month, day] = date.split("-").map(Number);
-  const [hour, minute, second = 0] = clock.split(":").map(Number);
-  const localAsUtc = Date.UTC(year, month - 1, day, hour, minute, second);
-  const formatter = new Intl.DateTimeFormat("en-US", {
+  const [date, clock] = local.split('T')
+  const [year, month, day] = date.split('-').map(Number)
+  const [hour, minute, second = 0] = clock.split(':').map(Number)
+  const localAsUtc = Date.UTC(year, month - 1, day, hour, minute, second)
+  const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone,
     hour12: false,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-  const offsets = new Set<number>();
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
+  const offsets = new Set<number>()
   for (let delta = -48 * 60; delta <= 48 * 60; delta += 60) {
-    const instant = localAsUtc + delta * 60_000;
-    const shown = dateParts(formatter, instant);
+    const instant = localAsUtc + delta * 60_000
+    const shown = dateParts(formatter, instant)
     offsets.add(
-      Date.UTC(
-        shown.year,
-        shown.month - 1,
-        shown.day,
-        shown.hour,
-        shown.minute,
-        shown.second,
-      ) - instant,
-    );
+      Date.UTC(shown.year, shown.month - 1, shown.day, shown.hour, shown.minute, shown.second) -
+        instant,
+    )
   }
   const candidates = [...offsets]
     .map((offset) => new Date(localAsUtc - offset))
     .filter((candidate) => {
-      const shown = dateParts(formatter, candidate.getTime());
+      const shown = dateParts(formatter, candidate.getTime())
       return (
         shown.year === year &&
         shown.month === month &&
@@ -241,23 +229,23 @@ function localToUtc(local: string, timeZone: string) {
         shown.hour === hour &&
         shown.minute === minute &&
         shown.second === second
-      );
+      )
     })
-    .sort((left, right) => left.getTime() - right.getTime());
+    .sort((left, right) => left.getTime() - right.getTime())
   if (!candidates.length) {
     throw new MeetingInputError(
-      "That local time does not exist in this time zone. Choose another time.",
-    );
+      'That local time does not exist in this time zone. Choose another time.',
+    )
   }
-  return candidates[0];
+  return candidates[0]
 }
 
 function dateParts(formatter: Intl.DateTimeFormat, instant: number) {
   const values = Object.fromEntries(
     formatter
       .formatToParts(new Date(instant))
-      .filter((part) => part.type !== "literal")
+      .filter((part) => part.type !== 'literal')
       .map((part) => [part.type, Number(part.value)]),
-  );
-  return { ...values, hour: values.hour % 24 } as Record<string, number>;
+  )
+  return { ...values, hour: values.hour % 24 } as Record<string, number>
 }

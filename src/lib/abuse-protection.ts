@@ -1,14 +1,14 @@
-import { checkBotId } from "botid/server";
-import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
-import type { RedisAdapter } from "@/lib/local-redis";
-import { redis } from "@/lib/redis";
-import { safeErrorDetails, type SafeErrorDetails } from "@/lib/safe-error";
+import { checkBotId } from 'botid/server'
+import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
+import type { RedisAdapter } from '@/lib/local-redis'
+import { redis } from '@/lib/redis'
+import { safeErrorDetails, type SafeErrorDetails } from '@/lib/safe-error'
 
 export {
   resolveRedisConfiguration,
   resolveRedisCredentials,
   setRedisAdapterForTests,
-} from "@/lib/redis";
+} from '@/lib/redis'
 
 export const LIMITS = {
   guestbook: {
@@ -26,115 +26,105 @@ export const LIMITS = {
     ip: { window: 15, day: 50 },
     windowSeconds: 600,
   },
-} as const;
+} as const
 
 // A 16,000-character role description can exceed 64 KiB once encoded as JSON.
 export const BODY_LIMITS = {
   guestbook: 8 * 1024,
   fit: 128 * 1024,
   meetings: 8 * 1024,
-} as const;
+} as const
 
-type Operation = keyof typeof LIMITS;
-type LimitScope = "session" | "ip";
+type Operation = keyof typeof LIMITS
+type LimitScope = 'session' | 'ip'
 
 export class ProtectionUnavailableError extends Error {
   constructor() {
-    super("Protection storage is unavailable.");
-    this.name = "ProtectionUnavailableError";
+    super('Protection storage is unavailable.')
+    this.name = 'ProtectionUnavailableError'
   }
 }
 
 function sessionSecret() {
-  return process.env.ANON_SESSION_SECRET?.trim() || undefined;
+  return process.env.ANON_SESSION_SECRET?.trim() || undefined
 }
 
 function digest(value: string) {
-  const secret = sessionSecret();
+  const secret = sessionSecret()
   if (!secret) {
-    throw new ProtectionUnavailableError();
+    throw new ProtectionUnavailableError()
   }
-  return createHmac("sha256", secret).update(value).digest("hex");
+  return createHmac('sha256', secret).update(value).digest('hex')
 }
 
-const SESSION_TTL = 30 * 24 * 60 * 60;
+const SESSION_TTL = 30 * 24 * 60 * 60
 
 function issueSession(secret: string) {
-  const payload = `${randomBytes(24).toString("base64url")}.${Math.floor(Date.now() / 1000) + SESSION_TTL}`;
-  return `${payload}.${createHmac("sha256", secret)
-    .update(payload)
-    .digest("base64url")}`;
+  const payload = `${randomBytes(24).toString('base64url')}.${Math.floor(Date.now() / 1000) + SESSION_TTL}`
+  return `${payload}.${createHmac('sha256', secret).update(payload).digest('base64url')}`
 }
 
 function validSession(value: string | undefined, secret: string) {
   if (!value) {
-    return false;
+    return false
   }
 
-  const parts = value.split(".");
+  const parts = value.split('.')
   if (parts.length !== 3) {
-    return false;
+    return false
   }
 
-  const [random, expiry, signature] = parts;
+  const [random, expiry, signature] = parts
   if (
     !/^[A-Za-z0-9_-]{32}$/.test(random) ||
     !/^\d{10,12}$/.test(expiry) ||
     !/^[A-Za-z0-9_-]{43}$/.test(signature)
   ) {
-    return false;
+    return false
   }
 
-  const expiresAt = Number(expiry);
-  if (
-    !Number.isSafeInteger(expiresAt) ||
-    expiresAt <= Math.floor(Date.now() / 1000)
-  ) {
-    return false;
+  const expiresAt = Number(expiry)
+  if (!Number.isSafeInteger(expiresAt) || expiresAt <= Math.floor(Date.now() / 1000)) {
+    return false
   }
 
-  const payload = `${random}.${expiry}`;
-  const expected = createHmac("sha256", secret)
-    .update(payload)
-    .digest("base64url");
+  const payload = `${random}.${expiry}`
+  const expected = createHmac('sha256', secret).update(payload).digest('base64url')
   if (signature.length !== expected.length) {
-    return false;
+    return false
   }
 
-  return timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+  return timingSafeEqual(Buffer.from(signature), Buffer.from(expected))
 }
 
 function cookieValue(request: Request) {
-  const match = request.headers
-    .get("cookie")
-    ?.match(/(?:^|;\s*)anon_session=([^;]+)/);
-  return match?.[1];
+  const match = request.headers.get('cookie')?.match(/(?:^|;\s*)anon_session=([^;]+)/)
+  return match?.[1]
 }
 
 function clientIp(request: Request) {
   return (
-    request.headers.get("x-vercel-forwarded-for")?.split(",")[0]?.trim() ||
-    (process.env.NODE_ENV === "production"
+    request.headers.get('x-vercel-forwarded-for')?.split(',')[0]?.trim() ||
+    (process.env.NODE_ENV === 'production'
       ? undefined
-      : request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-        "local")
-  );
+      : request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'local')
+  )
 }
 
 export type Protection = {
-  identity: string;
-  sessionCookie?: string;
-};
+  identity: string
+  sessionCookie?: string
+}
 
 export type ProtectionDiagnostic = {
-  outcome: "allowed" | "denied" | "rate_limited" | "unavailable";
-  stage: "bot_id" | "identity" | "rate_limit";
-  reason?: string;
-  retry_after_seconds?: number;
-  error?: SafeErrorDetails;
-};
+  outcome: 'allowed' | 'denied' | 'rate_limited' | 'unavailable'
+  stage: 'bot_id' | 'identity' | 'rate_limit'
+  reason?: string
+  retry_after_seconds?: number
+  error?: SafeErrorDetails
+}
 
-export type ProtectionObserver = (diagnostic: ProtectionDiagnostic) => void;
+export type ProtectionObserver = (diagnostic: ProtectionDiagnostic) => void
 
 const RATE_LIMIT_SCRIPT = `
 local count = redis.call('INCR', KEYS[1])
@@ -144,27 +134,19 @@ if ttl < 0 then
   ttl = redis.call('TTL', KEYS[1])
 end
 return { count, ttl }
-`;
+`
 
-async function incrementRateLimit(
-  store: RedisAdapter,
-  key: string,
-  seconds: number,
-) {
-  const result = await store.eval<[number, number]>(
-    RATE_LIMIT_SCRIPT,
-    [key],
-    [String(seconds)],
-  );
+async function incrementRateLimit(store: RedisAdapter, key: string, seconds: number) {
+  const result = await store.eval<[number, number]>(RATE_LIMIT_SCRIPT, [key], [String(seconds)])
   if (
     !Array.isArray(result) ||
     result.length < 2 ||
     !Number.isFinite(Number(result[0])) ||
     !Number.isFinite(Number(result[1]))
   ) {
-    throw new ProtectionUnavailableError();
+    throw new ProtectionUnavailableError()
   }
-  return { count: Number(result[0]), ttl: Math.max(1, Number(result[1])) };
+  return { count: Number(result[0]), ttl: Math.max(1, Number(result[1])) }
 }
 
 async function consumeRateLimits(
@@ -173,22 +155,22 @@ async function consumeRateLimits(
   scope: LimitScope,
   identity: string,
 ) {
-  const operationLimits = LIMITS[operation];
-  const limits = operationLimits[scope];
-  let retryAfter = 0;
+  const operationLimits = LIMITS[operation]
+  const limits = operationLimits[scope]
+  let retryAfter = 0
 
   for (const [suffix, seconds, limit] of [
-    ["10m", operationLimits.windowSeconds, limits.window],
-    ["day", 86400, limits.day],
+    ['10m', operationLimits.windowSeconds, limits.window],
+    ['day', 86400, limits.day],
   ] as const) {
-    const key = `abuse:${operation}:${scope}:${identity}:${suffix}`;
-    const { count, ttl } = await incrementRateLimit(store, key, seconds);
+    const key = `abuse:${operation}:${scope}:${identity}:${suffix}`
+    const { count, ttl } = await incrementRateLimit(store, key, seconds)
     if (count > limit) {
-      retryAfter = Math.max(retryAfter, ttl);
+      retryAfter = Math.max(retryAfter, ttl)
     }
   }
 
-  return retryAfter;
+  return retryAfter
 }
 
 export async function protect(
@@ -196,159 +178,145 @@ export async function protect(
   request: Request,
   observe?: ProtectionObserver,
 ): Promise<Protection | Response> {
-  const secret = sessionSecret();
-  const suppliedSession = cookieValue(request);
-  const suppliedSessionIsValid = Boolean(
-    secret && validSession(suppliedSession, secret),
-  );
+  const secret = sessionSecret()
+  const suppliedSession = cookieValue(request)
+  const suppliedSessionIsValid = Boolean(secret && validSession(suppliedSession, secret))
   const session = secret
     ? suppliedSessionIsValid
       ? suppliedSession!
       : issueSession(secret)
-    : undefined;
+    : undefined
 
   const finalize = (response: Response) => {
     if (session && !suppliedSessionIsValid) {
-      withSession(response, session);
+      withSession(response, session)
     }
-    return response;
-  };
+    return response
+  }
 
-  let bot;
+  let bot
   try {
-    bot = await checkBotId({ developmentOptions: { bypass: "ALLOWED" } });
+    bot = await checkBotId({ developmentOptions: { bypass: 'ALLOWED' } })
   } catch (error) {
     observe?.({
-      outcome: "unavailable",
-      stage: "bot_id",
-      reason: "check_failed",
+      outcome: 'unavailable',
+      stage: 'bot_id',
+      reason: 'check_failed',
       error: safeErrorDetails(error),
-    });
-    return finalize(unavailable());
+    })
+    return finalize(unavailable())
   }
   if (bot.isBot) {
-    observe?.({ outcome: "denied", stage: "bot_id", reason: "bot_detected" });
-    return finalize(json({ error: "Request denied." }, 403));
+    observe?.({ outcome: 'denied', stage: 'bot_id', reason: 'bot_detected' })
+    return finalize(json({ error: 'Request denied.' }, 403))
   }
 
-  const ip = clientIp(request);
+  const ip = clientIp(request)
   if (!ip) {
     observe?.({
-      outcome: "unavailable",
-      stage: "identity",
-      reason: "trusted_ip_missing",
-    });
-    return finalize(unavailable());
+      outcome: 'unavailable',
+      stage: 'identity',
+      reason: 'trusted_ip_missing',
+    })
+    return finalize(unavailable())
   }
   if (!session) {
     observe?.({
-      outcome: "unavailable",
-      stage: "identity",
-      reason: "session_secret_missing",
-    });
-    return finalize(unavailable());
+      outcome: 'unavailable',
+      stage: 'identity',
+      reason: 'session_secret_missing',
+    })
+    return finalize(unavailable())
   }
 
-  const store = redis();
+  const store = redis()
   if (!store) {
     observe?.({
-      outcome: "unavailable",
-      stage: "rate_limit",
-      reason: "storage_unconfigured",
-    });
-    return finalize(unavailable());
+      outcome: 'unavailable',
+      stage: 'rate_limit',
+      reason: 'storage_unconfigured',
+    })
+    return finalize(unavailable())
   }
 
-  const identity = digest(`${session}:${ip}`);
+  const identity = digest(`${session}:${ip}`)
   try {
-    const sessionRetry = await consumeRateLimits(
-      store,
-      operation,
-      "session",
-      identity,
-    );
-    const ipRetry = await consumeRateLimits(store, operation, "ip", digest(ip));
-    const retryAfter = Math.max(sessionRetry, ipRetry);
+    const sessionRetry = await consumeRateLimits(store, operation, 'session', identity)
+    const ipRetry = await consumeRateLimits(store, operation, 'ip', digest(ip))
+    const retryAfter = Math.max(sessionRetry, ipRetry)
     if (retryAfter) {
       observe?.({
-        outcome: "rate_limited",
-        stage: "rate_limit",
+        outcome: 'rate_limited',
+        stage: 'rate_limit',
         retry_after_seconds: retryAfter,
-      });
+      })
       return finalize(
-        json(
-          { error: "Too many requests. Please try again later." },
-          429,
-          retryAfter,
-        ),
-      );
+        json({ error: 'Too many requests. Please try again later.' }, 429, retryAfter),
+      )
     }
   } catch (error) {
     const diagnostic: ProtectionDiagnostic = {
-      outcome: "unavailable",
-      stage: "rate_limit",
-      reason: "storage_failed",
+      outcome: 'unavailable',
+      stage: 'rate_limit',
+      reason: 'storage_failed',
       error: safeErrorDetails(error),
-    };
-    observe?.(diagnostic);
+    }
+    observe?.(diagnostic)
     if (!observe) {
       console.error(
         JSON.stringify({
-          event: "abuse_storage_failure",
+          event: 'abuse_storage_failure',
           operation,
-          kind: diagnostic.error?.kind ?? "UnknownError",
+          kind: diagnostic.error?.kind ?? 'UnknownError',
         }),
-      );
+      )
     }
-    return finalize(unavailable());
+    return finalize(unavailable())
   }
 
-  observe?.({ outcome: "allowed", stage: "rate_limit" });
+  observe?.({ outcome: 'allowed', stage: 'rate_limit' })
   if (!observe) {
     console.info(
       JSON.stringify({
-        event: "abuse_decision",
+        event: 'abuse_decision',
         operation,
-        outcome: "allowed",
+        outcome: 'allowed',
       }),
-    );
+    )
   }
   return {
     identity,
     sessionCookie: suppliedSessionIsValid ? undefined : session,
-  };
+  }
 }
 
-export async function acquire(
-  key: string,
-  ttlSeconds: number,
-): Promise<string | false> {
-  const store = redis();
+export async function acquire(key: string, ttlSeconds: number): Promise<string | false> {
+  const store = redis()
   if (!store) {
-    throw new ProtectionUnavailableError();
+    throw new ProtectionUnavailableError()
   }
 
   try {
-    const owner = randomBytes(18).toString("base64url");
+    const owner = randomBytes(18).toString('base64url')
     return (await store.set(`lock:${key}`, owner, {
       nx: true,
       ex: ttlSeconds,
-    })) === "OK"
+    })) === 'OK'
       ? owner
-      : false;
+      : false
   } catch {
-    throw new ProtectionUnavailableError();
+    throw new ProtectionUnavailableError()
   }
 }
 
 export async function release(key: string, owner: string | false) {
   if (!owner) {
-    return;
+    return
   }
 
-  const store = redis();
+  const store = redis()
   if (!store) {
-    throw new ProtectionUnavailableError();
+    throw new ProtectionUnavailableError()
   }
 
   try {
@@ -356,134 +324,119 @@ export async function release(key: string, owner: string | false) {
       "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end",
       [`lock:${key}`],
       [owner],
-    );
+    )
   } catch {
-    throw new ProtectionUnavailableError();
+    throw new ProtectionUnavailableError()
   }
 }
 
 export async function readDedupe<T>(key: string): Promise<T | null> {
-  const store = redis();
+  const store = redis()
   if (!store) {
-    throw new ProtectionUnavailableError();
+    throw new ProtectionUnavailableError()
   }
 
   try {
-    return (await store.get<T>(`dedupe:${key}`)) ?? null;
+    return (await store.get<T>(`dedupe:${key}`)) ?? null
   } catch {
-    throw new ProtectionUnavailableError();
+    throw new ProtectionUnavailableError()
   }
 }
 
-export async function writeDedupe(
-  key: string,
-  value: unknown,
-  ttlSeconds = 86400,
-) {
-  const store = redis();
+export async function writeDedupe(key: string, value: unknown, ttlSeconds = 86400) {
+  const store = redis()
   if (!store) {
-    throw new ProtectionUnavailableError();
+    throw new ProtectionUnavailableError()
   }
 
   try {
-    await store.set(`dedupe:${key}`, value, { ex: ttlSeconds });
+    await store.set(`dedupe:${key}`, value, { ex: ttlSeconds })
   } catch {
-    throw new ProtectionUnavailableError();
+    throw new ProtectionUnavailableError()
   }
 }
 
 export async function readJson(request: Request, operation: Operation) {
-  const type = request.headers
-    .get("content-type")
-    ?.split(";", 1)[0]
-    .trim()
-    .toLowerCase();
-  if (type !== "application/json") {
+  const type = request.headers.get('content-type')?.split(';', 1)[0].trim().toLowerCase()
+  if (type !== 'application/json') {
     return {
-      response: json({ error: "Content-Type must be application/json." }, 400),
-    };
+      response: json({ error: 'Content-Type must be application/json.' }, 400),
+    }
   }
 
-  const limit = BODY_LIMITS[operation];
-  const declared = request.headers.get("content-length");
-  if (
-    declared &&
-    Number.isFinite(Number(declared)) &&
-    Number(declared) > limit
-  ) {
-    return { response: json({ error: "Request body is too large." }, 413) };
+  const limit = BODY_LIMITS[operation]
+  const declared = request.headers.get('content-length')
+  if (declared && Number.isFinite(Number(declared)) && Number(declared) > limit) {
+    return { response: json({ error: 'Request body is too large.' }, 413) }
   }
   if (!request.body) {
-    return { response: json({ error: "Send request details as JSON." }, 400) };
+    return { response: json({ error: 'Send request details as JSON.' }, 400) }
   }
 
-  const reader = request.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let total = 0;
+  const reader = request.body.getReader()
+  const chunks: Uint8Array[] = []
+  let total = 0
   try {
     while (true) {
-      const { done, value } = await reader.read();
+      const { done, value } = await reader.read()
       if (done) {
-        break;
+        break
       }
-      total += value.byteLength;
+      total += value.byteLength
       if (total > limit) {
-        return { response: json({ error: "Request body is too large." }, 413) };
+        return { response: json({ error: 'Request body is too large.' }, 413) }
       }
-      chunks.push(value);
+      chunks.push(value)
     }
   } finally {
-    reader.releaseLock();
+    reader.releaseLock()
   }
 
   try {
     return {
-      body: JSON.parse(
-        new TextDecoder().decode(concat(chunks, total)),
-      ) as unknown,
-    };
+      body: JSON.parse(new TextDecoder().decode(concat(chunks, total))) as unknown,
+    }
   } catch {
-    return { response: json({ error: "Send valid JSON." }, 400) };
+    return { response: json({ error: 'Send valid JSON.' }, 400) }
   }
 }
 
 function concat(chunks: Uint8Array[], total: number) {
-  const result = new Uint8Array(total);
-  let offset = 0;
+  const result = new Uint8Array(total)
+  let offset = 0
   for (const chunk of chunks) {
-    result.set(chunk, offset);
-    offset += chunk.byteLength;
+    result.set(chunk, offset)
+    offset += chunk.byteLength
   }
-  return result;
+  return result
 }
 
 export function json(body: unknown, status: number, retryAfter?: number) {
-  const headers = new Headers({ "Content-Type": "application/json" });
+  const headers = new Headers({ 'Content-Type': 'application/json' })
   if (retryAfter) {
-    headers.set("Retry-After", String(Math.max(1, Math.ceil(retryAfter))));
+    headers.set('Retry-After', String(Math.max(1, Math.ceil(retryAfter))))
   }
-  return Response.json(body, { status, headers });
+  return Response.json(body, { status, headers })
 }
 
 export function withSession(response: Response, sessionCookie?: string) {
   if (sessionCookie) {
     response.headers.append(
-      "Set-Cookie",
+      'Set-Cookie',
       `anon_session=${sessionCookie}; Path=/; Max-Age=2592000; HttpOnly; SameSite=Lax; Secure`,
-    );
+    )
   }
-  return response;
+  return response
 }
 
 export function unavailable() {
   return json(
     {
-      error:
-        "This service is temporarily unavailable. Please try again shortly.",
+      error: 'This service is temporarily unavailable. Please try again shortly.',
     },
     503,
     30,
-  );
+  )
 }
 
-export { digest };
+export { digest }

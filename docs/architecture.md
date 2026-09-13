@@ -6,7 +6,8 @@ The project uses the Next.js App Router. Pages and HTTP endpoints live under
 `src/app`; shared presentation lives under `src/components`; capability-specific
 code lives under `src/features`. Site identity is canonical in
 `src/config/site.ts`, while `src/content/portfolio.ts` adds profile details,
-social links, and the validated project snapshot.
+social links, and the validated project snapshot. Notes are loaded from the
+separate build-time snapshot in `src/content/notes.ts`.
 
 The home page is a React Server Component with small client islands for project
 expansion, viewport stabilization, preferences, and interactive forms. Project
@@ -48,23 +49,25 @@ theme.
 
 ## Components
 
-| Path                                    | Responsibility                                                                            |
-| --------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `src/app`                               | Pages, Route Handlers, metadata, and global styles                                        |
-| `src/components`                        | Shared 36rem page shell, navigation, settings controls, project list, and link primitives |
-| `src/i18n`                              | Request locale resolution, typed server dictionaries, and locale metadata                 |
-| `src/theme`                             | Theme preference, effective class, browser color, persistence, and live updates           |
-| `src/features/role-fit`                 | Role-fit form, input parsing, prompt context, and OpenAI request                          |
-| `src/features/meeting-scheduling`       | Scheduling form, validation, calendar access, and notification                            |
-| `src/db`                                | Guestbook Drizzle schema and shared database client                                       |
-| `src/content/portfolio.ts`              | Profile, social links, and normalized project contract                                    |
-| `src/content/project.ts`                | Shared project identity, translation, and Markdown content types                          |
-| `src/content/github-projects.ts`        | Validated build-time snapshot loader                                                      |
-| `src/lib/redis.ts`                      | Shared local and production Redis client selection                                        |
-| `src/lib/abuse-protection.ts`           | Bot checks, identities, rate limits, locks, and deduplication                             |
-| `scripts/sync-github-projects.mjs`      | Paginated GitHub reconciliation and atomic snapshot writer                                |
-| `src/config/site.ts`                    | Site identity and canonical URL configuration                                             |
-| `scripts/authorize-google-calendar.mjs` | Local Google Calendar OAuth authorization                                                 |
+| Path                                    | Responsibility                                                                          |
+| --------------------------------------- | --------------------------------------------------------------------------------------- |
+| `src/app`                               | Pages, Route Handlers, metadata, and global styles                                      |
+| `src/components`                        | Shared 36rem editorial page shell, settings controls, project list, and link primitives |
+| `src/i18n`                              | Request locale resolution, typed server dictionaries, and locale metadata               |
+| `src/theme`                             | Theme preference, effective class, browser color, persistence, and live updates         |
+| `src/features/role-fit`                 | Role-fit form, input parsing, prompt context, and OpenAI request                        |
+| `src/features/meeting-scheduling`       | Scheduling form, validation, calendar access, and notification                          |
+| `src/db`                                | Guestbook Drizzle schema and shared database client                                     |
+| `src/content/portfolio.ts`              | Profile, social links, and normalized project contract                                  |
+| `src/content/project.ts`                | Shared project identity, translation, and Markdown content types                        |
+| `src/content/github-projects.ts`        | Validated build-time snapshot loader                                                    |
+| `src/content/notes.ts`                  | Validated build-time published notes snapshot loader                                    |
+| `src/features/notes`                    | Alignment contract and playback mapping                                                 |
+| `src/lib/redis.ts`                      | Shared local and production Redis client selection                                      |
+| `src/lib/abuse-protection.ts`           | Bot checks, identities, rate limits, locks, and deduplication                           |
+| `scripts/sync-github-projects.mjs`      | Paginated GitHub reconciliation and atomic snapshot writer                              |
+| `src/config/site.ts`                    | Site identity and canonical URL configuration                                           |
+| `scripts/authorize-google-calendar.mjs` | Local Google Calendar OAuth authorization                                               |
 
 ## Build-time project content
 
@@ -92,8 +95,19 @@ There is no `/projects` index or dedicated project route. The unprefixed home UR
 resolves locale from request cookies and headers; localized project content is
 selected during that request and rendered into the same canonical page.
 
-Tests create their snapshot from a neutral committed fixture, removing hidden
-dependence on prior local commands.
+Tests create their project and notes snapshots from neutral committed fixtures,
+removing hidden dependence on prior local commands. The home page links to notes
+at `/notes/[slug]`, with request-selected locale and a dedicated reading toolbar.
+There is no notes index. Route transitions preserve the selected card's geometry
+and restore a visible return position, including after deep scrolling.
+
+Home and 404 share the editorial page shell and preference controls. Inter is
+the root font for all pages, including notes; the shell adds the common width,
+margins and reading rhythm. The 404 keeps localized copy and a link home without
+the previous top navigation. Motion follows [the shared motion standard](motion.md).
+
+Published note source, alignment behavior, and the repository dispatch delivery
+hook are documented in [Notes](notes.md).
 
 ## Shared protection
 

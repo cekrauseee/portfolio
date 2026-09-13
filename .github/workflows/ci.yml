@@ -64,12 +64,9 @@ jobs:
         run: |
           mkdir -p .cache
           cp fixtures/github-projects.json .cache/github-projects.json
-      - name: Check formatting
-        run: npm run format:check
-      - name: Lint
-        run: npm run lint
-      - name: Test
-        run: npm test
+          cp fixtures/notes.json .cache/notes.json
+      - name: Run quality checks
+        run: npm run check
       - name: Test local Redis adapter
         env:
           REDIS_URL: redis://127.0.0.1:6379
@@ -82,11 +79,10 @@ jobs:
         run: npm run test:postgres
       - name: Validate Docker Compose
         run: docker compose config --quiet
-      - name: Type-check
-        run: npm run typecheck
       - name: Build fixture-backed production application
         env:
-          PROJECTS_SYNC_SKIP: "1"
+          PROJECTS_SYNC_SKIP: '1'
+          NOTES_SYNC_SKIP: '1'
         run: npm run build
 
   deploy:
@@ -110,10 +106,10 @@ jobs:
         run: npm ci
       - name: Migrate and verify production database
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL_UNPOOLED }}
         run: |
           if [ -z "$DATABASE_URL" ]; then
-            echo "::error::Missing the direct DATABASE_URL GitHub Actions secret."
+            echo "::error::Missing the DATABASE_URL_UNPOOLED GitHub Actions secret."
             exit 1
           fi
           npm run db:check

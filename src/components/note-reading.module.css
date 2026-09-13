@@ -1,0 +1,246 @@
+.toolbar {
+  position: fixed;
+  z-index: 50;
+  inset-inline: 1rem;
+  bottom: calc(1.25rem + env(safe-area-inset-bottom));
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(var(--motion-rise));
+  transition:
+    opacity var(--note-toolbar-duration) var(--note-toolbar-easing),
+    transform var(--note-toolbar-duration) var(--note-toolbar-easing),
+    visibility var(--note-toolbar-duration);
+}
+.toolbar[data-visible='true'] {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+.pill {
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem;
+  border-radius: 1.5rem;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 7%),
+    0 4px 20px rgb(0 0 0 / 8%);
+  pointer-events: auto;
+  transition:
+    box-shadow var(--note-toolbar-duration) var(--note-toolbar-easing),
+    background-color var(--note-toolbar-duration) var(--note-toolbar-easing);
+}
+:global(.dark) .pill {
+  background: var(--color-background-dark);
+  color: var(--color-foreground-dark);
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 10%),
+    0 4px 20px rgb(0 0 0 / 24%);
+}
+.toolbar[data-minimized='true'] {
+  bottom: calc(0.5rem + env(safe-area-inset-bottom));
+}
+.toolbar[data-minimized='true'] .pill {
+  border-radius: 1rem;
+  gap: 0;
+  padding: 0.125rem;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 7%);
+}
+:global(.dark) .toolbar[data-minimized='true'] .pill {
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 10%);
+}
+.toolbar[data-minimized='true'] .control {
+  flex-basis: 2rem;
+  width: 2rem;
+  height: 1.5rem;
+}
+.controls {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  opacity: 1;
+  overflow: hidden;
+}
+.toolbar[data-minimized='true'] .controls {
+  grid-template-columns: 0fr;
+  opacity: 0;
+  pointer-events: none;
+}
+.controlRow {
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.control {
+  display: inline-flex;
+  flex: 1 0 2.25rem;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 1.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color var(--motion-feedback) var(--motion-easing),
+    opacity var(--motion-feedback) var(--motion-easing),
+    scale var(--motion-feedback) var(--motion-easing);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .control:active:not(:disabled) {
+    scale: var(--motion-press-scale);
+  }
+}
+.toolbar .control:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: -3px;
+}
+.readerContent {
+  min-width: 0;
+}
+.control:hover {
+  background: rgb(0 0 0 / 5%);
+}
+:global(.dark) .control:hover {
+  background: rgb(255 255 255 / 8%);
+}
+.control:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+@media (prefers-reduced-motion: reduce) {
+  .toolbar,
+  .pill,
+  .controls,
+  .control {
+    transition: none !important;
+    transform: none;
+  }
+}
+
+.separator {
+  flex: 0 0 1px;
+  height: 1rem;
+  margin-inline: 0.25rem;
+  background: currentColor;
+  opacity: 0.16;
+}
+.toolbar[data-docked='true'] .separator {
+  margin-inline: 0;
+}
+.toolbar[data-docked='true'] .minimizeSeparator {
+  flex-basis: 0;
+  opacity: 0;
+}
+.tooltip {
+  z-index: 70;
+  max-width: min(16rem, var(--radix-tooltip-content-available-width));
+  padding: 0.375rem 0.5rem;
+  border-radius: 0.375rem;
+  background: var(--color-foreground);
+  color: var(--color-background);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: center;
+  text-transform: lowercase;
+  transform-origin: var(--radix-tooltip-content-transform-origin);
+  pointer-events: auto;
+}
+.tooltip[data-state='delayed-open'],
+.tooltip[data-state='instant-open'] {
+  animation: tooltip-enter var(--motion-feedback) var(--motion-easing);
+}
+.tooltip[data-state='closed'] {
+  animation: tooltip-exit var(--motion-feedback) var(--motion-easing);
+}
+:global(.dark) .tooltip {
+  background: var(--color-foreground-dark);
+  color: var(--color-background-dark);
+}
+@keyframes tooltip-enter {
+  from {
+    opacity: 0;
+    transform: scale(var(--motion-press-scale));
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes tooltip-exit {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(var(--motion-press-scale));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tooltip[data-state] {
+    animation: none;
+  }
+}
+
+.toolbarDock {
+  position: relative;
+  height: 3rem;
+  margin-top: 1.75rem;
+}
+.toolbar[data-docked='true'] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+}
+.toolbar[data-docked='true'] .pill {
+  width: 100%;
+  height: 3rem;
+  padding: 0;
+  gap: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.toolbar[data-docked='true'] .controlRow {
+  gap: 0;
+  border-radius: 0.75rem;
+}
+.toolbar[data-docked='true'] .control {
+  height: 3rem;
+  border-radius: 0;
+}
+.toolbar[data-docked='true'] .controlRow > .control:first-child {
+  border-start-start-radius: 0.75rem;
+  border-end-start-radius: 0.75rem;
+}
+.toolbar[data-docked='true'] .controlRow > .control:last-of-type {
+  border-start-end-radius: 0.75rem;
+  border-end-end-radius: 0.75rem;
+}
+.minimizeControl {
+  width: 2.25rem;
+  flex-shrink: 0;
+  overflow: hidden;
+  opacity: 1;
+}
+.toolbar[data-minimized='true'] .minimizeControl {
+  width: 2rem;
+}
+.toolbar[data-docked='true'] .minimizeControl {
+  width: 0;
+  opacity: 0;
+  pointer-events: none;
+}

@@ -1,126 +1,118 @@
+import { motion } from '@/lib/motion'
+
 const colorProperties = [
-  "color",
-  "backgroundColor",
-  "borderTopColor",
-  "borderRightColor",
-  "borderBottomColor",
-  "borderLeftColor",
-  "outlineColor",
-  "textDecorationColor",
-  "fill",
-  "stroke",
-] as const;
+  'color',
+  'backgroundColor',
+  'borderTopColor',
+  'borderRightColor',
+  'borderBottomColor',
+  'borderLeftColor',
+  'outlineColor',
+  'textDecorationColor',
+  'fill',
+  'stroke',
+] as const
 
 const transitionProperties = [
-  "transition-property",
-  "transition-duration",
-  "transition-timing-function",
-  "transition-delay",
-  "transition-behavior",
-] as const;
+  'transition-property',
+  'transition-duration',
+  'transition-timing-function',
+  'transition-delay',
+  'transition-behavior',
+] as const
 
 const instantColors = colorProperties
-  .map(
-    (property) =>
-      `${property.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)} 0s`,
-  )
-  .join(", ");
+  .map((property) => `${property.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)} 0s`)
+  .join(', ')
 
-const activeAnimations = new Set<Animation>();
+const activeAnimations = new Set<Animation>()
 
 function cancelThemeAnimations() {
   for (const animation of activeAnimations) {
-    animation.cancel();
+    animation.cancel()
   }
-  activeAnimations.clear();
+  activeAnimations.clear()
 }
 
 function readColors(element: Element) {
-  const computed = getComputedStyle(element);
-  return Object.fromEntries(
-    colorProperties.map((property) => [property, computed[property]]),
-  );
+  const computed = getComputedStyle(element)
+  return Object.fromEntries(colorProperties.map((property) => [property, computed[property]]))
 }
 
 /** Commit both the theme and React controls synchronously inside update. */
 export function transitionTheme(update: () => void) {
   if (
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
-    typeof document.documentElement.animate !== "function"
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
+    typeof document.documentElement.animate !== 'function'
   ) {
-    cancelThemeAnimations();
-    update();
-    return;
+    cancelThemeAnimations()
+    update()
+    return
   }
 
   // Capture the displayed colors before cancelling an interrupted animation.
-  const snapshots = Array.from(document.querySelectorAll("html, body, body *"))
+  const snapshots = Array.from(document.querySelectorAll('html, body, body *'))
     .filter(
       (element): element is HTMLElement | SVGElement =>
         element instanceof HTMLElement || element instanceof SVGElement,
     )
     .map((element) => {
-      const computed = getComputedStyle(element);
+      const computed = getComputedStyle(element)
       return {
         element,
         before: readColors(element),
-        transition:
-          computed.transitionProperty === "none" ? "" : computed.transition,
+        transition: computed.transitionProperty === 'none' ? '' : computed.transition,
         original: transitionProperties.map((property) => ({
           property,
           value: element.style.getPropertyValue(property),
           priority: element.style.getPropertyPriority(property),
         })),
-      };
-    });
+      }
+    })
 
-  cancelThemeAnimations();
-  let targets: ReturnType<typeof readColors>[];
+  cancelThemeAnimations()
+  let targets: ReturnType<typeof readColors>[]
   try {
     for (const { element, transition } of snapshots) {
       // Prevent hover/label CSS transitions from contaminating the final palette.
       // Other motion keeps its existing timing and is never cancelled.
-      element.style.transition = transition
-        ? `${transition}, ${instantColors}`
-        : instantColors;
+      element.style.transition = transition ? `${transition}, ${instantColors}` : instantColors
     }
-    update();
+    update()
     // Read every final color before animating any ancestor: inherited colors
     // must have fixed endpoints, not follow a parent's changing computed value.
-    targets = snapshots.map(({ element }) => readColors(element));
+    targets = snapshots.map(({ element }) => readColors(element))
   } finally {
     for (const { element, original } of snapshots) {
       for (const { property, value, priority } of original) {
         if (value) {
-          element.style.setProperty(property, value, priority);
+          element.style.setProperty(property, value, priority)
         } else {
-          element.style.removeProperty(property);
+          element.style.removeProperty(property)
         }
       }
     }
   }
 
-  const startTime = document.timeline.currentTime;
+  const startTime = document.timeline.currentTime
   snapshots.forEach(({ element, before }, index) => {
     if (!element.isConnected) {
-      return;
+      return
     }
-    const after = targets[index];
-    if (
-      colorProperties.every((property) => before[property] === after[property])
-    ) {
-      return;
+    const after = targets[index]
+    if (colorProperties.every((property) => before[property] === after[property])) {
+      return
     }
     const animation = element.animate([before, after], {
-      duration: 200,
-      easing: "ease-in-out",
-    });
+      duration: motion.duration.control,
+      easing: motion.easing,
+    })
     if (startTime !== null) {
-      animation.startTime = startTime;
+      animation.startTime = startTime
     }
-    activeAnimations.add(animation);
+    activeAnimations.add(animation)
     animation.onfinish = animation.oncancel = () => {
-      activeAnimations.delete(animation);
-    };
-  });
+      activeAnimations.delete(animation)
+    }
+  })
 }

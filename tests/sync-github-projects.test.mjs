@@ -1,17 +1,17 @@
-import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import test from "node:test";
-import matter from "gray-matter";
-import { syncGithubProjects } from "../scripts/sync-github-projects.mjs";
+import assert from 'node:assert/strict'
+import { spawn } from 'node:child_process'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import os from 'node:os'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import test from 'node:test'
+import matter from 'gray-matter'
+import { syncGithubProjects } from '../scripts/sync-github-projects.mjs'
 
-const fixedDate = new Date("2026-08-18T12:00:00.000Z");
+const fixedDate = new Date('2026-08-18T12:00:00.000Z')
 const syncScriptPath = fileURLToPath(
-  new URL("../scripts/sync-github-projects.mjs", import.meta.url),
-);
+  new URL('../scripts/sync-github-projects.mjs', import.meta.url),
+)
 
 function project(slug, overrides = {}) {
   return {
@@ -21,40 +21,36 @@ function project(slug, overrides = {}) {
     repositoryUrl: `https://github.com/cekrauseee/${slug}`,
     metaDescription: `${slug} metadata`,
     summary: `${slug} summary`,
-    highlights: ["Next.js"],
-    sections: [{ title: "Product", paragraphs: [`${slug} details`] }],
+    highlights: ['Next.js'],
+    sections: [{ title: 'Product', paragraphs: [`${slug} details`] }],
     ...overrides,
-  };
+  }
 }
 
 function encodedContent(value) {
-  return Buffer.from(
-    typeof value === "string" ? value : JSON.stringify(value),
-  ).toString("base64");
+  return Buffer.from(typeof value === 'string' ? value : JSON.stringify(value)).toString('base64')
 }
 
 function projectMarkdown(slug, overrides = {}) {
-  const { sections, ...data } = project(slug, overrides);
+  const { sections, ...data } = project(slug, overrides)
   const content = sections
-    .map(
-      (section) => `## ${section.title}\n\n${section.paragraphs.join("\n\n")}`,
-    )
-    .join("\n\n");
-  return matter.stringify(content, data);
+    .map((section) => `## ${section.title}\n\n${section.paragraphs.join('\n\n')}`)
+    .join('\n\n')
+  return matter.stringify(content, data)
 }
 
 function translationMarkdown(content, overrides = {}) {
   return matter.stringify(content, {
-    description: "Descrição do projeto.",
-    metaDescription: "Metadados do projeto.",
-    summary: "Resumo do projeto.",
-    highlights: ["Next.js"],
+    description: 'Descrição do projeto.',
+    metaDescription: 'Metadados do projeto.',
+    summary: 'Resumo do projeto.',
+    highlights: ['Next.js'],
     ...overrides,
-  });
+  })
 }
 
 function isLocalizedProjectPath(pathname) {
-  return /\/project\.(?:pt|ja)\.md$/.test(pathname);
+  return /\/project\.(?:pt|ja)\.md$/.test(pathname)
 }
 
 function response(status, body, headers = {}) {
@@ -63,38 +59,36 @@ function response(status, body, headers = {}) {
     ok: status >= 200 && status < 300,
     headers: new Headers(headers),
     async json() {
-      return body;
+      return body
     },
-  };
+  }
 }
 
 async function temporaryOutput() {
-  const directory = await mkdtemp(
-    path.join(os.tmpdir(), "portfolio-projects-"),
-  );
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'portfolio-projects-'))
   return {
     directory,
-    outputPath: path.join(directory, "github-projects.json"),
-  };
+    outputPath: path.join(directory, 'github-projects.json'),
+  }
 }
 
 function runSyncWithSkip(cwd) {
   return new Promise((resolve) => {
     const child = spawn(process.execPath, [syncScriptPath], {
       cwd,
-      env: { ...process.env, PROJECTS_SYNC_SKIP: "1" },
-    });
-    let stderr = "";
-    child.stderr.setEncoding("utf8");
-    child.stderr.on("data", (chunk) => {
-      stderr += chunk;
-    });
-    child.on("close", (code) => resolve({ code, stderr }));
-  });
+      env: { ...process.env, PROJECTS_SYNC_SKIP: '1' },
+    })
+    let stderr = ''
+    child.stderr.setEncoding('utf8')
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk
+    })
+    child.on('close', (code) => resolve({ code, stderr }))
+  })
 }
 
-function runEnvProbe(cwd, exportedToken, expectedToken, mode = "development") {
-  const modulePath = syncScriptPath.replaceAll("\\", "\\\\");
+function runEnvProbe(cwd, exportedToken, expectedToken, mode = 'development') {
+  const modulePath = syncScriptPath.replaceAll('\\', '\\\\')
   const source = `
     import assert from "node:assert/strict";
     import { loadGithubProjectSyncEnv, syncGithubProjects } from ${JSON.stringify(`file://${modulePath}`)};
@@ -105,209 +99,180 @@ function runEnvProbe(cwd, exportedToken, expectedToken, mode = "development") {
         authorization = options.headers.Authorization;
         return { status: 200, ok: true, headers: new Headers(), async json() { return []; } };
       },
-      outputPath: ${JSON.stringify(path.join(cwd, "snapshot.json"))},
+      outputPath: ${JSON.stringify(path.join(cwd, 'snapshot.json'))},
     });
     assert.equal(authorization, "Bearer " + ${JSON.stringify(expectedToken)});
     let errorText = "";
     try {
       await syncGithubProjects({
         fetchImpl: async () => { throw new Error("controlled upstream failure"); },
-        outputPath: ${JSON.stringify(path.join(cwd, "error-snapshot.json"))},
+        outputPath: ${JSON.stringify(path.join(cwd, 'error-snapshot.json'))},
       });
     } catch (error) {
       errorText = error instanceof Error ? error.message : String(error);
     }
     assert.doesNotMatch(errorText, new RegExp(${JSON.stringify(expectedToken)}));
     console.log("env-probe-ok");
-  `;
-  const childEnv = { ...process.env };
+  `
+  const childEnv = { ...process.env }
   if (exportedToken) {
-    childEnv.GITHUB_TOKEN = exportedToken;
+    childEnv.GITHUB_TOKEN = exportedToken
   } else {
-    delete childEnv.GITHUB_TOKEN;
+    delete childEnv.GITHUB_TOKEN
   }
-  childEnv.PROBE_MODE = mode;
+  childEnv.PROBE_MODE = mode
   return new Promise((resolve) => {
-    const child = spawn(
-      process.execPath,
-      ["--input-type=module", "-e", source],
-      {
-        cwd,
-        env: childEnv,
-      },
-    );
-    let stdout = "";
-    let stderr = "";
-    child.stdout.setEncoding("utf8");
-    child.stderr.setEncoding("utf8");
-    child.stdout.on("data", (chunk) => {
-      stdout += chunk;
-    });
-    child.stderr.on("data", (chunk) => {
-      stderr += chunk;
-    });
-    child.on("close", (code) => resolve({ code, stdout, stderr }));
-  });
+    const child = spawn(process.execPath, ['--input-type=module', '-e', source], {
+      cwd,
+      env: childEnv,
+    })
+    let stdout = ''
+    let stderr = ''
+    child.stdout.setEncoding('utf8')
+    child.stderr.setEncoding('utf8')
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk
+    })
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk
+    })
+    child.on('close', (code) => resolve({ code, stdout, stderr }))
+  })
 }
 
-test("sync skip requires an existing snapshot", async () => {
-  const directory = await mkdtemp(
-    path.join(os.tmpdir(), "portfolio-projects-skip-"),
-  );
+test('sync skip requires an existing snapshot', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'portfolio-projects-skip-'))
   try {
-    const result = await runSyncWithSkip(directory);
-    assert.equal(result.code, 1);
-    assert.match(result.stderr, /requires an existing snapshot/);
+    const result = await runSyncWithSkip(directory)
+    assert.equal(result.code, 1)
+    assert.match(result.stderr, /requires an existing snapshot/)
 
-    await mkdir(path.join(directory, ".cache"));
+    await mkdir(path.join(directory, '.cache'))
     await writeFile(
-      path.join(directory, ".cache", "github-projects.json"),
+      path.join(directory, '.cache', 'github-projects.json'),
       JSON.stringify({
         version: 2,
-        owner: "test-owner",
+        owner: 'test-owner',
         generatedAt: fixedDate.toISOString(),
         projects: [],
       }),
-    );
-    const skipped = await runSyncWithSkip(directory);
-    assert.equal(skipped.code, 0);
+    )
+    const skipped = await runSyncWithSkip(directory)
+    assert.equal(skipped.code, 0)
   } finally {
-    await rm(directory, { recursive: true, force: true });
+    await rm(directory, { recursive: true, force: true })
   }
-});
+})
 
-test("selects env files by sync mode and keeps exported tokens authoritative", async () => {
-  const directory = await mkdtemp(
-    path.join(os.tmpdir(), "portfolio-projects-env-"),
-  );
+test('selects env files by sync mode and keeps exported tokens authoritative', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'portfolio-projects-env-'))
   try {
     await writeFile(
-      path.join(directory, ".env.local"),
-      "GITHUB_OWNER=test-owner\nGITHUB_TOKEN=production-file-token\n",
-    );
+      path.join(directory, '.env.local'),
+      'GITHUB_OWNER=test-owner\nGITHUB_TOKEN=production-file-token\n',
+    )
     await writeFile(
-      path.join(directory, ".env.development.local"),
-      "GITHUB_TOKEN=development-file-token\n",
-    );
-    const fromDevelopmentFile = await runEnvProbe(
-      directory,
-      "",
-      "development-file-token",
-    );
-    assert.equal(fromDevelopmentFile.code, 0, fromDevelopmentFile.stderr);
-    assert.equal(fromDevelopmentFile.stdout.trim(), "env-probe-ok");
+      path.join(directory, '.env.development.local'),
+      'GITHUB_TOKEN=development-file-token\n',
+    )
+    const fromDevelopmentFile = await runEnvProbe(directory, '', 'development-file-token')
+    assert.equal(fromDevelopmentFile.code, 0, fromDevelopmentFile.stderr)
+    assert.equal(fromDevelopmentFile.stdout.trim(), 'env-probe-ok')
 
     const fromProductionFile = await runEnvProbe(
       directory,
-      "",
-      "production-file-token",
-      "production",
-    );
-    assert.equal(fromProductionFile.code, 0, fromProductionFile.stderr);
-    assert.equal(fromProductionFile.stdout.trim(), "env-probe-ok");
+      '',
+      'production-file-token',
+      'production',
+    )
+    assert.equal(fromProductionFile.code, 0, fromProductionFile.stderr)
+    assert.equal(fromProductionFile.stdout.trim(), 'env-probe-ok')
 
-    const exported = await runEnvProbe(
-      directory,
-      "exported-token",
-      "exported-token",
-    );
-    assert.equal(exported.code, 0, exported.stderr);
-    assert.equal(exported.stdout.trim(), "env-probe-ok");
-    assert.doesNotMatch(
-      exported.stdout + exported.stderr,
-      /exported-token|file-token/,
-    );
+    const exported = await runEnvProbe(directory, 'exported-token', 'exported-token')
+    assert.equal(exported.code, 0, exported.stderr)
+    assert.equal(exported.stdout.trim(), 'env-probe-ok')
+    assert.doesNotMatch(exported.stdout + exported.stderr, /exported-token|file-token/)
   } finally {
-    await rm(directory, { recursive: true, force: true });
+    await rm(directory, { recursive: true, force: true })
   }
-});
+})
 
-function repository(name, defaultBranch = "main", overrides = {}) {
+function repository(name, defaultBranch = 'main', overrides = {}) {
   return {
     name,
     default_branch: defaultBranch,
     private: false,
     full_name: `test-owner/${name}`,
     ...overrides,
-  };
+  }
 }
 
-test("paginates all public repositories, skips 404 files, and sorts projects", async () => {
-  const { directory, outputPath } = await temporaryOutput();
-  const first = [repository("zeta"), repository("missing")];
-  const second = [repository("alpha")];
-  const calls = [];
+test('paginates all public repositories, skips 404 files, and sorts projects', async () => {
+  const { directory, outputPath } = await temporaryOutput()
+  const first = [repository('zeta'), repository('missing')]
+  const second = [repository('alpha')]
+  const calls = []
   const fetchImpl = async (url) => {
-    calls.push(url);
-    const parsed = new URL(url);
-    if (
-      parsed.pathname === "/users/test-owner/repos" &&
-      parsed.searchParams.get("page") === "1"
-    ) {
-      return response(200, first);
+    calls.push(url)
+    const parsed = new URL(url)
+    if (parsed.pathname === '/users/test-owner/repos' && parsed.searchParams.get('page') === '1') {
+      return response(200, first)
     }
-    if (
-      parsed.pathname === "/users/test-owner/repos" &&
-      parsed.searchParams.get("page") === "2"
-    ) {
-      return response(200, second);
+    if (parsed.pathname === '/users/test-owner/repos' && parsed.searchParams.get('page') === '2') {
+      return response(200, second)
     }
-    if (parsed.pathname.endsWith("/zeta/contents/.portfolio/project.md")) {
+    if (parsed.pathname.endsWith('/zeta/contents/.portfolio/project.md')) {
       return response(200, {
-        encoding: "base64",
-        content: encodedContent(projectMarkdown("zeta")),
-      });
+        encoding: 'base64',
+        content: encodedContent(projectMarkdown('zeta')),
+      })
     }
-    if (parsed.pathname.includes("/missing/contents/.portfolio/project")) {
-      return response(404, { message: "Not Found" });
+    if (parsed.pathname.includes('/missing/contents/.portfolio/project')) {
+      return response(404, { message: 'Not Found' })
     }
-    if (parsed.pathname.endsWith("/alpha/contents/.portfolio/project.md")) {
+    if (parsed.pathname.endsWith('/alpha/contents/.portfolio/project.md')) {
       return response(200, {
-        encoding: "base64",
-        content: encodedContent(projectMarkdown("alpha")),
-      });
+        encoding: 'base64',
+        content: encodedContent(projectMarkdown('alpha')),
+      })
     }
     if (isLocalizedProjectPath(parsed.pathname)) {
-      return response(404, { message: "Not Found" });
+      return response(404, { message: 'Not Found' })
     }
-    throw new Error(`Unexpected URL: ${url}`);
-  };
+    throw new Error(`Unexpected URL: ${url}`)
+  }
 
   try {
     const snapshot = await syncGithubProjects({
       fetchImpl,
-      owner: "test-owner",
-      apiBase: "https://github.test",
+      owner: 'test-owner',
+      apiBase: 'https://github.test',
       outputPath,
       perPage: 2,
       now: fixedDate,
-    });
+    })
 
     assert.deepEqual(
       snapshot.projects.map(({ slug }) => slug),
-      ["alpha", "zeta"],
-    );
-    assert.equal(snapshot.generatedAt, fixedDate.toISOString());
-    assert.equal(
-      calls.filter((url) => new URL(url).pathname.endsWith("/project.md"))
-        .length,
-      3,
-    );
-    assert.deepEqual(JSON.parse(await readFile(outputPath, "utf8")), snapshot);
+      ['alpha', 'zeta'],
+    )
+    assert.equal(snapshot.generatedAt, fixedDate.toISOString())
+    assert.equal(calls.filter((url) => new URL(url).pathname.endsWith('/project.md')).length, 3)
+    assert.deepEqual(JSON.parse(await readFile(outputPath, 'utf8')), snapshot)
   } finally {
-    await rm(directory, { recursive: true, force: true });
+    await rm(directory, { recursive: true, force: true })
   }
-});
+})
 
-test("reads localized Markdown and preserves relative project images", async () => {
-  const { directory, outputPath } = await temporaryOutput();
+test('reads localized Markdown and preserves relative project images', async () => {
+  const { directory, outputPath } = await temporaryOutput()
   const fetchImpl = async (url) => {
-    const parsed = new URL(url);
-    if (parsed.pathname === "/users/test-owner/repos") {
-      return response(200, [repository("localized")]);
+    const parsed = new URL(url)
+    if (parsed.pathname === '/users/test-owner/repos') {
+      return response(200, [repository('localized')])
     }
-    if (parsed.pathname.endsWith("/.portfolio/project.md")) {
-      const source = project("localized");
+    if (parsed.pathname.endsWith('/.portfolio/project.md')) {
+      const source = project('localized')
       const data = {
         slug: source.slug,
         name: source.name,
@@ -316,463 +281,440 @@ test("reads localized Markdown and preserves relative project images", async () 
         metaDescription: source.metaDescription,
         summary: source.summary,
         highlights: source.highlights,
-      };
+      }
       return response(200, {
-        encoding: "base64",
+        encoding: 'base64',
         content: encodedContent(
-          matter.stringify(
-            "## Product\n\n![Dashboard](images/dashboard.webp)",
-            data,
-          ),
+          matter.stringify('## Product\n\n![Dashboard](images/dashboard.webp)', data),
         ),
-      });
+      })
     }
-    if (parsed.pathname.endsWith("/.portfolio/project.pt.md")) {
+    if (parsed.pathname.endsWith('/.portfolio/project.pt.md')) {
       return response(200, {
-        encoding: "base64",
-        content: encodedContent(
-          translationMarkdown("## Produto\n\nDetalhes em português."),
-        ),
-      });
+        encoding: 'base64',
+        content: encodedContent(translationMarkdown('## Produto\n\nDetalhes em português.')),
+      })
     }
-    return response(404, { message: "Not Found" });
-  };
+    return response(404, { message: 'Not Found' })
+  }
 
   try {
     const snapshot = await syncGithubProjects({
       fetchImpl,
-      owner: "test-owner",
-      apiBase: "https://github.test",
+      owner: 'test-owner',
+      apiBase: 'https://github.test',
       outputPath,
       now: fixedDate,
-    });
+    })
 
-    assert.equal(snapshot.version, 2);
+    assert.equal(snapshot.version, 2)
     assert.equal(
       snapshot.projects[0].translations.en.content,
-      "## Product\n\n![Dashboard](images/dashboard.webp)",
-    );
+      '## Product\n\n![Dashboard](images/dashboard.webp)',
+    )
     assert.equal(
       snapshot.projects[0].translations.pt.content,
-      "## Produto\n\nDetalhes em português.",
-    );
+      '## Produto\n\nDetalhes em português.',
+    )
     assert.equal(
       snapshot.projects[0].assetBaseUrl,
-      "https://raw.githubusercontent.com/test-owner/localized/main/.portfolio/",
-    );
+      'https://raw.githubusercontent.com/test-owner/localized/main/.portfolio/',
+    )
   } finally {
-    await rm(directory, { recursive: true, force: true });
+    await rm(directory, { recursive: true, force: true })
   }
-});
+})
 
-test("ignores repositories without the Markdown project record", async () => {
-  const { directory, outputPath } = await temporaryOutput();
+test('ignores repositories without the Markdown project record', async () => {
+  const { directory, outputPath } = await temporaryOutput()
   try {
     const snapshot = await syncGithubProjects({
       fetchImpl: async (url) => {
-        const parsed = new URL(url);
-        if (parsed.pathname === "/users/test-owner/repos") {
-          return response(200, [repository("legacy")]);
+        const parsed = new URL(url)
+        if (parsed.pathname === '/users/test-owner/repos') {
+          return response(200, [repository('legacy')])
         }
-        if (parsed.pathname.endsWith("/.portfolio/project.md")) {
-          return response(404, { message: "Not Found" });
+        if (parsed.pathname.endsWith('/.portfolio/project.md')) {
+          return response(404, { message: 'Not Found' })
         }
-        throw new Error(`Unexpected URL: ${url}`);
+        throw new Error(`Unexpected URL: ${url}`)
       },
-      owner: "test-owner",
-      apiBase: "https://github.test",
+      owner: 'test-owner',
+      apiBase: 'https://github.test',
       outputPath,
       now: fixedDate,
-    });
+    })
 
-    assert.deepEqual(snapshot.projects, []);
+    assert.deepEqual(snapshot.projects, [])
   } finally {
-    await rm(directory, { recursive: true, force: true });
+    await rm(directory, { recursive: true, force: true })
   }
-});
+})
 
-test("rejects pagination links outside the configured API origin", async () => {
-  const { directory, outputPath } = await temporaryOutput();
-  const calls = [];
+test('rejects pagination links outside the configured API origin', async () => {
+  const { directory, outputPath } = await temporaryOutput()
+  const calls = []
   const fetchImpl = async (url) => {
-    calls.push(url);
-    const parsed = new URL(url);
-    if (parsed.origin !== "https://github.test") {
-      throw new Error(`Unexpected cross-origin request: ${url}`);
+    calls.push(url)
+    const parsed = new URL(url)
+    if (parsed.origin !== 'https://github.test') {
+      throw new Error(`Unexpected cross-origin request: ${url}`)
     }
-    return response(200, [repository("one")], {
+    return response(200, [repository('one')], {
       link: '<https://evil.test/users/test-owner/repos?page=2>; rel="next"',
-    });
-  };
+    })
+  }
 
   try {
     await assert.rejects(
       syncGithubProjects({
         fetchImpl,
-        owner: "test-owner",
-        apiBase: "https://github.test",
+        owner: 'test-owner',
+        apiBase: 'https://github.test',
         outputPath,
       }),
       /outside configured API origin/,
-    );
-    assert.equal(calls.length, 1);
+    )
+    assert.equal(calls.length, 1)
   } finally {
-    await rm(directory, { recursive: true, force: true });
+    await rm(directory, { recursive: true, force: true })
   }
-});
+})
 
-test("rejects malformed convention content", async () => {
-  const { directory, outputPath } = await temporaryOutput();
+test('rejects malformed convention content', async () => {
+  const { directory, outputPath } = await temporaryOutput()
   const fetchImpl = async (url) => {
-    const parsed = new URL(url);
-    if (parsed.pathname === "/users/test-owner/repos") {
-      return response(200, [repository("broken")]);
+    const parsed = new URL(url)
+    if (parsed.pathname === '/users/test-owner/repos') {
+      return response(200, [repository('broken')])
     }
     if (isLocalizedProjectPath(parsed.pathname)) {
-      return response(404, { message: "Not Found" });
+      return response(404, { message: 'Not Found' })
     }
     return response(200, {
-      encoding: "base64",
-      content: encodedContent(projectMarkdown("broken", { unexpected: true })),
-    });
-  };
+      encoding: 'base64',
+      content: encodedContent(projectMarkdown('broken', { unexpected: true })),
+    })
+  }
 
   try {
     await assert.rejects(
       syncGithubProjects({
         fetchImpl,
-        owner: "test-owner",
-        apiBase: "https://github.test",
+        owner: 'test-owner',
+        apiBase: 'https://github.test',
         outputPath,
       }),
       /invalid Markdown project fields/,
-    );
+    )
   } finally {
-    await rm(directory, { recursive: true, force: true });
+    await rm(directory, { recursive: true, force: true })
   }
-});
+})
 
-test("rejects malformed repository metadata and keeps private repositories out", async (t) => {
-  await t.test("malformed metadata", async () => {
-    const { directory, outputPath } = await temporaryOutput();
+test('rejects malformed repository metadata and keeps private repositories out', async (t) => {
+  await t.test('malformed metadata', async () => {
+    const { directory, outputPath } = await temporaryOutput()
     const fetchImpl = async (url) => {
-      const parsed = new URL(url);
-      if (parsed.pathname === "/users/test-owner/repos") {
+      const parsed = new URL(url)
+      if (parsed.pathname === '/users/test-owner/repos') {
         return response(200, [
           {
-            name: "missing-branch",
+            name: 'missing-branch',
             private: false,
-            full_name: "test-owner/missing-branch",
+            full_name: 'test-owner/missing-branch',
           },
-        ]);
+        ])
       }
-      throw new Error(`Unexpected URL: ${url}`);
-    };
+      throw new Error(`Unexpected URL: ${url}`)
+    }
 
     try {
       await assert.rejects(
         syncGithubProjects({
           fetchImpl,
-          owner: "test-owner",
-          apiBase: "https://github.test",
+          owner: 'test-owner',
+          apiBase: 'https://github.test',
           outputPath,
         }),
         /name or default branch/,
-      );
+      )
     } finally {
-      await rm(directory, { recursive: true, force: true });
+      await rm(directory, { recursive: true, force: true })
     }
-  });
+  })
 
-  await t.test("private repositories are excluded", async () => {
-    const { directory, outputPath } = await temporaryOutput();
+  await t.test('private repositories are excluded', async () => {
+    const { directory, outputPath } = await temporaryOutput()
     const fetchImpl = async (url) => {
-      const parsed = new URL(url);
-      if (parsed.pathname === "/users/test-owner/repos") {
-        return response(200, [
-          repository("private", "main", { private: true, id: 1 }),
-        ]);
+      const parsed = new URL(url)
+      if (parsed.pathname === '/users/test-owner/repos') {
+        return response(200, [repository('private', 'main', { private: true, id: 1 })])
       }
-      throw new Error(
-        `Private repositories must not fetch convention files: ${url}`,
-      );
-    };
+      throw new Error(`Private repositories must not fetch convention files: ${url}`)
+    }
 
     try {
       const snapshot = await syncGithubProjects({
         fetchImpl,
-        owner: "test-owner",
-        apiBase: "https://github.test",
+        owner: 'test-owner',
+        apiBase: 'https://github.test',
         outputPath,
-      });
-      assert.deepEqual(snapshot.projects, []);
+      })
+      assert.deepEqual(snapshot.projects, [])
     } finally {
-      await rm(directory, { recursive: true, force: true });
+      await rm(directory, { recursive: true, force: true })
     }
-  });
-});
+  })
+})
 
-test("deduplicates repository overlap across pages by immutable identity", async () => {
-  const { directory, outputPath } = await temporaryOutput();
-  const fetches = [];
+test('deduplicates repository overlap across pages by immutable identity', async () => {
+  const { directory, outputPath } = await temporaryOutput()
+  const fetches = []
   const fetchImpl = async (url) => {
-    const parsed = new URL(url);
-    if (parsed.pathname === "/users/test-owner/repos") {
-      const page = parsed.searchParams.get("page");
-      if (page === "1") {
+    const parsed = new URL(url)
+    if (parsed.pathname === '/users/test-owner/repos') {
+      const page = parsed.searchParams.get('page')
+      if (page === '1') {
         return response(200, [
-          repository("one", "main", { id: 1 }),
-          repository("two", "main", { id: 2 }),
-        ]);
+          repository('one', 'main', { id: 1 }),
+          repository('two', 'main', { id: 2 }),
+        ])
       }
-      if (page === "2") {
+      if (page === '2') {
         return response(200, [
-          repository("one", "main", { id: 1 }),
-          repository("three", "main", { id: 3 }),
-        ]);
+          repository('one', 'main', { id: 1 }),
+          repository('three', 'main', { id: 3 }),
+        ])
       }
-      return response(200, []);
+      return response(200, [])
     }
-    fetches.push(parsed.pathname);
+    fetches.push(parsed.pathname)
     if (isLocalizedProjectPath(parsed.pathname)) {
-      return response(404, { message: "Not Found" });
+      return response(404, { message: 'Not Found' })
     }
-    const name = parsed.pathname.split("/")[3];
+    const name = parsed.pathname.split('/')[3]
     return response(200, {
-      encoding: "base64",
+      encoding: 'base64',
       content: encodedContent(projectMarkdown(name)),
-    });
-  };
+    })
+  }
 
   try {
     const snapshot = await syncGithubProjects({
       fetchImpl,
-      owner: "test-owner",
-      apiBase: "https://github.test",
+      owner: 'test-owner',
+      apiBase: 'https://github.test',
       outputPath,
       perPage: 2,
-    });
+    })
     assert.deepEqual(
       snapshot.projects.map(({ slug }) => slug),
-      ["one", "three", "two"],
-    );
-    assert.equal(
-      fetches.filter((pathname) => pathname.includes("/one/contents/")).length,
-      3,
-    );
+      ['one', 'three', 'two'],
+    )
+    assert.equal(fetches.filter((pathname) => pathname.includes('/one/contents/')).length, 3)
   } finally {
-    await rm(directory, { recursive: true, force: true });
+    await rm(directory, { recursive: true, force: true })
   }
-});
+})
 
-test("allows an empty snapshot after all convention files are removed", async () => {
-  const { directory, outputPath } = await temporaryOutput();
+test('allows an empty snapshot after all convention files are removed', async () => {
+  const { directory, outputPath } = await temporaryOutput()
   try {
     const snapshot = await syncGithubProjects({
       fetchImpl: async (url) => {
-        const parsed = new URL(url);
-        if (parsed.pathname === "/users/test-owner/repos") {
-          return response(200, []);
+        const parsed = new URL(url)
+        if (parsed.pathname === '/users/test-owner/repos') {
+          return response(200, [])
         }
-        throw new Error(`Unexpected URL: ${url}`);
+        throw new Error(`Unexpected URL: ${url}`)
       },
-      owner: "test-owner",
-      apiBase: "https://github.test",
+      owner: 'test-owner',
+      apiBase: 'https://github.test',
       outputPath,
-    });
-    assert.deepEqual(snapshot.projects, []);
-    assert.deepEqual(
-      JSON.parse(await readFile(outputPath, "utf8")).projects,
-      [],
-    );
+    })
+    assert.deepEqual(snapshot.projects, [])
+    assert.deepEqual(JSON.parse(await readFile(outputPath, 'utf8')).projects, [])
   } finally {
-    await rm(directory, { recursive: true, force: true });
+    await rm(directory, { recursive: true, force: true })
   }
-});
+})
 
-test("times out an upstream request without retrying", async () => {
-  const { directory, outputPath } = await temporaryOutput();
+test('times out an upstream request without retrying', async () => {
+  const { directory, outputPath } = await temporaryOutput()
   try {
     await assert.rejects(
       syncGithubProjects({
         fetchImpl: async (_url, { signal }) =>
           new Promise((resolve, reject) => {
-            signal.addEventListener(
-              "abort",
-              () => reject(new Error("aborted")),
-              { once: true },
-            );
+            signal.addEventListener('abort', () => reject(new Error('aborted')), { once: true })
           }),
-        owner: "test-owner",
-        apiBase: "https://github.test",
+        owner: 'test-owner',
+        apiBase: 'https://github.test',
         outputPath,
         timeoutMs: 5,
       }),
       /timed out after 5ms/,
-    );
+    )
   } finally {
-    await rm(directory, { recursive: true, force: true });
+    await rm(directory, { recursive: true, force: true })
   }
-});
+})
 
-test("rejects unsafe and duplicate slugs", async (t) => {
-  await t.test("unsafe slug", async () => {
-    const { directory, outputPath } = await temporaryOutput();
+test('rejects unsafe and duplicate slugs', async (t) => {
+  await t.test('unsafe slug', async () => {
+    const { directory, outputPath } = await temporaryOutput()
     const fetchImpl = async (url) => {
-      const parsed = new URL(url);
-      if (parsed.pathname === "/users/test-owner/repos") {
-        return response(200, [repository("unsafe")]);
+      const parsed = new URL(url)
+      if (parsed.pathname === '/users/test-owner/repos') {
+        return response(200, [repository('unsafe')])
       }
       if (isLocalizedProjectPath(parsed.pathname)) {
-        return response(404, { message: "Not Found" });
+        return response(404, { message: 'Not Found' })
       }
       return response(200, {
-        encoding: "base64",
-        content: encodedContent(projectMarkdown("../unsafe")),
-      });
-    };
+        encoding: 'base64',
+        content: encodedContent(projectMarkdown('../unsafe')),
+      })
+    }
     try {
       await assert.rejects(
         syncGithubProjects({
           fetchImpl,
-          owner: "test-owner",
-          apiBase: "https://github.test",
+          owner: 'test-owner',
+          apiBase: 'https://github.test',
           outputPath,
         }),
         /invalid Markdown project identity/,
-      );
+      )
     } finally {
-      await rm(directory, { recursive: true, force: true });
+      await rm(directory, { recursive: true, force: true })
     }
-  });
+  })
 
-  await t.test("duplicate slug", async () => {
-    const { directory, outputPath } = await temporaryOutput();
+  await t.test('duplicate slug', async () => {
+    const { directory, outputPath } = await temporaryOutput()
     const fetchImpl = async (url) => {
-      const parsed = new URL(url);
-      if (parsed.pathname === "/users/test-owner/repos") {
+      const parsed = new URL(url)
+      if (parsed.pathname === '/users/test-owner/repos') {
         return response(
           200,
-          parsed.searchParams.get("page") === "1"
-            ? [repository("one"), repository("two")]
-            : [],
-        );
+          parsed.searchParams.get('page') === '1' ? [repository('one'), repository('two')] : [],
+        )
       }
       if (isLocalizedProjectPath(parsed.pathname)) {
-        return response(404, { message: "Not Found" });
+        return response(404, { message: 'Not Found' })
       }
       return response(200, {
-        encoding: "base64",
-        content: encodedContent(projectMarkdown("same")),
-      });
-    };
+        encoding: 'base64',
+        content: encodedContent(projectMarkdown('same')),
+      })
+    }
     try {
       await assert.rejects(
         syncGithubProjects({
           fetchImpl,
-          owner: "test-owner",
-          apiBase: "https://github.test",
+          owner: 'test-owner',
+          apiBase: 'https://github.test',
           outputPath,
           perPage: 2,
         }),
         /Duplicate project slug/,
-      );
+      )
     } finally {
-      await rm(directory, { recursive: true, force: true });
+      await rm(directory, { recursive: true, force: true })
     }
-  });
-});
+  })
+})
 
-test("preserves the previous snapshot when reconciliation fails", async () => {
-  const { directory, outputPath } = await temporaryOutput();
+test('preserves the previous snapshot when reconciliation fails', async () => {
+  const { directory, outputPath } = await temporaryOutput()
   const original = await syncGithubProjects({
     fetchImpl: async (url) => {
-      const parsed = new URL(url);
-      if (parsed.pathname === "/users/test-owner/repos") {
-        return response(200, [repository("stable")]);
+      const parsed = new URL(url)
+      if (parsed.pathname === '/users/test-owner/repos') {
+        return response(200, [repository('stable')])
       }
       if (isLocalizedProjectPath(parsed.pathname)) {
-        return response(404, { message: "Not Found" });
+        return response(404, { message: 'Not Found' })
       }
       return response(200, {
-        encoding: "base64",
-        content: encodedContent(projectMarkdown("stable")),
-      });
+        encoding: 'base64',
+        content: encodedContent(projectMarkdown('stable')),
+      })
     },
-    owner: "test-owner",
-    apiBase: "https://github.test",
+    owner: 'test-owner',
+    apiBase: 'https://github.test',
     outputPath,
     now: fixedDate,
-  });
-  const previousContents = await readFile(outputPath, "utf8");
+  })
+  const previousContents = await readFile(outputPath, 'utf8')
 
   try {
     await assert.rejects(
       syncGithubProjects({
         fetchImpl: async (url) => {
-          const parsed = new URL(url);
-          if (parsed.pathname === "/users/test-owner/repos") {
-            return response(200, [repository("stable")]);
+          const parsed = new URL(url)
+          if (parsed.pathname === '/users/test-owner/repos') {
+            return response(200, [repository('stable')])
           }
-          return response(503, { message: "Service unavailable" });
+          return response(503, { message: 'Service unavailable' })
         },
-        owner: "test-owner",
-        apiBase: "https://github.test",
+        owner: 'test-owner',
+        apiBase: 'https://github.test',
         outputPath,
       }),
       /503/,
-    );
-    assert.equal(await readFile(outputPath, "utf8"), previousContents);
-    assert.deepEqual(JSON.parse(previousContents), original);
+    )
+    assert.equal(await readFile(outputPath, 'utf8'), previousContents)
+    assert.deepEqual(JSON.parse(previousContents), original)
   } finally {
-    await rm(directory, { recursive: true, force: true });
+    await rm(directory, { recursive: true, force: true })
   }
-});
+})
 
-test("replaces the snapshot completely so deleted files disappear", async () => {
-  const { directory, outputPath } = await temporaryOutput();
-  let includeRemoved = true;
+test('replaces the snapshot completely so deleted files disappear', async () => {
+  const { directory, outputPath } = await temporaryOutput()
+  let includeRemoved = true
   const fetchImpl = async (url) => {
-    const parsed = new URL(url);
-    if (parsed.pathname === "/users/test-owner/repos") {
+    const parsed = new URL(url)
+    if (parsed.pathname === '/users/test-owner/repos') {
       return response(
         200,
-        includeRemoved
-          ? [repository("keep"), repository("remove")]
-          : [repository("keep")],
-      );
+        includeRemoved ? [repository('keep'), repository('remove')] : [repository('keep')],
+      )
     }
     if (isLocalizedProjectPath(parsed.pathname)) {
-      return response(404, { message: "Not Found" });
+      return response(404, { message: 'Not Found' })
     }
-    const name = parsed.pathname.split("/")[3];
+    const name = parsed.pathname.split('/')[3]
     return response(200, {
-      encoding: "base64",
+      encoding: 'base64',
       content: encodedContent(projectMarkdown(name)),
-    });
-  };
+    })
+  }
 
   try {
     await syncGithubProjects({
       fetchImpl,
-      owner: "test-owner",
-      apiBase: "https://github.test",
+      owner: 'test-owner',
+      apiBase: 'https://github.test',
       outputPath,
       now: fixedDate,
-    });
-    includeRemoved = false;
+    })
+    includeRemoved = false
     const snapshot = await syncGithubProjects({
       fetchImpl,
-      owner: "test-owner",
-      apiBase: "https://github.test",
+      owner: 'test-owner',
+      apiBase: 'https://github.test',
       outputPath,
       now: fixedDate,
-    });
+    })
     assert.deepEqual(
       snapshot.projects.map(({ slug }) => slug),
-      ["keep"],
-    );
+      ['keep'],
+    )
   } finally {
-    await rm(directory, { recursive: true, force: true });
+    await rm(directory, { recursive: true, force: true })
   }
-});
+})

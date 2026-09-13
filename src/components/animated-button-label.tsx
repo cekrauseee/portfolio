@@ -1,40 +1,35 @@
-"use client";
+'use client'
 
-import { useLayoutEffect, useRef } from "react";
-import { createButtonLabelMotion } from "@/lib/button-label-motion";
+import { useLayoutEffect, useRef } from 'react'
+import { createButtonLabelMotion } from '@/lib/button-label-motion'
 
 /** Keep the button mounted while its text and intrinsic width change. */
 export function AnimatedButtonLabel({
   children,
   state,
 }: {
-  children: string;
-  state: string | boolean;
+  children: string
+  state: string | boolean
 }) {
-  const container = useRef<HTMLSpanElement>(null);
-  const current = useRef<HTMLSpanElement>(null);
-  const motion = useRef<ReturnType<typeof createButtonLabelMotion> | null>(
-    null,
-  );
+  const container = useRef<HTMLSpanElement>(null)
+  const current = useRef<HTMLSpanElement>(null)
+  const motion = useRef<ReturnType<typeof createButtonLabelMotion> | null>(null)
 
   useLayoutEffect(() => {
     if (!container.current || !current.current) {
-      return;
+      return
     }
-    const controller = createButtonLabelMotion(
-      container.current,
-      current.current,
-    );
-    motion.current = controller;
+    const controller = createButtonLabelMotion(container.current, current.current)
+    motion.current = controller
     return () => {
-      controller.dispose();
-      motion.current = null;
-    };
-  }, []);
+      controller.dispose()
+      motion.current = null
+    }
+  }, [])
 
   useLayoutEffect(() => {
-    motion.current?.update(children, state);
-  }, [children, state]);
+    motion.current?.update(children, state)
+  }, [children, state])
 
   return (
     <span
@@ -45,5 +40,5 @@ export function AnimatedButtonLabel({
         {children}
       </span>
     </span>
-  );
+  )
 }

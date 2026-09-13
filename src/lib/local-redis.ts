@@ -1,18 +1,18 @@
-import { createClient } from "redis";
+import { createClient } from 'redis'
 
-export const REDIS_COMMAND_TIMEOUT_MS = 1_000;
+export const REDIS_COMMAND_TIMEOUT_MS = 1_000
 
 export type RedisSetOptions = {
-  ex?: number;
-  nx?: boolean;
-};
+  ex?: number
+  nx?: boolean
+}
 
 export type RedisAdapter = {
-  set(key: string, value: unknown, options?: RedisSetOptions): Promise<unknown>;
-  get<T>(key: string): Promise<T | null>;
-  incr(key: string): Promise<number>;
-  eval<T>(script: string, keys: string[], args: string[]): Promise<T>;
-};
+  set(key: string, value: unknown, options?: RedisSetOptions): Promise<unknown>
+  get<T>(key: string): Promise<T | null>
+  incr(key: string): Promise<number>
+  eval<T>(script: string, keys: string[], args: string[]): Promise<T>
+}
 
 export function createLocalRedisAdapter(url: string) {
   const client = createClient({
@@ -21,71 +21,63 @@ export function createLocalRedisAdapter(url: string) {
       connectTimeout: REDIS_COMMAND_TIMEOUT_MS,
       reconnectStrategy: false,
     },
-  });
-  client.on("error", () => {
+  })
+  client.on('error', () => {
     // Command callers convert connection failures into protection responses.
-  });
+  })
 
-  let connection: Promise<typeof client> | undefined;
+  let connection: Promise<typeof client> | undefined
   const connected = () => {
     // `socketTimeout` is intentionally not configured: node-redis treats it as
     // an idle-socket timeout, not a per-command deadline. Reconnect a client
     // that was closed by an unexpected socket failure.
     if (!client.isOpen) {
-      connection = undefined;
+      connection = undefined
     }
     connection ??= client
       .connect()
       .then(() => client)
       .catch((error) => {
-        connection = undefined;
+        connection = undefined
         if (client.isOpen) {
-          client.destroy();
+          client.destroy()
         }
-        throw error;
-      });
-    return connection;
-  };
+        throw error
+      })
+    return connection
+  }
 
   const adapter: RedisAdapter & { close(): Promise<void> } = {
     async set(key, value, options) {
-      const redis = await connected();
-      return redis.set(
-        key,
-        typeof value === "string" ? value : JSON.stringify(value),
-        {
-          ...(options?.ex
-            ? { expiration: { type: "EX" as const, value: options.ex } }
-            : {}),
-          ...(options?.nx ? { condition: "NX" as const } : {}),
-        },
-      );
+      const redis = await connected()
+      return redis.set(key, typeof value === 'string' ? value : JSON.stringify(value), {
+        ...(options?.ex ? { expiration: { type: 'EX' as const, value: options.ex } } : {}),
+        ...(options?.nx ? { condition: 'NX' as const } : {}),
+      })
     },
     async get<T>(key: string) {
-      const value = await (await connected()).get(key);
+      const value = await (await connected()).get(key)
       if (value === null) {
-        return null;
+        return null
       }
       try {
-        return JSON.parse(value) as T;
+        return JSON.parse(value) as T
       } catch {
-        return value as T;
+        return value as T
       }
     },
     async incr(key: string) {
-      return (await connected()).incr(key);
+      return (await connected()).incr(key)
     },
     async eval<T>(script: string, keys: string[], args: string[]) {
-      return (await (
-        await connected()
-      ).eval(script, { keys, arguments: args })) as T;
+      return (await (await connected()).eval(script, { keys, arguments: args })) as T
     },
     async close() {
       if (client.isOpen) {
-        await client.close();
+        await client.close()
       }
     },
-  };
+  }
 
-  return adapter;
+  return adapter
 }

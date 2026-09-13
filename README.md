@@ -14,7 +14,8 @@ and meeting scheduling, plus a public guestbook.
 - deterministic local setup backed by Docker Redis and Postgres;
 - responsive light and dark layouts with accessible keyboard interactions;
 - canonical metadata, structured data, sitemap, and social previews;
-- optional build-time project records reconciled from public GitHub repositories.
+- optional build-time project records reconciled from public GitHub repositories;
+- optional build-time multilingual notes with on-demand narration and timed reading.
 
 ## Local development
 
@@ -30,8 +31,13 @@ npm run setup
 npm run dev
 ```
 
-`npm run setup` runs `npm ci`, generates missing local service and protection
+`npm run setup` selects Node.js 22.23.2 and npm 10.9.8 through `npx`, then
+runs `npm ci`, generates missing local service and protection
 values, starts Redis and Postgres, applies migrations, and verifies both local services.
+The bootstrap does not change the Node version in your shell. Before running
+`npm run dev`, activate Node 22 or use the isolated command documented in
+[Development](docs/development.md#first-setup). Use npm, not pnpm, with this
+repository's lockfile.
 Open
 [http://localhost:3000](http://localhost:3000).
 
@@ -72,6 +78,13 @@ snapshot. `npm run dev` and `npm run build` refresh it by scanning public
 repositories owned by `GITHUB_OWNER` and reading `.portfolio/project.md` from
 each default branch. Visitor requests never call GitHub.
 
+Published notes come from the configured `NOTES_REPOSITORY` at build time. In
+development, an unset repository reads `../notes`; in production, an unset
+repository creates an empty notes snapshot. See [Notes](docs/notes.md) for the
+manifest contract, local setup, audio behavior, and publication hook.
+
+The complete setup and first-rollout sequence are in [CI and production setup](docs/deployment.md).
+
 ## Continuous delivery
 
 GitHub Actions uses the pinned Node version and a neutral fixture owner. It runs
@@ -81,7 +94,7 @@ production build on every push and pull request.
 
 A passing push to `main` migrates and verifies the production database before triggering the Vercel Deploy Hook.
 Configure `VERCEL_DEPLOY_HOOK_URL` in the protected GitHub `production`
-environment, together with a direct `DATABASE_URL`. Scheduled project reconciliation uses the same migration gate and deploy hook. See [Guestbook](docs/guestbook.md) for the destructive legacy migration and owner moderation.
+environment, together with a direct `DATABASE_URL_UNPOOLED`. Scheduled project reconciliation uses the same migration gate and deploy hook. See [Guestbook](docs/guestbook.md) for the destructive legacy migration and owner moderation.
 `vercel.json` disables automatic Git deployments. These workflows are the approved
 production delivery path; do not deploy through the Vercel dashboard, CLI, API, or
 a direct Deploy Hook.
@@ -96,6 +109,7 @@ a direct Deploy Hook.
 - `src/config/site.ts` is the canonical public identity and site configuration.
 - `src/content/portfolio.ts` contains profile details, social links, and project loading.
 - `src/content/github-projects.ts` validates the build-time GitHub snapshot.
+- `src/content/notes.ts` validates the build-time published notes snapshot.
 - `scripts/sync-github-projects.mjs` reconciles public convention files into the snapshot.
 - `public/` and project configuration remain at the repository root.
 

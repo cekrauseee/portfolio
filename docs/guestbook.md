@@ -92,7 +92,7 @@ not execute production migrations or deployments.
 
 Both approved GitHub delivery workflows validate migration history, apply
 migrations and verify the schema before invoking the deployment hook. Configure
-a **direct** `DATABASE_URL` in the protected GitHub `production` environment,
+a **direct** `DATABASE_URL_UNPOOLED` in the protected GitHub `production` environment,
 alongside the existing deploy-hook secret. Vercel also requires the runtime
 `DATABASE_URL`. Do not use `db:push` to replace migration history.
 

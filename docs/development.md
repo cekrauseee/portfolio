@@ -7,7 +7,13 @@
 - Docker with Compose
 
 Use `.nvmrc` with a compatible version manager. `package.json` and `.npmrc`
-reject unsupported Node releases during installation.
+reject unsupported Node releases during direct installation. Use npm with the
+committed `package-lock.json`; pnpm is not the supported package manager.
+
+`npm run setup` bootstraps Node.js 22.23.2 and npm 10.9.8 through `npx`, so it
+also works when the shell has a different Node release. The first invocation
+may download these tools into the npm cache. This does not replace the global
+Node installation or change the parent shell's runtime.
 
 ## First setup
 
@@ -20,7 +26,7 @@ npm run dev
 
 `npm run setup` is intentionally deterministic. It:
 
-1. rejects an unsupported Node version;
+1. selects the pinned Node and npm versions and verifies Node compatibility;
 2. requires `GITHUB_OWNER` in `.env.local`;
 3. installs exactly `package-lock.json` with `npm ci`;
 4. validates the Drizzle schema and migration state;
@@ -31,6 +37,13 @@ npm run dev
 9. starts Redis and Postgres and waits for their health checks;
 10. applies and verifies local database migrations;
 11. verifies Redis and tests the guestbook in isolated Postgres databases.
+
+For later commands, activate Node 22 with your version manager. If you do not
+have one configured, use the same isolated runtime to start development:
+
+```bash
+npx --yes --package=node@22.23.2 --package=npm@10.9.8 -- npm run dev
+```
 
 The script preserves custom values, writes `.env.local` atomically, refuses to
 follow a symlink, and applies mode `0600`. Exported shell variables do not replace
@@ -54,10 +67,17 @@ For schema changes, run `npm run db:generate -- --name=<migration-name>` and rev
 the generated SQL and snapshot. Apply locally with `npm run db:migrate`, then run
 `npm run db:verify`. `npm run db:check` validates migration history and schema
 coverage. Production delivery runs these checks before the deploy hook using a
-direct `DATABASE_URL` secret in the protected GitHub production environment.
+direct `DATABASE_URL_UNPOOLED` secret in the protected GitHub production environment.
 
 See [Guestbook](guestbook.md) for the legacy replacement, safe rollout sequence,
 name cookie, moderation commands, API behavior, and isolated integration tests.
+
+### Notes content
+
+See [Notes](notes.md) for the build-time manifest contract, local and remote
+configuration, reader behavior, and the `notes-published` repository dispatch
+contract. Published notes are optional; a missing production repository creates
+an empty snapshot, while failures from a configured repository fail the build.
 
 ### Project content
 
@@ -143,16 +163,8 @@ scheduling request contract. Resend owner notifications are optional and require
 compilation. It validates the critical production variables, Redis URL, secret
 strength, and optional Resend group. Runtime guards remain fail closed.
 
-Production deployment order:
-
-1. configure `VERCEL_DEPLOY_HOOK_URL` in the GitHub `production` environment;
-2. connect Upstash through the Vercel Marketplace;
-3. configure the required environment variables;
-4. enable BotID;
-5. merge only after CI passes;
-6. let the production workflow invoke its Vercel Deploy Hook;
-7. verify allowed, blocked, rate-limited, and unavailable responses;
-8. configure Vercel WAF rules and OpenAI spending controls.
+See [CI and production setup](deployment.md) for the required GitHub secrets,
+Vercel/provider settings, notes publication, and first guestbook rollout sequence.
 
 ## Commands
 
@@ -182,6 +194,7 @@ Production deployment order:
 | Command                      | Purpose                                   |
 | ---------------------------- | ----------------------------------------- |
 | `npm run projects:sync`      | Refresh the GitHub project snapshot       |
+| `npm run notes:sync`         | Refresh the published notes snapshot      |
 | `npm run env:validate`       | Validate production environment groups    |
 | `npm run calendar:authorize` | Obtain and store the Google refresh token |
 

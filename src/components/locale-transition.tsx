@@ -1,25 +1,25 @@
-"use client";
+'use client'
 
-import { type ReactNode, useLayoutEffect, useRef } from "react";
-import type { Locale } from "@/i18n/config";
-import { playLocaleTransition } from "@/i18n/locale-transition";
+import { type ReactNode, useLayoutEffect, useRef } from 'react'
+import type { Locale } from '@/i18n/config'
+import { playLocaleTransition } from '@/i18n/locale-transition'
 
 export function LocaleTransition({
   locale,
   className,
   children,
 }: {
-  locale: Locale;
-  className: string;
-  children: ReactNode;
+  locale: Locale
+  className: string
+  children: ReactNode
 }) {
-  const rootRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null)
 
   useLayoutEffect(() => {
     if (rootRef.current) {
-      return playLocaleTransition(rootRef.current, locale);
+      return playLocaleTransition(rootRef.current, locale)
     }
-  }, [locale, children]);
+  }, [locale, children])
 
   return (
     <div
@@ -29,5 +29,5 @@ export function LocaleTransition({
     >
       {children}
     </div>
-  );
+  )
 }
