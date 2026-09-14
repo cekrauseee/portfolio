@@ -42,6 +42,8 @@ database setup; see [Guestbook](guestbook.md) for its operating contract.
   JavaScript to features that require browser state or interaction.
 - Preserve the centered editorial visual language: restrained type hierarchy,
   mostly lowercase copy, light section structure, and text-led project entries.
+- Follow [Writing](writing.md) for the shared voice, content structure,
+  localization, and the distinction between interface and editorial text.
 - Keep case-study claims factual. Do not add unverified metrics, business impact,
   team details, or personal responsibilities.
 - Adopt `.portfolio/project.md` in source repositories only when its complete
