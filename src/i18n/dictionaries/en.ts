@@ -22,7 +22,7 @@ export const en: Dictionary = {
     notes: {
       title: 'notes',
       pageTitles: {
-        'starting-is-easy': 'starting is easy',
+        'between-starting-and-shipping': 'The gap between starting and shipping',
         'thinking-in-public': 'thinking in public',
       },
       reader: {
@@ -40,15 +40,14 @@ export const en: Dictionary = {
         seek: 'seek narration',
         retry: 'try again',
         audioError: 'the narration could not be loaded.',
-        syncUnavailable:
-          'the narration alignment is unavailable, so audio is disabled for this note.',
+        syncUnavailable: 'narration is unavailable for this note.',
       },
     },
     bio: {
       intro:
         "i'm a software engineer in lisbon. i build products, interfaces, and tools for people and ai agents.",
       process:
-        'i like turning ideas into software and paying attention to the details that matter to the people using it.',
+        'i work on application architecture and implementation, with attention to the user experience.',
       interests:
         "i mostly work with typescript and node.js. lately, i've been exploring how ai agents can work together and keep the context they need.",
     },
@@ -77,9 +76,10 @@ export const en: Dictionary = {
     },
     contact: {
       close: 'close',
-      description: "i'm open to a new role or freelance projects. tell me what you're working on.",
+      description:
+        "i'm open to new opportunities and freelance projects. we can talk about what you're building.",
       schedule: 'schedule a conversation',
-      roleFit: 'compare a job',
+      roleFit: 'check role fit',
       guestbook: 'guestbook',
     },
   },
@@ -133,14 +133,15 @@ export const en: Dictionary = {
     seek: 'seek narration',
     retry: 'try again',
     audioError: 'the narration could not be loaded.',
-    syncUnavailable: 'the narration alignment is unavailable, so audio is disabled for this note.',
+    syncUnavailable: 'narration is unavailable for this note.',
   },
   fit: {
-    description: "paste the job description and i'll compare it with the work i've done.",
+    description:
+      'paste the job or project description. ai compares the requirements with my experience and the projects in this portfolio.',
     form: {
       roleDescription: 'job description',
       placeholder: 'senior software engineer\nbuild reliable products with typescript…',
-      assess: 'compare the job',
+      assess: 'check role fit',
       assessing: 'comparing…',
       assessment: 'how it compares',
       assessmentReady: 'the comparison is ready.',
@@ -181,13 +182,14 @@ export const en: Dictionary = {
       rateLimited: 'too many scheduling attempts. wait a moment and try again.',
       requestDenied: 'unable to schedule this conversation.',
       serviceUnavailable: 'scheduling is unavailable right now. try again in a moment.',
-      unableToSchedule: 'unable to schedule the conversation. check your details and try again.',
+      unableToSchedule: 'unable to schedule the conversation. try again.',
       connectionError: 'unable to schedule the conversation. check your connection and try again.',
       booking: 'scheduling…',
       book: 'schedule a conversation',
       bookingStatus: 'scheduling your conversation.',
       success: 'your conversation is scheduled. check your email for the calendar invitation.',
-      meetingDetails: 'view booking details',
+      joinMeeting: 'join the call',
+      viewBooking: 'view booking',
       externalLinkNewTab: ' (opens in a new tab)',
     },
   },

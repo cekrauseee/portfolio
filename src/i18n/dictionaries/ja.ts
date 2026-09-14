@@ -22,13 +22,13 @@ export const ja: Dictionary = {
     notes: {
       title: 'ノート',
       pageTitles: {
-        'starting-is-easy': '作り始めるのは簡単',
+        'between-starting-and-shipping': '個人開発で、公開までたどり着く難しさ',
         'thinking-in-public': '人前で考える',
       },
       reader: {
         closeReading: '戻る',
-        minimizeToolbar: '操作を最小化',
-        expandToolbar: '操作を展開',
+        minimizeToolbar: 'ツールバーを折りたたむ',
+        expandToolbar: 'ツールバーを開く',
         toolbarLabel: '読み上げ操作',
         playerLabel: 'ノートの朗読',
         audioLabel: 'ノートの朗読音声',
@@ -40,15 +40,13 @@ export const ja: Dictionary = {
         seek: '朗読を移動',
         retry: 'もう一度試す',
         audioError: '朗読を読み込めませんでした。',
-        syncUnavailable:
-          '朗読との同期情報を利用できないため、このノートでは音声を無効にしています。',
+        syncUnavailable: 'このノートでは朗読を利用できません。',
       },
     },
     bio: {
       intro:
         'リスボンでソフトウェアエンジニアをしています。人やaiエージェントが使うプロダクト、インターフェース、ツールをつくっています。',
-      process:
-        'アイデアを形にするのが好きです。使う人のことを考えながら、細かいところまでつくっています。',
+      process: 'アプリケーションのアーキテクチャと実装に取り組み、使う人の体験に気を配っています。',
       interests:
         '主にtypescriptとnode.jsを使っています。最近は、aiエージェントが連携して働く仕組みや、必要な文脈を引き継ぐ方法を試しています。',
     },
@@ -78,7 +76,7 @@ export const ja: Dictionary = {
     contact: {
       close: '閉じる',
       description:
-        '転職やフリーランスの仕事のお話も歓迎しています。今取り組んでいることを、聞かせてもらえたらうれしいです。',
+        '新しい機会やフリーランスのプロジェクトを歓迎しています。今取り組んでいることについて、お話ししましょう。',
       schedule: '話す時間を予約',
       roleFit: '求人と経験を比べる',
       guestbook: 'ゲストブック',
@@ -122,8 +120,8 @@ export const ja: Dictionary = {
   },
   notes: {
     closeReading: '戻る',
-    minimizeToolbar: '操作を最小化',
-    expandToolbar: '操作を展開',
+    minimizeToolbar: 'ツールバーを折りたたむ',
+    expandToolbar: 'ツールバーを開く',
     toolbarLabel: '読み上げ操作',
     playerLabel: 'ノートの朗読',
     audioLabel: 'ノートの朗読音声',
@@ -135,10 +133,11 @@ export const ja: Dictionary = {
     seek: '朗読を移動',
     retry: 'もう一度試す',
     audioError: '朗読を読み込めませんでした。',
-    syncUnavailable: '朗読との同期情報を利用できないため、このノートでは音声を無効にしています。',
+    syncUnavailable: 'このノートでは朗読を利用できません。',
   },
   fit: {
-    description: '募集内容を貼り付けると、これまでの仕事と照らし合わせます。',
+    description:
+      '求人やプロジェクトの説明を貼り付けてください。AIが要件を、私の経験とこのポートフォリオのプロジェクトに照らして比較します。',
     form: {
       roleDescription: '募集内容',
       placeholder: 'シニアソフトウェアエンジニア\ntypescriptで信頼性の高いプロダクトを開発…',
@@ -161,7 +160,7 @@ export const ja: Dictionary = {
     },
   },
   schedule: {
-    description: '話せる日時を選んでください。1時間ほどお話しできればと思っています。',
+    description: 'ご都合のよい日時を選んでください。所要時間は1時間です。',
     form: {
       name: '名前',
       email: 'メールアドレス',
@@ -184,13 +183,14 @@ export const ja: Dictionary = {
       rateLimited: '続けて予約できる回数を超えました。少し待ってからもう一度お試しください。',
       requestDenied: '予約できませんでした。',
       serviceUnavailable: '現在、予約できません。しばらくしてからもう一度お試しください。',
-      unableToSchedule: '予約できませんでした。入力内容を確認して、もう一度お試しください。',
+      unableToSchedule: '予約できませんでした。もう一度お試しください。',
       connectionError: '予約できませんでした。接続を確認して、もう一度お試しください。',
       booking: '予約中…',
       book: '話す時間を予約',
       bookingStatus: '予約しています。',
       success: '予約ができました。カレンダーへの招待メールをご確認ください。',
-      meetingDetails: '予約の詳細を見る',
+      joinMeeting: 'ミーティングに参加',
+      viewBooking: '予約の詳細を見る',
       externalLinkNewTab: '（新しいタブで開きます）',
     },
   },

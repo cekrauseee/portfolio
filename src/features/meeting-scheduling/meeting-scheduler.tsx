@@ -25,6 +25,7 @@ import { playInteractionSound } from '@/lib/interaction-sounds'
 type FieldName = 'name' | 'email' | 'date' | 'time'
 type Fields = Record<FieldName, string>
 type Errors = Partial<Record<FieldName, string>>
+type MeetingLinkKind = 'meet' | 'calendar'
 export type MeetingPayload = {
   name: string
   email: string
@@ -140,6 +141,7 @@ export function MeetingScheduler({
   const [generalError, setGeneralError] = useState('')
   const [success, setSuccess] = useState('')
   const [meetingLink, setMeetingLink] = useState<string>()
+  const [meetingLinkKind, setMeetingLinkKind] = useState<MeetingLinkKind>()
   const [submitting, setSubmitting] = useState(false)
   const [minDate] = useState(today)
   const idempotencyRef = useRef<IdempotencyState | undefined>(undefined)
@@ -155,6 +157,7 @@ export function MeetingScheduler({
     setGeneralError('')
     setSuccess('')
     setMeetingLink(undefined)
+    setMeetingLinkKind(undefined)
   }
 
   function validate() {
@@ -189,6 +192,7 @@ export function MeetingScheduler({
     setGeneralError('')
     setSuccess('')
     setMeetingLink(undefined)
+    setMeetingLinkKind(undefined)
     if (Object.keys(nextErrors).length) {
       playInteractionSound('error')
       const first = (Object.keys(initialFields) as FieldName[]).find((field) => nextErrors[field])
@@ -233,7 +237,10 @@ export function MeetingScheduler({
 
       clearIdempotency()
       setSuccess(dictionary.success)
-      setMeetingLink(responseValue(data, 'meetLink') ?? responseValue(data, 'calendarLink'))
+      const meetLink = responseValue(data, 'meetLink')
+      const calendarLink = responseValue(data, 'calendarLink')
+      setMeetingLink(meetLink ?? calendarLink)
+      setMeetingLinkKind(meetLink ? 'meet' : calendarLink ? 'calendar' : undefined)
       playInteractionSound('success')
     } catch {
       setGeneralError(dictionary.connectionError)
@@ -384,7 +391,7 @@ export function MeetingScheduler({
             <>
               {' '}
               <ExternalLink href={meetingLink} newTabLabel={dictionary.externalLinkNewTab}>
-                {dictionary.meetingDetails}
+                {meetingLinkKind === 'meet' ? dictionary.joinMeeting : dictionary.viewBooking}
               </ExternalLink>
               .
             </>

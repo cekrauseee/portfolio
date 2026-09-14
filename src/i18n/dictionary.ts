@@ -150,7 +150,8 @@ export type Dictionary = {
       book: string
       bookingStatus: string
       success: string
-      meetingDetails: string
+      joinMeeting: string
+      viewBooking: string
       externalLinkNewTab: string
     }
   }

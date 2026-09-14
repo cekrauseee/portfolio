@@ -22,7 +22,7 @@ export const pt: Dictionary = {
     notes: {
       title: 'notas',
       pageTitles: {
-        'starting-is-easy': 'começar é fácil',
+        'between-starting-and-shipping': 'A distância entre começar e publicar',
         'thinking-in-public': 'pensar em público',
       },
       reader: {
@@ -40,15 +40,14 @@ export const pt: Dictionary = {
         seek: 'avançar ou voltar na narração',
         retry: 'tentar de novo',
         audioError: 'não foi possível carregar a narração.',
-        syncUnavailable:
-          'o alinhamento da narração não está disponível, então o áudio foi desativado para esta nota.',
+        syncUnavailable: 'a narração não está disponível para esta nota.',
       },
     },
     bio: {
       intro:
         'sou engenheiro de software em lisboa. crio produtos, interfaces e ferramentas para pessoas e agentes de ia.',
       process:
-        'gosto de tirar ideias do papel e cuidar dos detalhes que fazem diferença para quem usa.',
+        'trabalho na arquitetura e na implementação de aplicações, com atenção à experiência de uso.',
       interests:
         'trabalho principalmente com typescript e node.js. ultimamente, tenho explorado como agentes de ia podem trabalhar juntos e manter o contexto de que precisam.',
     },
@@ -78,7 +77,7 @@ export const pt: Dictionary = {
     contact: {
       close: 'fechar',
       description:
-        'estou aberto a uma nova vaga ou a projetos freelance. me conta no que você está trabalhando.',
+        'estou aberto a novas oportunidades e projetos freelance. podemos conversar sobre o que você está desenvolvendo.',
       schedule: 'agendar uma conversa',
       roleFit: 'comparar uma vaga',
       guestbook: 'livro de visitas',
@@ -135,11 +134,11 @@ export const pt: Dictionary = {
     seek: 'avançar ou voltar na narração',
     retry: 'tentar de novo',
     audioError: 'não foi possível carregar a narração.',
-    syncUnavailable:
-      'o alinhamento da narração não está disponível, então o áudio foi desativado para esta nota.',
+    syncUnavailable: 'a narração não está disponível para esta nota.',
   },
   fit: {
-    description: 'cole a descrição da vaga e eu comparo com o trabalho que já fiz.',
+    description:
+      'cole a descrição da vaga ou do projeto. a ia compara os requisitos com minha experiência e os projetos deste portfólio.',
     form: {
       roleDescription: 'descrição da vaga',
       placeholder: 'engenheiro de software sênior\nconstrua produtos confiáveis com typescript…',
@@ -184,13 +183,14 @@ export const pt: Dictionary = {
       rateLimited: 'muitas tentativas de agendamento. espere um pouco e tente de novo.',
       requestDenied: 'não foi possível agendar esta conversa.',
       serviceUnavailable: 'não dá para agendar agora. tente de novo daqui a pouco.',
-      unableToSchedule: 'não foi possível agendar a conversa. confira seus dados e tente de novo.',
+      unableToSchedule: 'não foi possível agendar a conversa. tente novamente.',
       connectionError: 'não foi possível agendar a conversa. confira sua conexão e tente de novo.',
       booking: 'agendando conversa…',
       book: 'agendar conversa',
       bookingStatus: 'agendando sua conversa.',
       success: 'conversa agendada. o convite chega por e-mail.',
-      meetingDetails: 'ver detalhes da conversa',
+      joinMeeting: 'entrar na conversa',
+      viewBooking: 'ver agendamento',
       externalLinkNewTab: ' (abre em uma nova aba)',
     },
   },
