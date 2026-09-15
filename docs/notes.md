@@ -93,26 +93,18 @@ use the native audio element.
 
 ## Publication delivery hook
 
-The portfolio receiver is `.github/workflows/reconcile-projects.yml`. The notes
-publisher should send this request after it has committed and pushed the new manifest:
+The Notes publisher can trigger the same Vercel Deploy Hook used by the
+Portfolio's production delivery workflow after it has committed and pushed a
+new manifest:
 
 ```http
-POST https://api.github.com/repos/<portfolio-owner>/<portfolio-repository>/dispatches
-Authorization: Bearer <token>
-Accept: application/vnd.github+json
-X-GitHub-Api-Version: 2022-11-28
-Content-Type: application/json
-
-{"event_type":"notes-published","client_payload":{"notes_commit":"<40-char-lowercase-sha>"}}
+POST https://api.vercel.com/v1/integrations/deploy/<portfolio-project>/<hook-id>
 ```
 
-The token must be allowed to dispatch repository events on the portfolio
-repository. Store it in the notes repository as a secret; no token belongs in
-the notes content or browser. The receiver accepts only the typed
-`notes-published` event on the portfolio `main` branch and validates the
-lowercase 40-character `notes_commit` field. It uses the existing migration and
-Vercel Deploy Hook delivery job. The receiver does not fetch note content from
-the event payload; the Vercel build performs the authoritative pinned sync. The notification SHA
-is validated but is not forwarded as a build override. The build resolves the
-configured `NOTES_REF` to a commit and reads all note sources from that revision,
-which may be newer than the revision that triggered the notification.
+Store the full URL only as the `VERCEL_DEPLOY_HOOK_URL` secret in the Notes
+repository. The hook queues a Portfolio production build directly; it does not
+send note content, a GitHub token, or a commit SHA payload. The Vercel build
+resolves the configured `NOTES_REF` to a commit and performs the authoritative
+sync. The Portfolio's scheduled and manual reconciliation workflow remains
+available for independent project-content updates and uses the same deploy hook
+after its database checks.

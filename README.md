@@ -96,8 +96,8 @@ A passing push to `main` migrates and verifies the production database before tr
 Configure `VERCEL_DEPLOY_HOOK_URL` in the protected GitHub `production`
 environment, together with a direct `DATABASE_URL_UNPOOLED`. Scheduled project reconciliation uses the same migration gate and deploy hook. See [Guestbook](docs/guestbook.md) for the destructive legacy migration and owner moderation.
 `vercel.json` disables automatic Git deployments. These workflows are the approved
-production delivery path; do not deploy through the Vercel dashboard, CLI, API, or
-a direct Deploy Hook.
+Portfolio delivery path. The Notes workflow may call the same dedicated Deploy
+Hook after publishing its manifest.
 
 ## Structure
 

@@ -127,23 +127,21 @@ pushes and manual runs on `main`.
 
 For later audio publication, configure the **notes repository's** Actions settings:
 
-| Kind      | Name                                                                         | Requirement                                                                            |
-| --------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| Secret    | `ELEVENLABS_API_KEY`                                                         | Text-to-speech access and available credits.                                           |
-| Secret    | `BLOB_READ_WRITE_TOKEN`                                                      | Read/write token for an existing **public** Vercel Blob store.                         |
-| Variables | `ELEVENLABS_VOICE_ID_EN`, `ELEVENLABS_VOICE_ID_PT`, `ELEVENLABS_VOICE_ID_JA` | Selected voice IDs for each language.                                                  |
-| Variables | `ELEVENLABS_MODEL_ID`, `ELEVENLABS_SPEED`                                    | Optional; defaults are `eleven_multilingual_v2` and `0.95`.                            |
-| Variable  | `NOTES_BLOB_PREFIX`                                                          | Optional; defaults to `notes`.                                                         |
-| Variable  | `NOTES_PUBLICATION_ENABLED`                                                  | `true` only when ready to run paid publication.                                        |
-| Secret    | `PORTFOLIO_DISPATCH_TOKEN`                                                   | Optional fine-grained GitHub token with **Contents: write** on `cekrauseee/portfolio`. |
-| Variable  | `PORTFOLIO_REPOSITORY`                                                       | `cekrauseee/portfolio`, paired with the dispatch token.                                |
+| Kind      | Name                                                                         | Requirement                                                         |
+| --------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Secret    | `ELEVENLABS_API_KEY`                                                         | Text-to-speech access and available credits.                        |
+| Secret    | `BLOB_READ_WRITE_TOKEN`                                                      | Read/write token for an existing **public** Vercel Blob store.      |
+| Variables | `ELEVENLABS_VOICE_ID_EN`, `ELEVENLABS_VOICE_ID_PT`, `ELEVENLABS_VOICE_ID_JA` | Selected voice IDs for each language.                               |
+| Variables | `ELEVENLABS_MODEL_ID`, `ELEVENLABS_SPEED`                                    | Optional; defaults are `eleven_multilingual_v2` and `0.95`.         |
+| Variable  | `NOTES_BLOB_PREFIX`                                                          | Optional; defaults to `notes`.                                      |
+| Variable  | `NOTES_PUBLICATION_ENABLED`                                                  | `true` only when ready to run paid publication.                     |
+| Secret    | `VERCEL_DEPLOY_HOOK_URL`                                                     | Optional Deploy Hook URL for the Portfolio `main` production build. |
 
 Allow the workflow's `GITHUB_TOKEN` to push its manifest commit to `notes/main`
-under the chosen branch policy. The portfolio dispatch token is separate because
-the default token is scoped to the notes repository. Configure both dispatch
-settings or neither. The receiver must be merged into `portfolio/main` before
-notifications can trigger it. The event's SHA is validated; the Vercel build
-resolves `NOTES_REF` itself and may consume a newer published revision.
+under the chosen branch policy. After that push, the Notes workflow can call the
+same Portfolio Deploy Hook directly. No GitHub repository-dispatch token or
+receiver workflow is required; the Vercel build resolves `NOTES_REF` itself and
+may consume a newer published revision.
 
 Follow the notes repository's [publication procedure](https://github.com/cekrauseee/notes/blob/main/docs/publishing.md)
 for listening checks, retries, and manifest publication. No ffmpeg, database,

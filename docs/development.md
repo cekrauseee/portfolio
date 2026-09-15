@@ -75,9 +75,10 @@ name cookie, moderation commands, API behavior, and isolated integration tests.
 ### Notes content
 
 See [Notes](notes.md) for the build-time manifest contract, local and remote
-configuration, reader behavior, and the `notes-published` repository dispatch
-contract. Published notes are optional; a missing production repository creates
-an empty snapshot, while failures from a configured repository fail the build.
+configuration, reader behavior, and the direct Vercel Deploy Hook used after
+notes publication. Published notes are optional; a missing production repository
+creates an empty snapshot, while failures from a configured repository fail the
+build.
 
 ### Project content
 
