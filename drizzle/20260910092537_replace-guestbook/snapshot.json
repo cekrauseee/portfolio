@@ -1,0 +1,152 @@
+{
+  "version": "8",
+  "dialect": "postgres",
+  "id": "c88ba901-acc2-457f-ae3c-3f0966536f39",
+  "prevIds": ["e16a6de6-e915-4b15-b442-520c893214dd"],
+  "ddl": [
+    {
+      "isRlsEnabled": false,
+      "name": "guestbook_messages",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "guestbook_messages"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "guestbook_messages"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "message",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "guestbook_messages"
+    },
+    {
+      "type": "timestamp(3) with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "guestbook_messages"
+    },
+    {
+      "type": "timestamp(3) with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "hidden_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "guestbook_messages"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "submission_key",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "guestbook_messages"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "created_at",
+          "isExpression": false,
+          "asc": false,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "id",
+          "isExpression": false,
+          "asc": false,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": "\"hidden_at\" is null",
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "guestbook_messages_visible_created_id_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "guestbook_messages"
+    },
+    {
+      "columns": ["id"],
+      "nameExplicit": false,
+      "name": "guestbook_messages_pkey",
+      "schema": "public",
+      "table": "guestbook_messages",
+      "entityType": "pks"
+    },
+    {
+      "nameExplicit": false,
+      "columns": ["submission_key"],
+      "nullsNotDistinct": false,
+      "name": "guestbook_messages_submission_key_key",
+      "schema": "public",
+      "table": "guestbook_messages",
+      "entityType": "uniques"
+    },
+    {
+      "value": "char_length(btrim(\"name\")) between 1 and 80",
+      "name": "guestbook_name_length",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "guestbook_messages"
+    },
+    {
+      "value": "char_length(btrim(\"message\")) between 1 and 500",
+      "name": "guestbook_message_length",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "guestbook_messages"
+    }
+  ],
+  "renames": []
+}

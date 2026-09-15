@@ -2,7 +2,7 @@ name: Reconcile GitHub project content
 
 on:
   schedule:
-    - cron: "17 4 * * *"
+    - cron: '17 4 * * *'
   workflow_dispatch:
 
 permissions:
@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   reconcile:
-    name: Migrate database and trigger production reconciliation
+    name: Trigger production reconciliation
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: production
@@ -33,7 +33,7 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Apply and verify production database migrations
+      - name: Migrate and verify production database
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL_UNPOOLED }}
         run: |
@@ -41,6 +41,7 @@ jobs:
             echo "::error::Missing the DATABASE_URL_UNPOOLED GitHub Actions secret."
             exit 1
           fi
+          npm run db:check
           npm run db:migrate
           npm run db:verify
       - name: Trigger Vercel deploy hook

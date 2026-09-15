@@ -2,11 +2,11 @@ version: 2
 
 updates:
   - package-ecosystem: npm
-    directory: "/"
+    directory: '/'
     schedule:
       interval: weekly
       day: monday
-      time: "06:00"
+      time: '06:00'
       timezone: Europe/Lisbon
     open-pull-requests-limit: 10
     groups:
@@ -22,11 +22,11 @@ updates:
           - patch
 
   - package-ecosystem: github-actions
-    directory: "/"
+    directory: '/'
     schedule:
       interval: weekly
       day: monday
-      time: "06:15"
+      time: '06:15'
       timezone: Europe/Lisbon
     groups:
       actions-minor-and-patch:

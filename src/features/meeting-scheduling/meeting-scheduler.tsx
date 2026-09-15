@@ -1,75 +1,71 @@
-"use client";
+'use client'
 
-import type { SubmitEvent } from "react";
-import { useRef, useState } from "react";
+import { AnimatedButtonLabel } from '@/components/animated-button-label'
+
+import type { SubmitEvent } from 'react'
+import { useRef, useState } from 'react'
 import {
-  actionClassName,
+  softLinkClassName,
   actionSoundProps,
   ExternalLink,
   focusVisibleClassName,
-} from "@/components/links";
-import {
-  meetingErrorMessage,
-  parseMeetingErrorCode,
-} from "@/features/meeting-scheduling/errors";
+} from '@/components/links'
+import { FieldFeedback, FormErrorFeedback } from '@/components/form-feedback'
+import { meetingErrorMessage, parseMeetingErrorCode } from '@/features/meeting-scheduling/errors'
 import {
   isValidMeetingEmail,
   isValidMeetingName,
   MAX_MEETING_EMAIL_LENGTH,
   MAX_MEETING_NAME_LENGTH,
-} from "@/features/meeting-scheduling/validation";
-import { localeTag, type Locale } from "@/i18n/config";
-import type { Dictionary } from "@/i18n/dictionary";
-import { playInteractionSound } from "@/lib/interaction-sounds";
+} from '@/features/meeting-scheduling/validation'
+import { localeTag, type Locale } from '@/i18n/config'
+import type { Dictionary } from '@/i18n/dictionary'
+import { playInteractionSound } from '@/lib/interaction-sounds'
 
-type FieldName = "name" | "email" | "date" | "time";
-type Fields = Record<FieldName, string>;
-type Errors = Partial<Record<FieldName, string>>;
+type FieldName = 'name' | 'email' | 'date' | 'time'
+type Fields = Record<FieldName, string>
+type Errors = Partial<Record<FieldName, string>>
+type MeetingLinkKind = 'meet' | 'calendar'
 export type MeetingPayload = {
-  name: string;
-  email: string;
-  start: string;
-  timeZone: string;
-};
+  name: string
+  email: string
+  start: string
+  timeZone: string
+}
 export type IdempotencyState = {
-  fingerprint: string;
-  key: string;
-};
+  fingerprint: string
+  key: string
+}
 
-const initialFields: Fields = { name: "", email: "", date: "", time: "" };
-const times = Array.from(
-  { length: 24 },
-  (_, hour) => `${hour}`.padStart(2, "0") + ":00",
-);
-const IDEMPOTENCY_STORAGE_KEY = "portfolio:meeting-idempotency";
-type IdempotencyStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
+const initialFields: Fields = { name: '', email: '', date: '', time: '' }
+const times = Array.from({ length: 24 }, (_, hour) => `${hour}`.padStart(2, '0') + ':00')
+const IDEMPOTENCY_STORAGE_KEY = 'portfolio:meeting-idempotency'
+type IdempotencyStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
 
 function localDateString(date: Date) {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  const year = date.getFullYear()
+  const month = `${date.getMonth() + 1}`.padStart(2, '0')
+  const day = `${date.getDate()}`.padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 function today() {
-  return localDateString(new Date());
+  return localDateString(new Date())
 }
 
 function responseValue(data: unknown, key: string) {
   return data &&
-    typeof data === "object" &&
+    typeof data === 'object' &&
     key in data &&
-    typeof data[key as keyof typeof data] === "string"
+    typeof data[key as keyof typeof data] === 'string'
     ? data[key as keyof typeof data]
-    : undefined;
+    : undefined
 }
 
 export async function meetingFingerprint(payload: MeetingPayload) {
-  const encoded = new TextEncoder().encode(JSON.stringify(payload));
-  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", encoded));
-  return Array.from(digest, (value) =>
-    value.toString(16).padStart(2, "0"),
-  ).join("");
+  const encoded = new TextEncoder().encode(JSON.stringify(payload))
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', encoded))
+  return Array.from(digest, (value) => value.toString(16).padStart(2, '0')).join('')
 }
 
 export function readStoredIdempotency(
@@ -77,26 +73,22 @@ export function readStoredIdempotency(
   storage: IdempotencyStorage = sessionStorage,
 ) {
   try {
-    const value: unknown = JSON.parse(
-      storage.getItem(IDEMPOTENCY_STORAGE_KEY) ?? "null",
-    );
+    const value: unknown = JSON.parse(storage.getItem(IDEMPOTENCY_STORAGE_KEY) ?? 'null')
     if (
       value &&
-      typeof value === "object" &&
-      "fingerprint" in value &&
+      typeof value === 'object' &&
+      'fingerprint' in value &&
       value.fingerprint === fingerprint &&
-      "key" in value &&
-      typeof value.key === "string" &&
-      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-        value.key,
-      )
+      'key' in value &&
+      typeof value.key === 'string' &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value.key)
     ) {
-      return value as IdempotencyState;
+      return value as IdempotencyState
     }
   } catch {
     // Storage can be unavailable in restricted browser contexts.
   }
-  return undefined;
+  return undefined
 }
 
 export function storeIdempotency(
@@ -104,17 +96,15 @@ export function storeIdempotency(
   storage: IdempotencyStorage = sessionStorage,
 ) {
   try {
-    storage.setItem(IDEMPOTENCY_STORAGE_KEY, JSON.stringify(value));
+    storage.setItem(IDEMPOTENCY_STORAGE_KEY, JSON.stringify(value))
   } catch {
     // The in-memory ref still preserves retries for the current page lifecycle.
   }
 }
 
-export function removeStoredIdempotency(
-  storage: IdempotencyStorage = sessionStorage,
-) {
+export function removeStoredIdempotency(storage: IdempotencyStorage = sessionStorage) {
   try {
-    storage.removeItem(IDEMPOTENCY_STORAGE_KEY);
+    storage.removeItem(IDEMPOTENCY_STORAGE_KEY)
   } catch {
     // Storage can be unavailable in restricted browser contexts.
   }
@@ -126,251 +116,232 @@ export async function resolveMeetingIdempotency(
   storage: IdempotencyStorage = sessionStorage,
   createKey: () => string = () => crypto.randomUUID(),
 ) {
-  const fingerprint = await meetingFingerprint(payload);
+  const fingerprint = await meetingFingerprint(payload)
   if (current?.fingerprint === fingerprint) {
-    return current;
+    return current
   }
 
   const idempotency = readStoredIdempotency(fingerprint, storage) ?? {
     fingerprint,
     key: createKey(),
-  };
-  storeIdempotency(idempotency, storage);
-  return idempotency;
+  }
+  storeIdempotency(idempotency, storage)
+  return idempotency
 }
 
 export function MeetingScheduler({
   locale,
   dictionary,
 }: {
-  locale: Locale;
-  dictionary: Dictionary["schedule"]["form"];
+  locale: Locale
+  dictionary: Dictionary['schedule']['form']
 }) {
-  const [fields, setFields] = useState<Fields>(initialFields);
-  const [errors, setErrors] = useState<Errors>({});
-  const [generalError, setGeneralError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [meetingLink, setMeetingLink] = useState<string>();
-  const [submitting, setSubmitting] = useState(false);
-  const [minDate] = useState(today);
-  const idempotencyRef = useRef<IdempotencyState | undefined>(undefined);
+  const [fields, setFields] = useState<Fields>(initialFields)
+  const [errors, setErrors] = useState<Errors>({})
+  const [generalError, setGeneralError] = useState('')
+  const [success, setSuccess] = useState('')
+  const [meetingLink, setMeetingLink] = useState<string>()
+  const [meetingLinkKind, setMeetingLinkKind] = useState<MeetingLinkKind>()
+  const [submitting, setSubmitting] = useState(false)
+  const [minDate] = useState(today)
+  const idempotencyRef = useRef<IdempotencyState | undefined>(undefined)
 
   function clearIdempotency() {
-    idempotencyRef.current = undefined;
-    removeStoredIdempotency();
+    idempotencyRef.current = undefined
+    removeStoredIdempotency()
   }
 
   function updateField(field: FieldName, value: string) {
-    setFields((current) => ({ ...current, [field]: value }));
-    setErrors((current) => ({ ...current, [field]: undefined }));
-    setGeneralError("");
-    setSuccess("");
-    setMeetingLink(undefined);
+    setFields((current) => ({ ...current, [field]: value }))
+    setErrors((current) => ({ ...current, [field]: undefined }))
+    setGeneralError('')
+    setSuccess('')
+    setMeetingLink(undefined)
+    setMeetingLinkKind(undefined)
   }
 
   function validate() {
-    const nextErrors: Errors = {};
+    const nextErrors: Errors = {}
     if (!fields.name.trim()) {
-      nextErrors.name = dictionary.enterName;
+      nextErrors.name = dictionary.enterName
     } else if (!isValidMeetingName(fields.name)) {
-      nextErrors.name = dictionary.validName;
+      nextErrors.name = dictionary.validName
     }
     if (!fields.email.trim()) {
-      nextErrors.email = dictionary.enterEmail;
+      nextErrors.email = dictionary.enterEmail
     } else if (!isValidMeetingEmail(fields.email)) {
-      nextErrors.email = dictionary.validEmail;
+      nextErrors.email = dictionary.validEmail
     }
     if (!fields.date) {
-      nextErrors.date = dictionary.chooseDate;
+      nextErrors.date = dictionary.chooseDate
     } else if (fields.date < minDate) {
-      nextErrors.date = dictionary.futureDate;
+      nextErrors.date = dictionary.futureDate
     }
     if (!fields.time) {
-      nextErrors.time = dictionary.chooseTimeError;
+      nextErrors.time = dictionary.chooseTimeError
     } else if (new Date(`${fields.date}T${fields.time}:00`) <= new Date()) {
-      nextErrors.time = dictionary.futureTime;
+      nextErrors.time = dictionary.futureTime
     }
-    return nextErrors;
+    return nextErrors
   }
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const nextErrors = validate();
-    setErrors(nextErrors);
-    setGeneralError("");
-    setSuccess("");
-    setMeetingLink(undefined);
+    event.preventDefault()
+    const nextErrors = validate()
+    setErrors(nextErrors)
+    setGeneralError('')
+    setSuccess('')
+    setMeetingLink(undefined)
+    setMeetingLinkKind(undefined)
     if (Object.keys(nextErrors).length) {
-      playInteractionSound("error");
-      const first = (Object.keys(initialFields) as FieldName[]).find(
-        (field) => nextErrors[field],
-      );
+      playInteractionSound('error')
+      const first = (Object.keys(initialFields) as FieldName[]).find((field) => nextErrors[field])
       if (first) {
-        document.getElementById(`meeting-${first}`)?.focus();
+        document.getElementById(`meeting-${first}`)?.focus()
       }
-      return;
+      return
     }
 
-    setSubmitting(true);
-    playInteractionSound("loading");
+    setSubmitting(true)
+    playInteractionSound('loading')
     try {
       const payload: MeetingPayload = {
         name: fields.name.trim(),
         email: fields.email.trim().toLowerCase(),
         start: `${fields.date}T${fields.time}:00`,
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      };
-      const idempotency = await resolveMeetingIdempotency(
-        payload,
-        idempotencyRef.current,
-      );
-      idempotencyRef.current = idempotency;
+      }
+      const idempotency = await resolveMeetingIdempotency(payload, idempotencyRef.current)
+      idempotencyRef.current = idempotency
 
-      const response = await fetch("/api/meetings", {
-        method: "POST",
+      const response = await fetch('/api/meetings', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
-          "Idempotency-Key": idempotency.key,
+          'Content-Type': 'application/json',
+          'Idempotency-Key': idempotency.key,
         },
         body: JSON.stringify(payload),
-      });
-      const data: unknown = await response.json().catch(() => undefined);
+      })
+      const data: unknown = await response.json().catch(() => undefined)
       if (!response.ok) {
-        const code = parseMeetingErrorCode(data);
-        if (code === "conflict" || response.status === 409) {
-          clearIdempotency();
-          setGeneralError(dictionary.conflict);
+        const code = parseMeetingErrorCode(data)
+        if (code === 'conflict' || response.status === 409) {
+          clearIdempotency()
+          setGeneralError(dictionary.conflict)
         } else {
-          setGeneralError(meetingErrorMessage(code, dictionary));
+          setGeneralError(meetingErrorMessage(code, dictionary))
         }
-        playInteractionSound("error");
-        return;
+        playInteractionSound('error')
+        return
       }
 
-      clearIdempotency();
-      setSuccess(dictionary.success);
-      setMeetingLink(
-        responseValue(data, "meetLink") ?? responseValue(data, "calendarLink"),
-      );
-      playInteractionSound("success");
+      clearIdempotency()
+      setSuccess(dictionary.success)
+      const meetLink = responseValue(data, 'meetLink')
+      const calendarLink = responseValue(data, 'calendarLink')
+      setMeetingLink(meetLink ?? calendarLink)
+      setMeetingLinkKind(meetLink ? 'meet' : calendarLink ? 'calendar' : undefined)
+      playInteractionSound('success')
     } catch {
-      setGeneralError(dictionary.connectionError);
-      playInteractionSound("error");
+      setGeneralError(dictionary.connectionError)
+      playInteractionSound('error')
     } finally {
-      setSubmitting(false);
+      setSubmitting(false)
     }
   }
 
-  const field = (
-    name: FieldName,
-    label: string,
-    control: React.ReactNode,
-    hint?: string,
-  ) => {
-    const error = errors[name];
+  const field = (name: FieldName, label: string, control: React.ReactNode, hint?: string) => {
+    const error = errors[name]
     return (
-      <div className="flex flex-col gap-2">
+      <div>
         <label
-          className={`font-medium ${error ? "text-red-700 dark:text-red-400" : ""}`}
+          className={`ease-standard text-[0.8125rem] font-medium transition-colors duration-(--motion-feedback) motion-reduce:transition-none ${error ? 'text-red-700 dark:text-red-400' : ''}`}
           htmlFor={`meeting-${name}`}
         >
           {label}
         </label>
-        {control}
-        {error ? (
-          <p
-            className="text-red-700 dark:text-red-400"
-            id={`meeting-${name}-error`}
-          >
-            {error}
-          </p>
-        ) : hint ? (
-          <p
-            className="text-black/60 dark:text-white/65"
-            id={`meeting-${name}-hint`}
-          >
-            {hint}
-          </p>
-        ) : null}
+        <div className="mt-2">{control}</div>
+        <FieldFeedback
+          error={error}
+          errorId={`meeting-${name}-error`}
+          hint={hint}
+          hintId={hint ? `meeting-${name}-hint` : undefined}
+        />
       </div>
-    );
-  };
+    )
+  }
 
   const inputClass = (name: FieldName) =>
-    `w-full border bg-transparent px-3 py-3 text-base leading-6 outline-none placeholder:text-black/45 dark:placeholder:text-white/45 ${focusVisibleClassName} ${
+    `w-full min-w-0 rounded-full border bg-black/[0.035] px-4 py-2.5 [font-family:inherit] text-base normal-case leading-6 transition-[background-color,border-color,outline-color] duration-(--motion-feedback) ease-standard motion-reduce:transition-none dark:bg-white/[0.04] placeholder:text-black/45 dark:placeholder:text-white/45 ${focusVisibleClassName} ${
       errors[name]
-        ? "border-red-700 focus:border-red-700 dark:border-red-400 dark:focus:border-red-400"
-        : "border-black/20 focus:border-black dark:border-white/25 dark:focus:border-white"
-    }`;
+        ? 'border-red-700 focus:border-red-700 focus-visible:outline-red-700 dark:border-red-400 dark:focus:border-red-400 dark:focus-visible:outline-red-400'
+        : 'border-transparent focus:bg-black/[0.06] dark:focus:bg-white/[0.08]'
+    }`
   return (
-    <div lang={localeTag(locale)}>
+    <div className="text-sm leading-relaxed" lang={localeTag(locale)}>
       <form className="flex flex-col gap-5" onSubmit={handleSubmit} noValidate>
         {field(
-          "name",
+          'name',
           dictionary.name,
           <input
             autoComplete="name"
-            className={inputClass("name")}
+            className={inputClass('name')}
             id="meeting-name"
             maxLength={MAX_MEETING_NAME_LENGTH}
             name="name"
-            onChange={(event) => updateField("name", event.target.value)}
+            onChange={(event) => updateField('name', event.target.value)}
             placeholder={dictionary.namePlaceholder}
             value={fields.name}
             aria-invalid={Boolean(errors.name)}
-            aria-describedby={errors.name ? "meeting-name-error" : undefined}
+            aria-describedby={errors.name ? 'meeting-name-error' : undefined}
           />,
         )}
         {field(
-          "email",
+          'email',
           dictionary.email,
           <input
             autoComplete="email"
-            className={inputClass("email")}
+            className={inputClass('email')}
             id="meeting-email"
             maxLength={MAX_MEETING_EMAIL_LENGTH}
             name="email"
             type="email"
             spellCheck={false}
-            onChange={(event) => updateField("email", event.target.value)}
+            onChange={(event) => updateField('email', event.target.value)}
             placeholder={dictionary.emailPlaceholder}
             value={fields.email}
             aria-invalid={Boolean(errors.email)}
-            aria-describedby={errors.email ? "meeting-email-error" : undefined}
+            aria-describedby={errors.email ? 'meeting-email-error' : undefined}
           />,
         )}
         {field(
-          "date",
+          'date',
           dictionary.date,
           <input
-            className={`${inputClass("date")} cursor-pointer`}
+            className={`${inputClass('date')} cursor-pointer`}
             id="meeting-date"
             min={minDate}
             name="date"
             type="date"
-            onChange={(event) => updateField("date", event.target.value)}
+            onChange={(event) => updateField('date', event.target.value)}
             value={fields.date}
             aria-invalid={Boolean(errors.date)}
-            aria-describedby={
-              errors.date ? "meeting-date-error" : "meeting-date-hint"
-            }
+            aria-describedby={errors.date ? 'meeting-date-error' : 'meeting-date-hint'}
           />,
           dictionary.dateHint,
         )}
         {field(
-          "time",
+          'time',
           dictionary.time,
           <div className="relative">
             <select
-              className={`${inputClass("time")} cursor-pointer appearance-none pr-10`}
+              className={`${inputClass('time')} cursor-pointer appearance-none pr-10`}
               id="meeting-time"
               name="time"
-              onChange={(event) => updateField("time", event.target.value)}
+              onChange={(event) => updateField('time', event.target.value)}
               value={fields.time}
               aria-invalid={Boolean(errors.time)}
-              aria-describedby={
-                errors.time ? "meeting-time-error" : "meeting-time-hint"
-              }
+              aria-describedby={errors.time ? 'meeting-time-error' : 'meeting-time-hint'}
             >
               <option value="">{dictionary.chooseTime}</option>
               {times.map((time) => (
@@ -381,7 +352,7 @@ export function MeetingScheduler({
             </select>
             <svg
               aria-hidden="true"
-              className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2"
+              className="pointer-events-none absolute top-1/2 right-4 size-4 -translate-y-1/2"
               fill="none"
               viewBox="0 0 16 16"
             >
@@ -396,19 +367,19 @@ export function MeetingScheduler({
           </div>,
           dictionary.timeHint,
         )}
-        {generalError ? (
-          <p className="text-red-700 dark:text-red-400" role="alert">
-            {generalError}
-          </p>
-        ) : null}
-        <button
-          {...actionSoundProps}
-          className={`${actionClassName} disabled:cursor-not-allowed disabled:bg-black/45 dark:disabled:bg-white/45`}
-          disabled={submitting}
-          type="submit"
-        >
-          {submitting ? dictionary.booking : dictionary.book}
-        </button>
+        <div>
+          <FormErrorFeedback message={generalError} />
+          <button
+            {...actionSoundProps}
+            className={`${softLinkClassName} min-h-9 w-fit cursor-pointer !bg-black/[0.07] [font-family:inherit] disabled:cursor-wait disabled:opacity-50 dark:!bg-white/[0.08]`}
+            disabled={submitting}
+            type="submit"
+          >
+            <AnimatedButtonLabel state={submitting}>
+              {submitting ? dictionary.booking : dictionary.book}
+            </AnimatedButtonLabel>
+          </button>
+        </div>
       </form>
       <p aria-live="polite" className="sr-only" role="status">
         {submitting ? dictionary.bookingStatus : success}
@@ -418,12 +389,9 @@ export function MeetingScheduler({
           {success}
           {meetingLink ? (
             <>
-              {" "}
-              <ExternalLink
-                href={meetingLink}
-                newTabLabel={dictionary.externalLinkNewTab}
-              >
-                {dictionary.meetingDetails}
+              {' '}
+              <ExternalLink href={meetingLink} newTabLabel={dictionary.externalLinkNewTab}>
+                {meetingLinkKind === 'meet' ? dictionary.joinMeeting : dictionary.viewBooking}
               </ExternalLink>
               .
             </>
@@ -431,5 +399,5 @@ export function MeetingScheduler({
         </p>
       ) : null}
     </div>
-  );
+  )
 }

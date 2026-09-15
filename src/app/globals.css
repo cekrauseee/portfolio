@@ -1,35 +1,310 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-:root {
-  color-scheme: light;
-  --background: #fafafa;
-  --foreground: #262626;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: #f3f3f1;
+  --color-foreground: #242424;
+  --color-background-dark: #111110;
+  --color-foreground-dark: #e3e3e0;
   --font-sans:
-    var(--font-geist-sans), "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo",
-    sans-serif;
+    var(--font-portfolio), 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', sans-serif;
+
+  --ease-standard: var(--motion-easing);
+  --default-transition-duration: var(--motion-feedback);
+  --default-transition-timing-function: var(--motion-easing);
+  --animate-journal-enter: journal-enter var(--motion-page) var(--motion-easing) backwards;
+  --animate-journal-fade: journal-fade var(--motion-page) var(--motion-easing)
+    var(--motion-entry-delay, 0ms) backwards;
+  --animate-journal-rise: journal-rise var(--motion-page) var(--motion-easing)
+    var(--motion-entry-delay, 0ms) backwards;
+  --animate-journal-footer: journal-enter var(--motion-page) var(--motion-easing)
+    var(--motion-footer-delay) backwards;
+
+  @keyframes journal-enter {
+    from {
+      opacity: 0;
+      transform: translateY(var(--motion-rise));
+    }
+
+    to {
+      transform: none;
+    }
+  }
+
+  @keyframes journal-fade {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes journal-rise {
+    from {
+      transform: translateY(var(--motion-rise));
+    }
+
+    to {
+      transform: none;
+    }
+  }
 }
 
-:root.dark {
-  color-scheme: dark;
-  --background: #070707;
-  --foreground: #e8e8e8;
+:root {
+  --note-route-duration: var(--motion-page);
+  --note-route-easing: var(--motion-easing);
+  --note-context-distance: clamp(3rem, 14vh, 9rem);
+  --note-toolbar-duration: var(--motion-control);
+  --note-toolbar-easing: var(--motion-easing);
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  user-select: none;
+/* The returning page is already represented by the route transition snapshot. */
+[data-note-returning] [class*='animate-journal-'],
+[data-hash-navigation] [class*='animate-journal-'] {
+  animation: none !important;
 }
 
-input,
-textarea,
-[contenteditable="true"] {
-  user-select: text;
+/* The hash controller advances panel height and viewport scroll on one clock. */
+[data-hash-arriving] > [data-locale-content] {
+  opacity: var(--hash-page-opacity);
+}
+[data-hash-opening] {
+  height: var(--hash-panel-height);
+  grid-template-rows: 1fr !important;
+  opacity: 1 !important;
+  overflow: clip;
+  transition: none !important;
+}
+[data-hash-opening] > div > div {
+  transition: none !important;
+  transform: none !important;
+  translate: none !important;
+}
+
+/* One clock for the card, its text and the space opening around it. */
+html[data-note-transition='close'] {
+  --note-context-distance: var(--motion-context);
+}
+html[data-note-transition]::view-transition-old(root),
+html[data-note-transition]::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+html[data-note-transition]::view-transition-old(root) {
+  opacity: 0;
+}
+::view-transition-group(.note-container),
+::view-transition-group(.note-text),
+::view-transition-group(.note-body),
+::view-transition-group(.note-toolbar),
+::view-transition-group(.note-above),
+::view-transition-group(.note-below) {
+  animation-duration: var(--note-route-duration);
+  animation-timing-function: var(--note-route-easing);
+}
+::view-transition-group(.note-return-card) {
+  animation-duration: var(--note-route-duration);
+  animation-timing-function: var(--note-route-easing);
+}
+::view-transition-group(.note-page) {
+  z-index: 0;
+}
+::view-transition-old(.note-page) {
+  animation: note-page-out var(--motion-settle) var(--note-route-easing) both;
+}
+::view-transition-new(.note-return-card) {
+  animation: note-return-card-in var(--note-route-duration) var(--note-route-easing) both;
+}
+::view-transition-old(.note-container),
+::view-transition-new(.note-container),
+::view-transition-old(.note-text),
+::view-transition-new(.note-text) {
+  height: 100%;
+  object-fit: none;
+  object-position: top left;
+  mix-blend-mode: normal;
+  animation-duration: var(--note-route-duration);
+  animation-timing-function: var(--note-route-easing);
+}
+::view-transition-old(.note-above) {
+  animation: note-above-out var(--note-route-duration) var(--note-route-easing) both;
+}
+::view-transition-new(.note-above) {
+  animation: note-above-in var(--note-route-duration) var(--note-route-easing) both;
+}
+::view-transition-old(.note-below) {
+  animation: note-below-out var(--note-route-duration) var(--note-route-easing) both;
+}
+::view-transition-new(.note-below) {
+  animation: note-below-in var(--note-route-duration) var(--note-route-easing) both;
+}
+::view-transition-old(.note-body),
+::view-transition-new(.note-body) {
+  transform-origin: top left;
+}
+::view-transition-old(.note-body) {
+  animation: note-body-out var(--note-route-duration) var(--note-route-easing) both;
+}
+::view-transition-new(.note-body) {
+  animation: note-body-in var(--note-route-duration) var(--note-route-easing) both;
+}
+::view-transition-group(.note-toolbar) {
+  animation-duration: var(--note-toolbar-duration);
+  animation-timing-function: var(--note-toolbar-easing);
+}
+::view-transition-old(.note-toolbar) {
+  animation: note-toolbar-out var(--note-toolbar-duration) var(--note-toolbar-easing) both;
+}
+::view-transition-new(.note-toolbar) {
+  animation: note-toolbar-in var(--note-toolbar-duration) var(--note-toolbar-easing) both;
+}
+/* Animate the header and Markdown, keeping the fixed toolbar outside transforms. */
+[data-note-entry='true'] [data-note-header],
+[data-note-entry='true'] [data-open='true'] > :first-child {
+  animation: note-below-in var(--note-route-duration) var(--note-route-easing) backwards;
+}
+[data-note-entry='true'] [data-open='true'] > :first-child {
+  animation-delay: var(--motion-section-delay);
+}
+[data-note-reading-toolbar][data-visible='true'][data-entry='true'] [data-note-toolbar-surface] {
+  --note-toolbar-inset-x: max(0px, calc(50% - 18px));
+  --note-toolbar-inset-y: max(0px, calc(50% - 14px));
+  animation: note-toolbar-in var(--note-toolbar-duration) var(--note-toolbar-easing) backwards;
+}
+[data-note-entry='true'] [data-note-toolbar-surface] {
+  animation-delay: var(--motion-footer-delay);
+}
+@keyframes note-above-out {
+  from {
+    opacity: 1;
+    translate: 0 0;
+  }
+  to {
+    opacity: 0;
+    translate: 0 calc(-1 * var(--note-context-distance));
+  }
+}
+@keyframes note-above-in {
+  from {
+    opacity: 0;
+    translate: 0 calc(-1 * var(--note-context-distance));
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@keyframes note-below-out {
+  from {
+    opacity: 1;
+    translate: 0 0;
+  }
+  to {
+    opacity: 0;
+    translate: 0 var(--note-context-distance);
+  }
+}
+@keyframes note-below-in {
+  from {
+    opacity: 0;
+    translate: 0 var(--note-context-distance);
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@keyframes note-body-in {
+  from {
+    opacity: 0;
+    transform: translate(var(--note-body-x, 0px), var(--note-body-y, 0px));
+  }
+  to {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+}
+@keyframes note-page-out {
+  from {
+    opacity: 1;
+    translate: 0 0;
+  }
+  to {
+    opacity: 0;
+    translate: 0 calc(-1 * var(--motion-exit));
+  }
+}
+@keyframes note-return-card-in {
+  from {
+    opacity: 0;
+    translate: 0 var(--motion-exit);
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@keyframes note-body-out {
+  from {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+  to {
+    opacity: 0;
+    transform: translate(var(--note-body-x, 0px), var(--note-body-y, 0px));
+  }
+}
+@keyframes note-toolbar-in {
+  from {
+    opacity: 0;
+    translate: 0 var(--motion-rise);
+    clip-path: inset(var(--note-toolbar-inset-y, 0px) var(--note-toolbar-inset-x, 0px) round 999px);
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+    clip-path: inset(-24px);
+  }
+}
+@keyframes note-toolbar-out {
+  from {
+    opacity: 1;
+    translate: 0 0;
+    clip-path: inset(-24px);
+  }
+  to {
+    opacity: 0;
+    translate: 0 var(--motion-rise);
+    clip-path: inset(var(--note-toolbar-inset-y, 0px) var(--note-toolbar-inset-x, 0px) round 999px);
+  }
+}
+.motion-icon {
+  opacity: 0;
+  scale: var(--motion-icon-scale);
+  filter: blur(var(--motion-icon-blur));
+  transition:
+    opacity var(--motion-control) var(--motion-easing),
+    scale var(--motion-control) var(--motion-easing),
+    filter var(--motion-control) var(--motion-easing);
+}
+.motion-icon[data-active='true'] {
+  opacity: 1;
+  scale: 1;
+  filter: blur(0px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .motion-icon {
+    transition: none;
+    scale: 1;
+    filter: none;
+  }
+  [data-note-entry='true'] [data-note-header],
+  [data-note-entry='true'] [data-open='true'] > :first-child,
+  [data-note-reading-toolbar] [data-note-toolbar-surface] {
+    animation: none !important;
+  }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 0s !important;
+  }
 }

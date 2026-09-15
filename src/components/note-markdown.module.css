@@ -1,0 +1,35 @@
+.reading {
+  font-weight: 500;
+}
+
+.reading[data-narrating='true'] [data-note-unit] {
+  --note-ink: #242424;
+  --note-muted: rgb(36 36 36 / 38%);
+  color: var(--note-muted);
+}
+
+:global(.dark) .reading[data-narrating='true'] [data-note-unit] {
+  --note-ink: #e3e3e0;
+  --note-muted: rgb(227 227 224 / 38%);
+}
+
+.reading[data-narrating='true'] [data-note-state='said'],
+.reading[data-narrating='true'] [data-note-state='current'] {
+  color: var(--note-ink);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .reading[data-narrating='true'] [data-note-unit] {
+    transition: color var(--motion-feedback) var(--motion-easing);
+  }
+}
+
+@media (forced-colors: active) {
+  .reading[data-narrating='true'] [data-note-unit] {
+    color: CanvasText;
+  }
+
+  .reading [aria-current='true'] {
+    text-decoration: underline;
+  }
+}

@@ -1,3 +1,3 @@
-import { focusVisibleClassName } from "@/components/links";
+import { focusVisibleClassName } from '@/components/links'
 
-export const preferenceOptionClassName = `${focusVisibleClassName} inline-flex min-h-8 min-w-8 cursor-pointer touch-manipulation items-center justify-center underline-offset-4 hover:underline`;
+export const preferenceOptionClassName = `${focusVisibleClassName} inline-flex min-h-8 min-w-8 cursor-pointer touch-manipulation items-center justify-center rounded-full px-2 text-[0.8125rem] leading-5 lowercase no-underline transition-[background-color,color,scale] duration-(--motion-feedback) ease-standard hover:bg-black/[0.05] focus-visible:bg-black/[0.05] aria-pressed:bg-black/[0.05] aria-pressed:font-medium motion-safe:active:scale-(--motion-press-scale) motion-reduce:transition-none dark:hover:bg-white/[0.08] dark:focus-visible:bg-white/[0.08] dark:aria-pressed:bg-white/[0.08]`

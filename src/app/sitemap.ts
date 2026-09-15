@@ -1,33 +1,15 @@
-import type { MetadataRoute } from "next";
-import { site } from "@/config/site";
-import { projects } from "@/content/portfolio";
+import type { MetadataRoute } from 'next'
+import { getNotes } from '@/content/notes'
+import { noteSitemapEntries } from '@/features/notes/metadata'
+import { site } from '@/config/site'
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
+    ...noteSitemapEntries(getNotes('en')),
     {
       url: site.url,
-      changeFrequency: "monthly",
+      changeFrequency: 'monthly',
       priority: 1,
     },
-    {
-      url: `${site.url}/fit`,
-      changeFrequency: "monthly",
-      priority: 0.6,
-    },
-    {
-      url: `${site.url}/schedule`,
-      changeFrequency: "monthly",
-      priority: 0.6,
-    },
-    {
-      url: `${site.url}/guestbook`,
-      changeFrequency: "daily",
-      priority: 0.6,
-    },
-    ...projects.map((project) => ({
-      url: `${site.url}/projects/${project.slug}`,
-      changeFrequency: "monthly" as const,
-      priority: 0.7,
-    })),
-  ];
+  ]
 }
