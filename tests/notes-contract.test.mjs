@@ -4,7 +4,10 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
-import { normalizeNoteForSpeech } from '../src/content/notes-markdown.ts'
+import {
+  normalizeNoteForSpeech,
+  stripAudioTagsFromMarkdown,
+} from '../src/content/notes-markdown.ts'
 import { localizeNote, parseNotesSnapshot } from '../src/content/notes.ts'
 import { syncNotes } from '../scripts/sync-notes.mjs'
 
@@ -23,7 +26,10 @@ function manifestFor(sources) {
       {
         markdownSha256: hash(rawMarkdown),
         spokenTextSha256: hash(
-          normalizeNoteForSpeech(rawMarkdown.split('---\n').slice(2).join('---\n').trim(), locale),
+          normalizeNoteForSpeech(
+            stripAudioTagsFromMarkdown(rawMarkdown.split('---\n').slice(2).join('---\n').trim()),
+            locale,
+          ),
         ),
         generationConfigHash: 'a'.repeat(64),
         markdownPath: `content/notes/published-note/note${locale === 'en' ? '' : `.${locale}`}.md`,
@@ -111,6 +117,53 @@ test('notes sync previews local source text and writes a validated snapshot atom
   }
 })
 
+test('notes sync preserves tagged Markdown while deriving clean spoken text', async () => {
+  const sourceRoot = await mkdtemp(path.join(os.tmpdir(), 'portfolio-notes-tags-source-'))
+  const outputRoot = await mkdtemp(path.join(os.tmpdir(), 'portfolio-notes-tags-output-'))
+  const sources = {
+    en: source({
+      locale: 'en',
+      title: 'a note',
+      summary: 'a summary',
+      body: '[calm, measured] A thought with [literal] brackets.',
+    }),
+    pt: source({
+      locale: 'pt',
+      title: 'uma nota',
+      summary: 'um resumo',
+      body: '[thoughtful] Uma ideia com [colchetes] literais.',
+    }),
+    ja: source({
+      locale: 'ja',
+      title: 'ノート',
+      summary: '概要',
+      body: '考えです。[reflective] [literal]を残します。',
+    }),
+  }
+  try {
+    await writeLocalNotes(sourceRoot, sources)
+    const result = await syncNotes({
+      mode: 'development',
+      localPath: sourceRoot,
+      outputPath: path.join(outputRoot, 'notes.json'),
+    })
+    assert.match(result.snapshot.notes[0].locales.en.markdownBody, /\[calm, measured\]/)
+    assert.match(result.snapshot.notes[0].locales.en.rawMarkdown, /\[calm, measured\]/)
+    assert.equal(
+      result.snapshot.notes[0].locales.en.spokenText,
+      'A thought with [literal] brackets.',
+    )
+    assert.equal(
+      result.snapshot.notes[0].locales.pt.spokenText,
+      'Uma ideia com [colchetes] literais.',
+    )
+    assert.equal(result.snapshot.notes[0].locales.ja.spokenText, '考えです。[literal]を残します。')
+  } finally {
+    await rm(sourceRoot, { recursive: true, force: true })
+    await rm(outputRoot, { recursive: true, force: true })
+  }
+})
+
 test('local preview exposes matching generated audio through local asset URLs', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'notes-local-assets-'))
   const sources = {
@@ -161,6 +214,15 @@ test('local preview exposes matching generated audio through local asset URLs', 
           durationMs: 1200,
           units: [],
           chunks: [],
+        }),
+      )
+      await writeFile(
+        path.join(root, '.notes', 'generated', 'published-note', locale, 'current.json'),
+        JSON.stringify({
+          version: 1,
+          generationConfigHash: generationHash,
+          markdownSha256: hash(rawMarkdown),
+          spokenTextSha256: hash(spokenText),
         }),
       )
     }

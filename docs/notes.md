@@ -10,9 +10,9 @@ URLs. Notes have dedicated reading pages but no index route.
 
 The manifest must contain only published entries with `en`, `pt`, and `ja`
 locales. Each locale source must follow the shared canonical Markdown-to-speech
-projection and match `markdownSha256` and `spokenTextSha256`. Audio and alignment URLs must be
-HTTPS Vercel Blob URLs. Drafts remain in the notes repository but are absent
-from the published manifest and portfolio snapshot.
+projection and match `markdownSha256` and `spokenTextSha256`. Audio and
+alignment URLs must be HTTPS Vercel Blob URLs. Drafts remain in the notes
+repository but are absent from the published manifest and portfolio snapshot.
 
 ## Configuration
 
@@ -32,11 +32,15 @@ and published text that has no audio manifest yet. These snapshots are tagged
 skipped. After the Notes project runs `npm run notes:generate -- --note
 <id> --no-upload`, the sync detects matching files under
 `.notes/generated/<id>/<locale>/<generation-hash>/` and exposes them through
-the development-only `/api/notes-assets/` route. The reader omits audio
-controls when no matching local or published audio exists; unchanged published
-narration is reused when its spoken-text hash matches. Local preview does not
-generate audio or modify the publisher's manifest. Rerun notes sync after
-generating audio or changing local Markdown.
+the development-only `/api/notes-assets/` route. Recognized v3 audio tags
+remain in the source Markdown and are removed only in the rendered projection.
+Local audio is used only when the notes generator's `current.json` pointer
+matches the current Markdown and spoken-text hashes; older generated directories
+remain preserved but are not attached to changed source.
+The reader omits audio controls when no matching local or published audio
+exists; unchanged published narration is reused when its spoken-text hash
+matches. Local preview does not generate audio or modify the publisher's
+manifest. Rerun notes sync after generating audio or changing local Markdown.
 
 Set `NOTES_LOCAL_PATH` to override that path. This is a development/offline
 option and is not used by production sync. If production has no
@@ -50,6 +54,11 @@ CI sets `NOTES_SYNC_SKIP=1` and copies `fixtures/notes.json` so tests and the
 fixture-backed build do not contact GitHub.
 
 The notes publisher uses ElevenLabs to generate audio and timestamps together.
+The default model is `eleven_v3`, with a 5,000-character limit that includes
+recognized audio tags. Longer sources are split at semantic boundaries and
+assembled into one MP3 with one final alignment artifact. Its starting stability
+is Natural (`0.5`); speed, similarity, style, and speaker boost settings are sent
+only for legacy models. v3 request stitching is not used.
 Set `ELEVENLABS_API_KEY` and a Voice ID in the **notes** repository's generation
 environment, alongside its existing Blob token. No ElevenLabs credential belongs
 in the portfolio browser or runtime. The reader accepts both new
@@ -70,9 +79,12 @@ language and return controls.
 
 Alignment is checked against the note id, locale, canonical spoken text,
 UTF-16 source offsets, monotonic time bounds, duplicate spans, and complete
-significant-text coverage. Punctuation and whitespace gaps are allowed; missing
-spoken words are rejected. A genuine timestamp span may cover multiple words,
-including equivalent Japanese segmentation, without invented subword timings.
+significant-text coverage. The generator maps a tagged provider response to the
+spoken projection without assigning timestamps to tags. The portfolio parses
+the same source tags out before rendering and highlights only the resulting
+spoken spans. Punctuation and whitespace gaps are allowed; missing spoken words
+are rejected. A genuine timestamp span may cover multiple words, including
+equivalent Japanese segmentation, without invented subword timings.
 If alignment
 or audio fails, the original Markdown remains readable and the localized error
 offers a retry. No unsynchronized highlighting is shown. Playback time drives

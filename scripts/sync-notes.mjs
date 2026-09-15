@@ -17,6 +17,30 @@ export const DEFAULT_REQUEST_TIMEOUT_MS = 10_000
 const NOTE_LOCALES = ['en', 'pt', 'ja']
 const LOCAL_ASSET_PATH_PATTERN =
   /^\/api\/notes-assets\/[a-z0-9]+(?:-[a-z0-9]+)*\/(?:en|pt|ja)\/[a-f0-9]{64}\/(?:audio\.mp3|alignment\.json)$/u
+const AUDIO_TAGS = [
+  'calm, conversational',
+  'calm, measured',
+  'calm, reflective',
+  'thoughtful',
+  'hopeful',
+  'short pause',
+  'reflective',
+  'explaining',
+  'slight emphasis',
+  'slightly faster',
+  'measured',
+  'warmly',
+  'slightly weary',
+  'subdued',
+  'gently',
+  'slightly relieved',
+  'gently hopeful',
+]
+const escapeRegex = (value) => value.replace(/[\\^$*+?.()|[\]{}]/gu, '\\$&')
+const AUDIO_TAG_PATTERN = new RegExp(
+  '\\[(?:' + AUDIO_TAGS.map((tag) => escapeRegex(tag)).join('|') + ')\\](?:[ \\t])?',
+  'gu',
+)
 
 function isRecord(value) {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -245,6 +269,32 @@ function renderMarkdownNode(node) {
   }
 }
 
+function collectAudioTagRanges(node, ranges) {
+  if (node?.type === 'text' && typeof node.value === 'string') {
+    const baseOffset = node.position?.start?.offset
+    if (baseOffset !== undefined) {
+      for (const match of node.value.matchAll(AUDIO_TAG_PATTERN)) {
+        const start = baseOffset + (match.index ?? 0)
+        ranges.push({ start, end: start + match[0].length })
+      }
+    }
+  }
+  if (Array.isArray(node?.children)) {
+    for (const child of node.children) collectAudioTagRanges(child, ranges)
+  }
+}
+
+function stripAudioTagsFromMarkdown(markdown) {
+  const tree = unified().use(remarkParse).parse(markdown)
+  const ranges = []
+  collectAudioTagRanges(tree, ranges)
+  let result = markdown
+  for (const range of ranges.sort((left, right) => right.start - left.start)) {
+    result = result.slice(0, range.start) + result.slice(range.end)
+  }
+  return result
+}
+
 function normalizeForSpeech(markdown, locale) {
   const tree = unified().use(remarkParse).parse(markdown)
   const text = renderMarkdownNode(tree)
@@ -283,7 +333,7 @@ function parseAndValidateSource(rawMarkdown, entry, locale) {
     throw new Error(`${context} front matter does not match the published manifest.`)
   }
   const markdownBody = parsed.content.trim()
-  const spokenText = normalizeForSpeech(markdownBody, locale)
+  const spokenText = normalizeForSpeech(stripAudioTagsFromMarkdown(markdownBody), locale)
   if (sha256(spokenText) !== entry.locales[locale].spokenTextSha256) {
     throw new Error(`${context} spoken text hash does not match the published manifest.`)
   }
@@ -483,48 +533,61 @@ function localAssetUrl(noteId, locale, generationHash, asset) {
   return '/api/notes-assets/' + noteId + '/' + locale + '/' + generationHash + '/' + asset
 }
 
-async function findLocalGeneratedAssets({ localPath, noteId, locale, spokenText }) {
+async function findLocalGeneratedAssets({
+  localPath,
+  noteId,
+  locale,
+  markdownSha256,
+  spokenTextSha256,
+  spokenText,
+}) {
   const directory = path.join(localPath, '.notes', 'generated', noteId, locale)
-  let entries
+  let pointer
   try {
-    entries = await readdir(directory, { withFileTypes: true })
+    pointer = JSON.parse(await readFile(path.join(directory, 'current.json'), 'utf8'))
   } catch (error) {
     if (error.code === 'ENOENT') return null
-    throw error
+    return null
   }
-  for (const entry of entries
-    .filter((candidate) => candidate.isDirectory() && /^[a-f0-9]{64}$/u.test(candidate.name))
-    .sort((left, right) => right.name.localeCompare(left.name))) {
-    const generatedPath = path.join(directory, entry.name)
-    try {
-      const [audioInfo, alignmentSource] = await Promise.all([
-        stat(path.join(generatedPath, 'audio.mp3')),
-        readFile(path.join(generatedPath, 'alignment.json'), 'utf8'),
-      ])
-      const alignment = JSON.parse(alignmentSource)
-      if (
-        !audioInfo.isFile() ||
-        audioInfo.size === 0 ||
-        !isRecord(alignment) ||
-        alignment.noteId !== noteId ||
-        alignment.locale !== locale ||
-        alignment.spokenText !== spokenText ||
-        !Number.isInteger(alignment.durationMs) ||
-        alignment.durationMs <= 0
-      ) {
-        continue
-      }
-      return {
-        generationConfigHash: entry.name,
-        audioUrl: localAssetUrl(noteId, locale, entry.name, 'audio.mp3'),
-        alignmentUrl: localAssetUrl(noteId, locale, entry.name, 'alignment.json'),
-        durationMs: alignment.durationMs,
-      }
-    } catch {
-      // Ignore incomplete or invalid local generations and try another hash.
+  if (
+    !isRecord(pointer) ||
+    pointer.version !== 1 ||
+    typeof pointer.generationConfigHash !== 'string' ||
+    !/^[a-f0-9]{64}$/u.test(pointer.generationConfigHash) ||
+    pointer.markdownSha256 !== markdownSha256 ||
+    pointer.spokenTextSha256 !== spokenTextSha256
+  ) {
+    return null
+  }
+  const generatedPath = path.join(directory, pointer.generationConfigHash)
+  try {
+    const [audioInfo, alignmentSource] = await Promise.all([
+      stat(path.join(generatedPath, 'audio.mp3')),
+      readFile(path.join(generatedPath, 'alignment.json'), 'utf8'),
+    ])
+    const alignment = JSON.parse(alignmentSource)
+    if (
+      !audioInfo.isFile() ||
+      audioInfo.size === 0 ||
+      !isRecord(alignment) ||
+      alignment.noteId !== noteId ||
+      alignment.locale !== locale ||
+      alignment.spokenText !== spokenText ||
+      !Number.isInteger(alignment.durationMs) ||
+      alignment.durationMs <= 0
+    ) {
+      return null
     }
+    return {
+      generationConfigHash: pointer.generationConfigHash,
+      audioUrl: localAssetUrl(noteId, locale, pointer.generationConfigHash, 'audio.mp3'),
+      alignmentUrl: localAssetUrl(noteId, locale, pointer.generationConfigHash, 'alignment.json'),
+      durationMs: alignment.durationMs,
+    }
+  } catch {
+    // Ignore incomplete or invalid local generations.
+    return null
   }
-  return null
 }
 
 async function buildLocalNotesSnapshot(localPath) {
@@ -579,7 +642,7 @@ async function buildLocalNotesSnapshot(localPath) {
         throw new Error(`Local note ${folder.name}/${locale} has inconsistent metadata.`)
       identity = current
       const markdownBody = parsed.content.trim()
-      const spokenText = normalizeForSpeech(markdownBody, locale)
+      const spokenText = normalizeForSpeech(stripAudioTagsFromMarkdown(markdownBody), locale)
       const markdownSha256 = sha256(rawMarkdown)
       const spokenTextSha256 = sha256(spokenText)
       const asset = published.find((entry) => entry.id === data.id)?.locales[locale]
@@ -589,11 +652,16 @@ async function buildLocalNotesSnapshot(localPath) {
               localPath,
               noteId: data.id,
               locale,
+              markdownSha256,
+              spokenTextSha256,
               spokenText,
             })
           : null
       const reusable =
-        data.status === 'published' && (localAsset || asset?.spokenTextSha256 === spokenTextSha256)
+        data.status === 'published' &&
+        (localAsset ||
+          (asset?.markdownSha256 === markdownSha256 &&
+            asset?.spokenTextSha256 === spokenTextSha256))
       locales[locale] = {
         markdownPath,
         title: data.title,

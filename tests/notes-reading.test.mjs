@@ -4,7 +4,10 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import ReactMarkdown from 'react-markdown'
 import { unitPlaybackState } from '../src/features/notes/alignment.ts'
-import { normalizeNoteForSpeech } from '../src/content/notes-markdown.ts'
+import {
+  normalizeNoteForSpeech,
+  stripAudioTagsFromMarkdown,
+} from '../src/content/notes-markdown.ts'
 import {
   createReadingScrollGuard,
   createReadingReturnTimer,
@@ -73,6 +76,17 @@ test('Japanese offsets and text-only rendering remain intact', () => {
     alignment.units.length,
   )
   assert.equal(render('**Uma nota**', null), '<p><strong>Uma nota</strong></p>')
+})
+
+test('rendered Markdown hides audio tags while preserving literal brackets and code', () => {
+  const code = String.fromCharCode(96)
+  const markdown = '[calm, measured] Hello [not-a-tag].\n\n' + code + '[thoughtful] literal' + code
+  const clean = stripAudioTagsFromMarkdown(markdown)
+  const html = render(clean, alignmentFor(clean))
+  const visible = html.replace(/<[^>]+>/gu, '')
+  assert.doesNotMatch(html, /calm, measured/)
+  assert.match(visible, /Hello \[not-a-tag\]/)
+  assert.match(visible, /\[thoughtful\] literal/)
 })
 
 test('whole words become current at their timestamp and stay said after completion', () => {

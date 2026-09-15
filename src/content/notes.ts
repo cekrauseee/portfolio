@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import matter from 'gray-matter'
 import type { Locale } from '@/i18n/config'
-import { normalizeNoteForSpeech } from '@/content/notes-markdown'
+import { normalizeNoteForSpeech, stripAudioTagsFromMarkdown } from '@/content/notes-markdown'
 
 export const NOTE_LOCALES = ['en', 'pt', 'ja'] as const
 export type NoteLocale = (typeof NOTE_LOCALES)[number]
@@ -257,7 +257,10 @@ function validateSourceLocale(
   ) {
     throw new Error(`${context} front matter or body does not match the manifest.`)
   }
-  if (normalizeNoteForSpeech(value.markdownBody, locale) !== value.spokenText) {
+  if (
+    normalizeNoteForSpeech(stripAudioTagsFromMarkdown(value.markdownBody), locale) !==
+    value.spokenText
+  ) {
     throw new Error(`${context} spoken text does not match the Markdown source.`)
   }
   return {

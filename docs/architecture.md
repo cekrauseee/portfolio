@@ -106,8 +106,8 @@ the root font for all pages, including notes; the shell adds the common width,
 margins and reading rhythm. The 404 keeps localized copy and a link home without
 the previous top navigation. Motion follows [the shared motion standard](motion.md).
 
-Published note source, alignment behavior, and the repository dispatch delivery
-hook are documented in [Notes](notes.md).
+Published note source, v3 audio-tag parsing, alignment behavior, and the
+repository dispatch delivery hook are documented in [Notes](notes.md).
 
 ## Shared protection
 

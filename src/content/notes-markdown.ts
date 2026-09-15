@@ -2,52 +2,79 @@ import { unified } from 'unified'
 import remarkParse from 'remark-parse'
 import type { Locale } from '@/i18n/config'
 
-export const NOTES_SPOKEN_NORMALIZATION_VERSION = 'markdown-text-v2-remark-plain-text'
+export const NOTES_SPOKEN_NORMALIZATION_VERSION = 'markdown-text-v3-audio-tags-v1-remark-plain-text'
+export const AUDIO_TAGS_VERSION = 'audio-tags-v1'
 
-function children(node: { children?: readonly unknown[] }) {
+const AUDIO_TAGS = [
+  'calm, conversational',
+  'calm, measured',
+  'calm, reflective',
+  'thoughtful',
+  'hopeful',
+  'short pause',
+  'reflective',
+  'explaining',
+  'slight emphasis',
+  'slightly faster',
+  'measured',
+  'warmly',
+  'slightly weary',
+  'subdued',
+  'gently',
+  'slightly relieved',
+  'gently hopeful',
+] as const
+
+const escapeRegex = (value: string) => value.replace(/[\\^$*+?.()|[\]{}]/gu, '\\$&')
+const AUDIO_TAG_PATTERN = new RegExp(
+  '\\[(?:' + AUDIO_TAGS.map((tag) => escapeRegex(tag)).join('|') + ')\\](?:[ \\t])?',
+  'gu',
+)
+
+type MarkdownNode = {
+  type?: string
+  value?: string
+  alt?: string | null
+  children?: readonly MarkdownNode[]
+  position?: { start?: { offset?: number } }
+}
+
+type SourceRange = { start: number; end: number }
+
+function children(node: MarkdownNode) {
   return (node.children ?? []).map(renderNode).join('')
 }
 
-function blockChildren(node: { children?: readonly unknown[] }) {
+function blockChildren(node: MarkdownNode) {
   return (node.children ?? []).map(renderNode).join('\n\n')
 }
 
-function renderNode(value: unknown): string {
-  if (!value || typeof value !== 'object') {
-    return ''
-  }
-  const node = value as {
-    type?: string
-    value?: string
-    alt?: string | null
-    children?: readonly unknown[]
-  }
-
-  switch (node.type) {
+function renderNode(value: MarkdownNode): string {
+  switch (value.type) {
     case 'root':
-      return blockChildren(node)
+      return blockChildren(value)
     case 'paragraph':
     case 'heading':
-      return children(node)
+      return children(value)
     case 'blockquote':
     case 'list':
     case 'listItem':
     case 'footnoteDefinition':
-      return blockChildren(node)
+      return blockChildren(value)
     case 'text':
     case 'inlineCode':
     case 'code':
-      return node.value ?? ''
+      return value.value ?? ''
     case 'emphasis':
     case 'strong':
     case 'delete':
     case 'link':
     case 'linkReference':
     case 'footnote':
-      return children(node)
+      return children(value)
     case 'image':
     case 'imageReference':
-      return node.alt ?? ''
+      return value.alt ?? ''
     case 'break':
       return '\n'
     case 'thematicBreak':
@@ -58,18 +85,49 @@ function renderNode(value: unknown): string {
         'Markdown narration does not support raw HTML; replace it with Markdown text so rendered text and audio stay aligned.',
       )
     default:
-      return children(node)
+      return children(value)
   }
 }
 
-export function normalizeNoteForSpeech(markdown: string, locale: Locale) {
-  void locale
-  const tree = unified().use(remarkParse).parse(markdown) as unknown
-  const text = renderNode(tree)
+function normalize(text: string) {
+  return text
     .replace(/\r\n?/gu, '\n')
     .replace(/[ \t]+\n/gu, '\n')
     .replace(/\n{3,}/gu, '\n\n')
     .trim()
+}
+
+function parseMarkdown(markdown: string): MarkdownNode {
+  return unified().use(remarkParse).parse(markdown) as MarkdownNode
+}
+
+function collectAudioTagRanges(node: MarkdownNode, ranges: SourceRange[]): void {
+  if (node.type === 'text' && typeof node.value === 'string') {
+    const baseOffset = node.position?.start?.offset
+    if (baseOffset !== undefined) {
+      for (const match of node.value.matchAll(AUDIO_TAG_PATTERN)) {
+        const start = baseOffset + (match.index ?? 0)
+        ranges.push({ start, end: start + match[0].length })
+      }
+    }
+  }
+  for (const child of node.children ?? []) collectAudioTagRanges(child, ranges)
+}
+
+export function stripAudioTagsFromMarkdown(markdown: string): string {
+  const ranges: SourceRange[] = []
+  collectAudioTagRanges(parseMarkdown(markdown), ranges)
+  let result = markdown
+  for (const range of ranges.sort((left, right) => right.start - left.start)) {
+    result = result.slice(0, range.start) + result.slice(range.end)
+  }
+  return result
+}
+
+export function normalizeNoteForSpeech(markdown: string, locale: Locale) {
+  void locale
+  const tree = parseMarkdown(markdown)
+  const text = normalize(renderNode(tree))
   if (!text) {
     throw new Error('Markdown has no narratable plain text.')
   }

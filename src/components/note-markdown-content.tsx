@@ -3,6 +3,7 @@ import ReactMarkdown, { defaultUrlTransform, type Components } from 'react-markd
 import { linkSoundProps, quietLinkClassName } from '@/components/links'
 import { rehypeNoteTextPositions } from '@/features/notes/reading'
 import type { Locale } from '@/i18n/config'
+import { stripAudioTagsFromMarkdown } from '@/content/notes-markdown'
 
 const components: Components = {
   h1: ({ children }) => (
@@ -77,7 +78,7 @@ export function NoteMarkdownContent({
       skipHtml
       urlTransform={defaultUrlTransform}
     >
-      {content}
+      {stripAudioTagsFromMarkdown(content)}
     </ReactMarkdown>
   )
 }
