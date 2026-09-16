@@ -1,5 +1,6 @@
 ---
 slug: portfolio
+portfolioIndex: 5
 name: cekrause/portfolio
 repositoryUrl: https://github.com/cekrauseee/portfolio
 description: a place to share what i make and talk about ideas.
