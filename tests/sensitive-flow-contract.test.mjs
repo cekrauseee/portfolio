@@ -58,14 +58,24 @@ test('meeting availability is limited to weekdays and one-hour slots ending by 1
   assert.equal(isAvailableMeetingDate('2026-09-21'), true)
   assert.equal(isAvailableMeetingDate('2026-09-20'), false)
   assert.equal(isAvailableMeetingTime('09:00'), true)
+  assert.equal(isAvailableMeetingTime('09:00:00'), true)
   assert.equal(isAvailableMeetingTime('17:00'), true)
   assert.equal(isAvailableMeetingTime('18:00'), false)
   assert.equal(isAvailableMeetingSlot('2026-09-25T17:00'), true)
+  assert.equal(isAvailableMeetingSlot('2026-09-25T17:00:00'), true)
   assert.equal(isAvailableMeetingSlot('2026-09-25T18:00'), false)
   assert.equal(isAvailableMeetingSlot('2026-09-26T10:00'), false)
 })
 
 test('the meeting endpoint rejects unavailable days and times', () => {
+  const accepted = validateMeetingRequest({
+    name: 'Ada',
+    email: 'ada@example.com',
+    start: '2099-09-21T10:00:00',
+    timeZone: 'UTC',
+  })
+  assert.equal(accepted.start, '2099-09-21T10:00:00')
+
   assert.throws(
     () =>
       validateMeetingRequest({

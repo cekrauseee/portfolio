@@ -329,7 +329,7 @@ export function MeetingScheduler({
           'date',
           dictionary.date,
           <input
-            className={`${inputClass('date')} cursor-pointer`}
+            className={`${inputClass('date')} box-border block max-w-full cursor-pointer`}
             id="meeting-date"
             min={minDate}
             name="date"
