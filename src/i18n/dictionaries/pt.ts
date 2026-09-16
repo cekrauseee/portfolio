@@ -176,7 +176,7 @@ export const pt: Dictionary = {
       enterEmail: 'digite seu endereço de e-mail.',
       validEmail: 'digite um endereço de e-mail válido.',
       chooseDate: 'escolha uma data.',
-      futureDate: 'escolha uma data a partir de hoje.',
+      futureDate: 'escolha uma data a partir de amanhã.',
       availableDays: 'escolha um dia útil, de segunda a sexta.',
       chooseTimeError: 'escolha um horário.',
       futureTime: 'escolha um horário que ainda não passou.',

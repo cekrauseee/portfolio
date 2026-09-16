@@ -68,32 +68,55 @@ test('meeting availability is limited to weekdays and one-hour slots ending by 1
 })
 
 test('the meeting endpoint rejects unavailable days and times', () => {
-  const accepted = validateMeetingRequest({
-    name: 'Ada',
-    email: 'ada@example.com',
-    start: '2099-09-21T10:00:00',
-    timeZone: 'UTC',
-  })
-  assert.equal(accepted.start, '2099-09-21T10:00:00')
+  const now = new Date('2026-09-16T12:00:00.000Z')
+  const accepted = validateMeetingRequest(
+    {
+      name: 'Ada',
+      email: 'ada@example.com',
+      start: '2026-09-17T10:00:00',
+      timeZone: 'UTC',
+    },
+    now,
+  )
+  assert.equal(accepted.start, '2026-09-17T10:00:00')
 
   assert.throws(
     () =>
-      validateMeetingRequest({
-        name: 'Ada',
-        email: 'ada@example.com',
-        start: '2099-09-20T10:00',
-        timeZone: 'UTC',
-      }),
+      validateMeetingRequest(
+        {
+          name: 'Ada',
+          email: 'ada@example.com',
+          start: '2026-09-16T13:00:00',
+          timeZone: 'UTC',
+        },
+        now,
+      ),
     MeetingInputError,
   )
   assert.throws(
     () =>
-      validateMeetingRequest({
-        name: 'Ada',
-        email: 'ada@example.com',
-        start: '2099-09-21T18:00',
-        timeZone: 'UTC',
-      }),
+      validateMeetingRequest(
+        {
+          name: 'Ada',
+          email: 'ada@example.com',
+          start: '2026-09-15T10:00:00',
+          timeZone: 'UTC',
+        },
+        now,
+      ),
+    MeetingInputError,
+  )
+  assert.throws(
+    () =>
+      validateMeetingRequest(
+        {
+          name: 'Ada',
+          email: 'ada@example.com',
+          start: '2026-09-17T18:00:00',
+          timeZone: 'UTC',
+        },
+        now,
+      ),
     MeetingInputError,
   )
 })
