@@ -28,7 +28,7 @@ const dictionaries = { en, pt, ja }
 test('each locale gets concise translated ID metadata with the same canonical route', () => {
   for (const locale of ['en', 'pt', 'ja']) {
     const localized = localizeNote(snapshot.notes[0], locale)
-    const pageTitle = dictionaries[locale].home.notes.pageTitles[localized.id]
+    const pageTitle = dictionaries[locale].home.notes.pageTitles[localized.id].toLowerCase()
     const metadata = noteMetadata(localized, dictionaries[locale].home.notes.pageTitles)
     assert.equal(metadata.alternates.canonical, notePath(note.slug))
     assert.equal(metadata.title, pageTitle)

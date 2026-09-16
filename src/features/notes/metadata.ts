@@ -12,7 +12,7 @@ export function noteMetadata(
   note: LocalizedNote,
   pageTitles: Readonly<Record<string, string>> = {},
 ): Metadata {
-  const pageTitle = pageTitles[note.id]?.trim() || note.id
+  const pageTitle = (pageTitles[note.id]?.trim() || note.id).toLowerCase()
   const pathname = notePath(note.slug)
   return {
     title: pageTitle,
