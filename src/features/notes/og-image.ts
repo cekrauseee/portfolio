@@ -1,8 +1,9 @@
 import { notFound } from 'next/navigation'
 import { getNote } from '@/content/notes'
+import { site } from '@/config/site'
 import { createOgImage } from '@/lib/og-image'
 
-export const noteOgImageAlt = 'A note from henrique krause'
+export const noteOgImageAlt = 'a note by henrique krause'
 
 export async function createNoteOgImage(params: Promise<{ slug: string }>) {
   const { slug } = await params
@@ -13,7 +14,7 @@ export async function createNoteOgImage(params: Promise<{ slug: string }>) {
   }
 
   return createOgImage({
-    title: note.title,
-    subtitle: `/notes/${note.slug}`,
+    title: note.title.toLowerCase(),
+    subtitle: `by ${site.name.toLowerCase()}`,
   })
 }
