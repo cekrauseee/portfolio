@@ -7,6 +7,13 @@ import {
   parseMeetingErrorCode,
 } from '../src/features/meeting-scheduling/errors.ts'
 import {
+  MeetingInputError,
+  validateMeetingRequest,
+} from '../src/features/meeting-scheduling/schedule-meeting.ts'
+import {
+  isAvailableMeetingDate,
+  isAvailableMeetingSlot,
+  isAvailableMeetingTime,
   isValidMeetingEmail,
   isValidMeetingName,
   MAX_MEETING_EMAIL_LENGTH,
@@ -45,6 +52,40 @@ test('meeting client and server share exact identity validation', () => {
   assert.equal(isValidMeetingEmail('ada@example.com'), true)
   assert.equal(isValidMeetingEmail('invalid'), false)
   assert.equal(isValidMeetingEmail(`${'a'.repeat(MAX_MEETING_EMAIL_LENGTH)}@example.com`), false)
+})
+
+test('meeting availability is limited to weekdays and one-hour slots ending by 18:00', () => {
+  assert.equal(isAvailableMeetingDate('2026-09-21'), true)
+  assert.equal(isAvailableMeetingDate('2026-09-20'), false)
+  assert.equal(isAvailableMeetingTime('09:00'), true)
+  assert.equal(isAvailableMeetingTime('17:00'), true)
+  assert.equal(isAvailableMeetingTime('18:00'), false)
+  assert.equal(isAvailableMeetingSlot('2026-09-25T17:00'), true)
+  assert.equal(isAvailableMeetingSlot('2026-09-25T18:00'), false)
+  assert.equal(isAvailableMeetingSlot('2026-09-26T10:00'), false)
+})
+
+test('the meeting endpoint rejects unavailable days and times', () => {
+  assert.throws(
+    () =>
+      validateMeetingRequest({
+        name: 'Ada',
+        email: 'ada@example.com',
+        start: '2099-09-20T10:00',
+        timeZone: 'UTC',
+      }),
+    MeetingInputError,
+  )
+  assert.throws(
+    () =>
+      validateMeetingRequest({
+        name: 'Ada',
+        email: 'ada@example.com',
+        start: '2099-09-21T18:00',
+        timeZone: 'UTC',
+      }),
+    MeetingInputError,
+  )
 })
 
 test('sensitive operations no longer emit fragmented feature logs', () => {

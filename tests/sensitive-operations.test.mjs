@@ -63,8 +63,9 @@ function meetingOperation(seed = 'default') {
 }
 
 function validMeeting(name = 'Ada') {
-  const start = new Date(Date.now() + 3 * 60 * 60 * 1000)
-  start.setMinutes(0, 0, 0)
+  const start = new Date()
+  start.setUTCHours(10, 0, 0, 0)
+  start.setUTCDate(start.getUTCDate() + ((8 - start.getUTCDay()) % 7 || 7))
   return {
     name,
     email: `${name.toLowerCase()}@example.com`,
