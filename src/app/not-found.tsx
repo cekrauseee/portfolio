@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
 import { linkSoundProps, softLinkClassName } from '@/components/links'
 import { PageShell } from '@/components/page-shell'
 import { profile } from '@/content/portfolio'
@@ -21,7 +20,7 @@ export default async function NotFound() {
         className="flex flex-1 flex-col justify-center py-10 lowercase"
       >
         <header className="animate-journal-enter motion-reduce:animate-none">
-          <p className="text-7xl leading-none font-medium tracking-[-0.06em] text-black dark:text-white">
+          <p className="-ml-1 text-7xl leading-none font-medium tracking-[-0.06em] text-black dark:text-white">
             404
           </p>
           <h1
@@ -36,8 +35,7 @@ export default async function NotFound() {
           style={{ animationDelay: `${motion.stagger.section}ms` }}
         >
           <p className="max-w-[36ch] text-pretty">{dictionary.notFound.description}</p>
-          <Link {...linkSoundProps} className={`${softLinkClassName} mt-6 -ml-4 gap-2`} href="/">
-            <ArrowLeft aria-hidden="true" className="size-4" />
+          <Link {...linkSoundProps} className={`${softLinkClassName} mt-6 -ml-4`} href="/">
             {dictionary.notFound.home}
           </Link>
         </div>

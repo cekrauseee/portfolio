@@ -22,10 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     metadataBase: new URL(site.url),
-    title: {
-      default: dictionary.site.title,
-      template: `%s · ${dictionary.site.title}`,
-    },
+    title: dictionary.site.title,
     description: dictionary.site.description,
     applicationName: site.name,
     authors: [{ name: profile.name, url: site.url }],
