@@ -56,8 +56,10 @@ function localDateString(date: Date) {
   return `${year}-${month}-${day}`
 }
 
-function today() {
-  return localDateString(new Date())
+function tomorrow() {
+  const date = new Date()
+  date.setDate(date.getDate() + 1)
+  return localDateString(date)
 }
 
 function responseValue(data: unknown, key: string) {
@@ -150,7 +152,7 @@ export function MeetingScheduler({
   const [meetingLink, setMeetingLink] = useState<string>()
   const [meetingLinkKind, setMeetingLinkKind] = useState<MeetingLinkKind>()
   const [submitting, setSubmitting] = useState(false)
-  const [minDate] = useState(today)
+  const [minDate] = useState(tomorrow)
   const idempotencyRef = useRef<IdempotencyState | undefined>(undefined)
 
   function clearIdempotency() {
@@ -329,7 +331,7 @@ export function MeetingScheduler({
           'date',
           dictionary.date,
           <input
-            className={`${inputClass('date')} cursor-pointer`}
+            className={`${inputClass('date')} box-border block max-w-full cursor-pointer`}
             id="meeting-date"
             min={minDate}
             name="date"

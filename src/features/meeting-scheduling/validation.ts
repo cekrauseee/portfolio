@@ -42,7 +42,7 @@ export function isAvailableMeetingDate(date: string) {
 }
 
 export function isAvailableMeetingTime(time: string) {
-  const match = /^(\d{2}):00$/.exec(time)
+  const match = /^(\d{2}):00(?::00)?$/.exec(time)
   if (!match) {
     return false
   }

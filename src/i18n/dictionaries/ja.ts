@@ -176,7 +176,7 @@ export const ja: Dictionary = {
       enterEmail: 'メールアドレスを入力してください。',
       validEmail: '有効なメールアドレスを入力してください。',
       chooseDate: '日付を選択してください。',
-      futureDate: '今日以降の日付を選択してください。',
+      futureDate: '明日以降の日付を選択してください。',
       availableDays: '月曜日から金曜日の日付を選択してください。',
       chooseTimeError: '時刻を選択してください。',
       futureTime: '現在より後の時刻を選択してください。',

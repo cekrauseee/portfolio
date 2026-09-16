@@ -175,7 +175,7 @@ export const en: Dictionary = {
       enterEmail: 'enter your email address.',
       validEmail: 'enter a valid email address.',
       chooseDate: 'choose a date.',
-      futureDate: 'choose today or a later date.',
+      futureDate: 'choose a date after today.',
       availableDays: 'choose a weekday from monday to friday.',
       chooseTimeError: 'choose a time.',
       futureTime: 'choose a future time.',

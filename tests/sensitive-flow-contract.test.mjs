@@ -58,32 +58,65 @@ test('meeting availability is limited to weekdays and one-hour slots ending by 1
   assert.equal(isAvailableMeetingDate('2026-09-21'), true)
   assert.equal(isAvailableMeetingDate('2026-09-20'), false)
   assert.equal(isAvailableMeetingTime('09:00'), true)
+  assert.equal(isAvailableMeetingTime('09:00:00'), true)
   assert.equal(isAvailableMeetingTime('17:00'), true)
   assert.equal(isAvailableMeetingTime('18:00'), false)
   assert.equal(isAvailableMeetingSlot('2026-09-25T17:00'), true)
+  assert.equal(isAvailableMeetingSlot('2026-09-25T17:00:00'), true)
   assert.equal(isAvailableMeetingSlot('2026-09-25T18:00'), false)
   assert.equal(isAvailableMeetingSlot('2026-09-26T10:00'), false)
 })
 
 test('the meeting endpoint rejects unavailable days and times', () => {
+  const now = new Date('2026-09-16T12:00:00.000Z')
+  const accepted = validateMeetingRequest(
+    {
+      name: 'Ada',
+      email: 'ada@example.com',
+      start: '2026-09-17T10:00:00',
+      timeZone: 'UTC',
+    },
+    now,
+  )
+  assert.equal(accepted.start, '2026-09-17T10:00:00')
+
   assert.throws(
     () =>
-      validateMeetingRequest({
-        name: 'Ada',
-        email: 'ada@example.com',
-        start: '2099-09-20T10:00',
-        timeZone: 'UTC',
-      }),
+      validateMeetingRequest(
+        {
+          name: 'Ada',
+          email: 'ada@example.com',
+          start: '2026-09-16T13:00:00',
+          timeZone: 'UTC',
+        },
+        now,
+      ),
     MeetingInputError,
   )
   assert.throws(
     () =>
-      validateMeetingRequest({
-        name: 'Ada',
-        email: 'ada@example.com',
-        start: '2099-09-21T18:00',
-        timeZone: 'UTC',
-      }),
+      validateMeetingRequest(
+        {
+          name: 'Ada',
+          email: 'ada@example.com',
+          start: '2026-09-15T10:00:00',
+          timeZone: 'UTC',
+        },
+        now,
+      ),
+    MeetingInputError,
+  )
+  assert.throws(
+    () =>
+      validateMeetingRequest(
+        {
+          name: 'Ada',
+          email: 'ada@example.com',
+          start: '2026-09-17T18:00:00',
+          timeZone: 'UTC',
+        },
+        now,
+      ),
     MeetingInputError,
   )
 })
