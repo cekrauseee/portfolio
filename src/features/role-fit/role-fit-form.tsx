@@ -13,6 +13,7 @@ import {
 import { useHomeActions } from '@/components/home-actions'
 import { FieldFeedback, FormErrorFeedback } from '@/components/form-feedback'
 import { fitErrorMessage, parseFitErrorCode } from '@/features/role-fit/errors'
+import { RoleFitAnswer } from '@/features/role-fit/role-fit-answer'
 import { localeTag, type Locale } from '@/i18n/config'
 import type { Dictionary } from '@/i18n/dictionary'
 import { MAX_ROLE_DESCRIPTION_LENGTH } from '@/features/role-fit/constants'
@@ -297,10 +298,10 @@ export function RoleFitForm({
               {closeLabel}
             </button>
           </div>
-          <p className="mt-3 whitespace-pre-wrap text-black/75 dark:text-white/85">
-            {visibleAnswer}
+          <div className="mt-3 text-black/75 dark:text-white/85">
+            <RoleFitAnswer>{visibleAnswer}</RoleFitAnswer>
             <span aria-hidden="true" ref={answerEndRef} />
-          </p>
+          </div>
         </section>
       ) : null}
 
