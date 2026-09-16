@@ -13,8 +13,12 @@ import {
 import { FieldFeedback, FormErrorFeedback } from '@/components/form-feedback'
 import { meetingErrorMessage, parseMeetingErrorCode } from '@/features/meeting-scheduling/errors'
 import {
+  isAvailableMeetingDate,
+  isAvailableMeetingTime,
   isValidMeetingEmail,
   isValidMeetingName,
+  MEETING_END_HOUR,
+  MEETING_START_HOUR,
   MAX_MEETING_EMAIL_LENGTH,
   MAX_MEETING_NAME_LENGTH,
 } from '@/features/meeting-scheduling/validation'
@@ -38,7 +42,10 @@ export type IdempotencyState = {
 }
 
 const initialFields: Fields = { name: '', email: '', date: '', time: '' }
-const times = Array.from({ length: 24 }, (_, hour) => `${hour}`.padStart(2, '0') + ':00')
+const times = Array.from(
+  { length: MEETING_END_HOUR - MEETING_START_HOUR },
+  (_, index) => `${MEETING_START_HOUR + index}`.padStart(2, '0') + ':00',
+)
 const IDEMPOTENCY_STORAGE_KEY = 'portfolio:meeting-idempotency'
 type IdempotencyStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
 
@@ -176,9 +183,13 @@ export function MeetingScheduler({
       nextErrors.date = dictionary.chooseDate
     } else if (fields.date < minDate) {
       nextErrors.date = dictionary.futureDate
+    } else if (!isAvailableMeetingDate(fields.date)) {
+      nextErrors.date = dictionary.availableDays
     }
     if (!fields.time) {
       nextErrors.time = dictionary.chooseTimeError
+    } else if (!isAvailableMeetingTime(fields.time)) {
+      nextErrors.time = dictionary.availableHours
     } else if (new Date(`${fields.date}T${fields.time}:00`) <= new Date()) {
       nextErrors.time = dictionary.futureTime
     }

@@ -138,8 +138,10 @@ export type Dictionary = {
       validEmail: string
       chooseDate: string
       futureDate: string
+      availableDays: string
       chooseTimeError: string
       futureTime: string
+      availableHours: string
       conflict: string
       rateLimited: string
       requestDenied: string

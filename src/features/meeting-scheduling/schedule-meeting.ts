@@ -15,7 +15,11 @@ import {
   resolveMeetingNotificationConfiguration,
   sendMeetingNotification,
 } from '@/features/meeting-scheduling/meeting-notification'
-import { MeetingRequestSchema, type MeetingRequest } from '@/features/meeting-scheduling/validation'
+import {
+  isAvailableMeetingSlot,
+  MeetingRequestSchema,
+  type MeetingRequest,
+} from '@/features/meeting-scheduling/validation'
 import { safeErrorDetails, type SafeErrorDetails } from '@/lib/safe-error'
 
 export type { MeetingOperation, MeetingRequest }
@@ -47,6 +51,9 @@ export function validateMeetingRequest(body: unknown): MeetingRequest {
     throw new MeetingInputError('Provide valid meeting details.')
   }
   const { name, email, start, timeZone } = parsed.data
+  if (!isAvailableMeetingSlot(start)) {
+    throw new MeetingInputError('Choose a weekday between 9:00 and 18:00.')
+  }
   const [datePart, timePart] = start.split('T')
   const [year, month, day] = datePart.split('-').map(Number)
   const [hour] = timePart.split(':').map(Number)
