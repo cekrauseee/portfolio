@@ -48,6 +48,8 @@ database setup; see [Guestbook](guestbook.md) for its operating contract.
   team details, or personal responsibilities.
 - Adopt `.portfolio/project.md` in source repositories only when its complete
   record is ready for publication; invalid or duplicate records fail the sync.
+- Give every published project a unique positive `portfolioIndex`; lower values
+  appear first in the portfolio.
 - GitHub reconciliation is public-only: private repositories never participate.
 - Treat Google Calendar as the authoritative booking result; Resend remains an
   optional additional notification rather than a booking dependency.

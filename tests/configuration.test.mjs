@@ -46,7 +46,7 @@ test('GitHub project configuration requires an explicit owner', async () => {
     assert.throws(
       () =>
         parseGithubProjectsSnapshot({
-          version: 2,
+          version: 3,
           owner: 'test-owner',
           generatedAt: '2026-08-19T00:00:00.000Z',
           projects: [],
@@ -64,7 +64,7 @@ test('GitHub snapshots are bound to the configured owner', () => {
   try {
     assert.deepEqual(
       parseGithubProjectsSnapshot({
-        version: 2,
+        version: 3,
         owner: 'test-owner',
         generatedAt: '2026-08-19T00:00:00.000Z',
         projects: [],
@@ -74,7 +74,7 @@ test('GitHub snapshots are bound to the configured owner', () => {
     assert.throws(
       () =>
         parseGithubProjectsSnapshot({
-          version: 2,
+          version: 3,
           owner: 'other-owner',
           generatedAt: '2026-08-19T00:00:00.000Z',
           projects: [],

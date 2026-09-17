@@ -3,8 +3,16 @@ import path from 'node:path'
 import type { Project } from './project'
 
 export const githubProjectsSnapshotPath = path.join(process.cwd(), '.cache', 'github-projects.json')
+export const GITHUB_PROJECTS_SNAPSHOT_VERSION = 3
 
-const projectKeys = ['assetBaseUrl', 'name', 'repositoryUrl', 'slug', 'translations'] as const
+const projectKeys = [
+  'assetBaseUrl',
+  'name',
+  'portfolioIndex',
+  'repositoryUrl',
+  'slug',
+  'translations',
+] as const
 
 const translationKeys = [
   'content',
@@ -26,6 +34,10 @@ function hasExactKeys(value: Record<string, unknown>, keys: readonly string[]) {
 
 function nonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0
+}
+
+function isPositiveInteger(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value > 0
 }
 
 function isIsoTimestamp(value: unknown): value is string {
@@ -107,6 +119,7 @@ function parseProject(value: unknown, index: number, owner: string): Project {
   if (
     !isRecord(value) ||
     !hasExactKeys(value, projectKeys) ||
+    !isPositiveInteger(value.portfolioIndex) ||
     typeof value.slug !== 'string' ||
     !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value.slug) ||
     !nonEmptyString(value.name) ||
@@ -136,6 +149,7 @@ function parseProject(value: unknown, index: number, owner: string): Project {
   ) as Project['translations']
 
   return {
+    portfolioIndex: value.portfolioIndex,
     slug: value.slug,
     name: value.name,
     repositoryUrl: value.repositoryUrl,
@@ -153,7 +167,7 @@ export function parseGithubProjectsSnapshot(value: unknown): readonly Project[] 
   if (
     !isRecord(value) ||
     !hasExactKeys(value, ['generatedAt', 'owner', 'projects', 'version']) ||
-    value.version !== 2 ||
+    value.version !== GITHUB_PROJECTS_SNAPSHOT_VERSION ||
     !isIsoTimestamp(value.generatedAt) ||
     !nonEmptyString(value.owner) ||
     value.owner !== githubOwner ||
@@ -164,12 +178,24 @@ export function parseGithubProjectsSnapshot(value: unknown): readonly Project[] 
 
   const projects = value.projects.map((project, index) => parseProject(project, index, githubOwner))
   const slugs = new Set<string>()
+  const portfolioIndexes = new Set<number>()
   for (const project of projects) {
     if (slugs.has(project.slug)) {
       throw new Error(`Duplicate project slug in snapshot: ${project.slug}.`)
     }
     slugs.add(project.slug)
+    if (portfolioIndexes.has(project.portfolioIndex)) {
+      throw new Error(`Duplicate project portfolioIndex in snapshot: ${project.portfolioIndex}.`)
+    }
+    portfolioIndexes.add(project.portfolioIndex)
   }
+
+  projects.sort(
+    (left, right) =>
+      left.portfolioIndex - right.portfolioIndex ||
+      left.slug.localeCompare(right.slug) ||
+      left.repositoryUrl.localeCompare(right.repositoryUrl),
+  )
 
   return projects
 }

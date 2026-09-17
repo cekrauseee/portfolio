@@ -72,12 +72,13 @@ theme.
 ## Build-time project content
 
 Public repositories owned by the explicit `GITHUB_OWNER` opt in with
-`.portfolio/project.md`. The English file contains identity and editorial front
-matter plus a Markdown body. Optional `.portfolio/project.pt.md` and
-`.portfolio/project.ja.md` files contain localized editorial front matter and
-body content. The sync paginates GitHub, rejects private repositories, validates
-each record, deduplicates immutable repository identities and slugs, sorts
-deterministically, and atomically replaces `.cache/github-projects.json`.
+`.portfolio/project.md`. The English file contains identity, a unique positive
+`portfolioIndex`, and editorial front matter plus a Markdown body. Optional
+`.portfolio/project.pt.md` and `.portfolio/project.ja.md` files contain localized
+editorial front matter and body content. The sync paginates GitHub, rejects
+private repositories, validates each record, deduplicates immutable repository
+identities, slugs, and indexes, sorts by `portfolioIndex`, and atomically replaces
+`.cache/github-projects.json`.
 
 The snapshot loader revalidates the complete file and binds it to the configured
 owner. Writer and reader both require a string slug matching the same safe

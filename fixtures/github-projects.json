@@ -1,11 +1,12 @@
 {
-  "version": 2,
+  "version": 3,
   "owner": "fixture-owner",
   "generatedAt": "2026-08-18T12:00:00.000Z",
   "projects": [
     {
       "slug": "fixture-project",
       "name": "fixture-owner/fixture-project",
+      "portfolioIndex": 1,
       "repositoryUrl": "https://github.com/fixture-owner/fixture-project",
       "assetBaseUrl": "https://raw.githubusercontent.com/fixture-owner/fixture-project/main/.portfolio/",
       "translations": {
