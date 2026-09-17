@@ -87,11 +87,13 @@ optional for a higher public GitHub API rate limit.
 
 `predev` and `prebuild` reconcile public repositories owned by that account.
 Repositories opt in by committing `.portfolio/project.md` on their default
-branch. Its front matter contains `slug`, `name`, `repositoryUrl`, `description`,
-`metaDescription`, `summary`, and `highlights`; the body contains the English
-case study. Optional `.portfolio/project.pt.md` and `.portfolio/project.ja.md`
-files repeat only the editorial front matter and provide translated bodies.
-English is required and is used when the requested translation is absent.
+branch. Its front matter contains `portfolioIndex`, `slug`, `name`,
+`repositoryUrl`, `description`, `metaDescription`, `summary`, and `highlights`;
+the body contains the English case study. `portfolioIndex` is a positive integer,
+unique across published projects, and lower values appear first. Optional
+`.portfolio/project.pt.md` and `.portfolio/project.ja.md` files repeat only the
+editorial front matter and provide translated bodies. English is required and
+is used when the requested translation is absent.
 
 Markdown bodies start with `##` headings so expanded content nests under the
 home page's projects section. Raw HTML is ignored. Store project images in the
@@ -99,10 +101,10 @@ source repository and reference them with a relative Markdown path such as
 `![Dashboard](images/dashboard.webp)`. Image alt text is required when the image
 conveys information and can be empty only when the image is decorative.
 
-The writer and reader enforce the same normalized fields, Markdown body, and
-string slug contract. Invalid records, unsupported translation keys, duplicate
-slugs, and upstream failures stop the sync; a successful sync atomically replaces
-the complete snapshot.
+The writer and reader enforce the same normalized fields, Markdown body, string
+slug, and project-index contract. Invalid records, unsupported translation keys,
+duplicate slugs or indexes, and upstream failures stop the sync; a successful
+sync atomically replaces the complete snapshot.
 
 The application renders only from `.cache/github-projects.json`. It never calls
 GitHub during visitor traffic. A valid empty snapshot is supported. Run

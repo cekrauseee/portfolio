@@ -12,6 +12,7 @@ export const DEFAULT_GITHUB_API = 'https://api.github.com'
 export const DEFAULT_REQUEST_TIMEOUT_MS = 10_000
 export const DEFAULT_OUTPUT_PATH = path.join(process.cwd(), '.cache', 'github-projects.json')
 export const PROJECT_FILE_PATH = '.portfolio/project.md'
+export const PROJECTS_SNAPSHOT_VERSION = 3
 const LOCALIZED_PROJECT_FILE_PATHS = {
   pt: '.portfolio/project.pt.md',
   ja: '.portfolio/project.ja.md',
@@ -22,6 +23,7 @@ const BASE_MARKDOWN_KEYS = [
   'highlights',
   'metaDescription',
   'name',
+  'portfolioIndex',
   'repositoryUrl',
   'slug',
   'summary',
@@ -46,6 +48,10 @@ function hasExactKeys(value, keys) {
 
 function nonEmptyString(value) {
   return typeof value === 'string' && value.trim().length > 0
+}
+
+function isPositiveInteger(value) {
+  return Number.isSafeInteger(value) && value > 0
 }
 
 function isSafeRepositoryUrl(value) {
@@ -104,6 +110,7 @@ function parseProjectMarkdown(source, context) {
     BASE_MARKDOWN_KEYS,
   )
   if (
+    !isPositiveInteger(parsed.data.portfolioIndex) ||
     typeof parsed.data.slug !== 'string' ||
     !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(parsed.data.slug) ||
     !nonEmptyString(parsed.data.name) ||
@@ -113,6 +120,7 @@ function parseProjectMarkdown(source, context) {
   }
 
   return {
+    portfolioIndex: parsed.data.portfolioIndex,
     slug: parsed.data.slug,
     name: parsed.data.name,
     repositoryUrl: parsed.data.repositoryUrl,
@@ -366,6 +374,7 @@ export async function syncGithubProjects({
   const projects = []
   const repositoryIdentities = new Set()
   const slugs = new Set()
+  const portfolioIndexes = new Set()
 
   for (const rawRepo of repos) {
     const repo = validateRepository(rawRepo)
@@ -417,6 +426,7 @@ export async function syncGithubProjects({
       }
 
       const project = {
+        portfolioIndex: baseProject.portfolioIndex,
         slug: baseProject.slug,
         name: baseProject.name,
         repositoryUrl: baseProject.repositoryUrl,
@@ -426,18 +436,24 @@ export async function syncGithubProjects({
       if (slugs.has(project.slug)) {
         throw new Error(`Duplicate project slug: ${project.slug}.`)
       }
+      if (portfolioIndexes.has(project.portfolioIndex)) {
+        throw new Error(`Duplicate project portfolioIndex: ${project.portfolioIndex}.`)
+      }
       slugs.add(project.slug)
+      portfolioIndexes.add(project.portfolioIndex)
       projects.push(project)
     }
   }
 
   projects.sort(
     (left, right) =>
-      left.slug.localeCompare(right.slug) || left.repositoryUrl.localeCompare(right.repositoryUrl),
+      left.portfolioIndex - right.portfolioIndex ||
+      left.slug.localeCompare(right.slug) ||
+      left.repositoryUrl.localeCompare(right.repositoryUrl),
   )
 
   const snapshot = {
-    version: 2,
+    version: PROJECTS_SNAPSHOT_VERSION,
     owner,
     generatedAt: now.toISOString(),
     projects,
@@ -472,7 +488,7 @@ async function main() {
     try {
       const snapshot = JSON.parse(readFileSync(DEFAULT_OUTPUT_PATH, 'utf8'))
       if (
-        snapshot?.version !== 2 ||
+        snapshot?.version !== PROJECTS_SNAPSHOT_VERSION ||
         typeof snapshot.generatedAt !== 'string' ||
         typeof snapshot.owner !== 'string' ||
         !Array.isArray(snapshot.projects)

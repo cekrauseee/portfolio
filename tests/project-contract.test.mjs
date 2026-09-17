@@ -9,6 +9,7 @@ import { localizeProject } from '../src/content/project.ts'
 
 function projectWithSlug(slug) {
   return {
+    portfolioIndex: 1,
     slug,
     name: 'fixture-owner/numeric',
     repositoryUrl: 'https://github.com/fixture-owner/numeric',
@@ -27,6 +28,7 @@ function projectWithSlug(slug) {
 
 test('localized projects select requested content and fall back to English', () => {
   const project = {
+    portfolioIndex: 1,
     slug: 'localized',
     name: 'fixture-owner/localized',
     repositoryUrl: 'https://github.com/fixture-owner/localized',
@@ -59,6 +61,7 @@ test('project reader accepts localized content and rejects unsupported locales',
   const previousOwner = process.env.GITHUB_OWNER
   process.env.GITHUB_OWNER = 'fixture-owner'
   const localized = {
+    portfolioIndex: 1,
     slug: 'localized',
     name: 'fixture-owner/localized',
     repositoryUrl: 'https://github.com/fixture-owner/localized',
@@ -76,7 +79,7 @@ test('project reader accepts localized content and rejects unsupported locales',
 
   try {
     const [parsed] = parseGithubProjectsSnapshot({
-      version: 2,
+      version: 3,
       owner: 'fixture-owner',
       generatedAt: '2026-08-19T00:00:00.000Z',
       projects: [localized],
@@ -86,7 +89,7 @@ test('project reader accepts localized content and rejects unsupported locales',
     assert.throws(
       () =>
         parseGithubProjectsSnapshot({
-          version: 2,
+          version: 3,
           owner: 'fixture-owner',
           generatedAt: '2026-08-19T00:00:00.000Z',
           projects: [
@@ -147,7 +150,7 @@ test('project writer and reader both reject non-string slugs', async () => {
           return Response.json({
             encoding: 'base64',
             content: Buffer.from(
-              `---\nslug: 123\nname: fixture-owner/numeric\nrepositoryUrl: https://github.com/fixture-owner/numeric\ndescription: Fixture project.\nmetaDescription: Fixture metadata.\nsummary: Fixture summary.\nhighlights:\n  - Fixtures\n---\n\n## Product\n\nFixture details.`,
+              `---\nportfolioIndex: 1\nslug: 123\nname: fixture-owner/numeric\nrepositoryUrl: https://github.com/fixture-owner/numeric\ndescription: Fixture project.\nmetaDescription: Fixture metadata.\nsummary: Fixture summary.\nhighlights:\n  - Fixtures\n---\n\n## Product\n\nFixture details.`,
             ).toString('base64'),
           })
         },
@@ -161,5 +164,41 @@ test('project writer and reader both reject non-string slugs', async () => {
       process.env.GITHUB_OWNER = previousOwner
     }
     await rm(directory, { recursive: true, force: true })
+  }
+})
+
+test('project indexes are required to be positive unique integers', () => {
+  const previousOwner = process.env.GITHUB_OWNER
+  process.env.GITHUB_OWNER = 'fixture-owner'
+  const baseProject = projectWithSlug('valid')
+
+  try {
+    assert.throws(
+      () =>
+        parseGithubProjectsSnapshot({
+          version: 3,
+          owner: 'fixture-owner',
+          generatedAt: '2026-08-19T00:00:00.000Z',
+          projects: [{ ...baseProject, portfolioIndex: 0 }],
+        }),
+      /Invalid GitHub project/,
+    )
+
+    assert.throws(
+      () =>
+        parseGithubProjectsSnapshot({
+          version: 3,
+          owner: 'fixture-owner',
+          generatedAt: '2026-08-19T00:00:00.000Z',
+          projects: [baseProject, { ...baseProject, slug: 'other' }],
+        }),
+      /Duplicate project portfolioIndex/,
+    )
+  } finally {
+    if (previousOwner === undefined) {
+      delete process.env.GITHUB_OWNER
+    } else {
+      process.env.GITHUB_OWNER = previousOwner
+    }
   }
 })

@@ -15,6 +15,7 @@ const syncScriptPath = fileURLToPath(
 
 function project(slug, overrides = {}) {
   return {
+    portfolioIndex: 1,
     slug,
     name: `cekrauseee/${slug}`,
     description: `${slug} description`,
@@ -151,7 +152,7 @@ test('sync skip requires an existing snapshot', async () => {
     await writeFile(
       path.join(directory, '.cache', 'github-projects.json'),
       JSON.stringify({
-        version: 2,
+        version: 3,
         owner: 'test-owner',
         generatedAt: fixedDate.toISOString(),
         projects: [],
@@ -224,7 +225,7 @@ test('paginates all public repositories, skips 404 files, and sorts projects', a
     if (parsed.pathname.endsWith('/zeta/contents/.portfolio/project.md')) {
       return response(200, {
         encoding: 'base64',
-        content: encodedContent(projectMarkdown('zeta')),
+        content: encodedContent(projectMarkdown('zeta', { portfolioIndex: 2 })),
       })
     }
     if (parsed.pathname.includes('/missing/contents/.portfolio/project')) {
@@ -233,7 +234,7 @@ test('paginates all public repositories, skips 404 files, and sorts projects', a
     if (parsed.pathname.endsWith('/alpha/contents/.portfolio/project.md')) {
       return response(200, {
         encoding: 'base64',
-        content: encodedContent(projectMarkdown('alpha')),
+        content: encodedContent(projectMarkdown('alpha', { portfolioIndex: 1 })),
       })
     }
     if (isLocalizedProjectPath(parsed.pathname)) {
@@ -274,6 +275,7 @@ test('reads localized Markdown and preserves relative project images', async () 
     if (parsed.pathname.endsWith('/.portfolio/project.md')) {
       const source = project('localized')
       const data = {
+        portfolioIndex: source.portfolioIndex,
         slug: source.slug,
         name: source.name,
         description: source.description,
@@ -307,7 +309,7 @@ test('reads localized Markdown and preserves relative project images', async () 
       now: fixedDate,
     })
 
-    assert.equal(snapshot.version, 2)
+    assert.equal(snapshot.version, 3)
     assert.equal(
       snapshot.projects[0].translations.en.content,
       '## Product\n\n![Dashboard](images/dashboard.webp)',
@@ -496,7 +498,11 @@ test('deduplicates repository overlap across pages by immutable identity', async
     const name = parsed.pathname.split('/')[3]
     return response(200, {
       encoding: 'base64',
-      content: encodedContent(projectMarkdown(name)),
+      content: encodedContent(
+        projectMarkdown(name, {
+          portfolioIndex: { one: 1, two: 2, three: 3 }[name],
+        }),
+      ),
     })
   }
 
@@ -510,7 +516,7 @@ test('deduplicates repository overlap across pages by immutable identity', async
     })
     assert.deepEqual(
       snapshot.projects.map(({ slug }) => slug),
-      ['one', 'three', 'two'],
+      ['one', 'two', 'three'],
     )
     assert.equal(fetches.filter((pathname) => pathname.includes('/one/contents/')).length, 3)
   } finally {
@@ -627,6 +633,35 @@ test('rejects unsafe and duplicate slugs', async (t) => {
   })
 })
 
+test('rejects duplicate portfolio indexes', async () => {
+  const { directory, outputPath } = await temporaryOutput()
+  try {
+    await assert.rejects(
+      syncGithubProjects({
+        fetchImpl: async (url) => {
+          const parsed = new URL(url)
+          if (parsed.pathname === '/users/test-owner/repos') {
+            return response(200, [repository('one'), repository('two')])
+          }
+          if (isLocalizedProjectPath(parsed.pathname)) {
+            return response(404, { message: 'Not Found' })
+          }
+          return response(200, {
+            encoding: 'base64',
+            content: encodedContent(projectMarkdown(parsed.pathname.split('/')[3])),
+          })
+        },
+        owner: 'test-owner',
+        apiBase: 'https://github.test',
+        outputPath,
+      }),
+      /Duplicate project portfolioIndex: 1/,
+    )
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
 test('preserves the previous snapshot when reconciliation fails', async () => {
   const { directory, outputPath } = await temporaryOutput()
   const original = await syncGithubProjects({
@@ -690,7 +725,7 @@ test('replaces the snapshot completely so deleted files disappear', async () => 
     const name = parsed.pathname.split('/')[3]
     return response(200, {
       encoding: 'base64',
-      content: encodedContent(projectMarkdown(name)),
+      content: encodedContent(projectMarkdown(name, { portfolioIndex: name === 'keep' ? 1 : 2 })),
     })
   }
 

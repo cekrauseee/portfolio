@@ -9,6 +9,7 @@ export type ProjectTranslation = {
 }
 
 export type Project = {
+  readonly portfolioIndex: number
   readonly slug: string
   readonly name: string
   readonly repositoryUrl: string
@@ -28,6 +29,7 @@ export function localizeProject(project: Project, locale: Locale): LocalizedProj
   const translation = project.translations[locale] ?? project.translations.en
 
   return {
+    portfolioIndex: project.portfolioIndex,
     slug: project.slug,
     name: project.name,
     repositoryUrl: project.repositoryUrl,
