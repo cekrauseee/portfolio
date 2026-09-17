@@ -4,12 +4,7 @@ import { AnimatedButtonLabel } from '@/components/animated-button-label'
 
 import type { SubmitEvent } from 'react'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import {
-  actionSoundProps,
-  dismissSoundProps,
-  focusVisibleClassName,
-  softLinkClassName,
-} from '@/components/links'
+import { actionSoundProps, focusVisibleClassName, softLinkClassName } from '@/components/links'
 import { useHomeActions } from '@/components/home-actions'
 import { FieldFeedback, FormErrorFeedback } from '@/components/form-feedback'
 import { fitErrorMessage, parseFitErrorCode } from '@/features/role-fit/errors'
@@ -18,7 +13,7 @@ import { localeTag, type Locale } from '@/i18n/config'
 import type { Dictionary } from '@/i18n/dictionary'
 import { MAX_ROLE_DESCRIPTION_LENGTH } from '@/features/role-fit/constants'
 import { playInteractionSound } from '@/lib/interaction-sounds'
-import { createStreamingScrollFollower } from '@/lib/viewport-scroll'
+import { stabilizeViewportAnchor } from '@/lib/viewport-scroll'
 
 const WORD_INTERVAL_MS = 24
 
@@ -36,13 +31,11 @@ function interpolate(template: string, values: Record<string, string | number>) 
 export function RoleFitForm({
   locale,
   dictionary,
-  closeLabel,
 }: {
   locale: Locale
   dictionary: RoleFitDictionary
-  closeLabel: string
 }) {
-  const { closeAction, openAction } = useHomeActions()
+  const { openAction } = useHomeActions()
   const [description, setDescription] = useState('')
   const [answer, setAnswer] = useState('')
   const [visibleWordCount, setVisibleWordCount] = useState(0)
@@ -50,12 +43,8 @@ export function RoleFitForm({
   const [fieldError, setFieldError] = useState('')
   const [generalError, setGeneralError] = useState('')
   const revealTimer = useRef<number | undefined>(undefined)
-  const rootRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const answerEndRef = useRef<HTMLSpanElement>(null)
-  const streamingScroll = useRef<ReturnType<typeof createStreamingScrollFollower> | undefined>(
-    undefined,
-  )
+  const assessmentRef = useRef<HTMLElement>(null)
 
   const characterCount = interpolate(dictionary.characterCount, {
     count: description.length,
@@ -76,41 +65,23 @@ export function RoleFitForm({
       if (revealTimer.current !== undefined) {
         window.clearTimeout(revealTimer.current)
       }
-      streamingScroll.current?.cancel()
     }
   }, [])
 
   useLayoutEffect(() => {
-    if (status !== 'revealing' && status !== 'done') {
+    if (!answer || !assessmentRef.current) {
       return
     }
 
-    const edge = answerEndRef.current
-    if (edge) {
-      streamingScroll.current?.follow(edge)
-    }
-    if (status === 'done') {
-      streamingScroll.current?.cancel()
-      streamingScroll.current = undefined
-    }
-  }, [status, visibleWordCount])
+    // Reframe once when the result arrives. The word reveal can then grow in
+    // normal document flow without continuously taking control of the viewport.
+    stabilizeViewportAnchor(assessmentRef.current, 24)
+  }, [answer])
 
   function clearRevealTimer() {
     if (revealTimer.current !== undefined) {
       window.clearTimeout(revealTimer.current)
       revealTimer.current = undefined
-    }
-  }
-
-  function stopStreamingScroll() {
-    streamingScroll.current?.cancel()
-    streamingScroll.current = undefined
-  }
-
-  function startStreamingScroll() {
-    stopStreamingScroll()
-    if (rootRef.current && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      streamingScroll.current = createStreamingScrollFollower(rootRef.current)
     }
   }
 
@@ -120,7 +91,6 @@ export function RoleFitForm({
     setAnswer(nextAnswer)
 
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      stopStreamingScroll()
       setVisibleWordCount(words.length)
       setStatus('done')
       return
@@ -160,7 +130,6 @@ export function RoleFitForm({
     }
 
     clearRevealTimer()
-    startStreamingScroll()
     setAnswer('')
     setVisibleWordCount(0)
     setFieldError('')
@@ -177,7 +146,6 @@ export function RoleFitForm({
       const data: unknown = await response.json().catch(() => undefined)
 
       if (!response.ok) {
-        stopStreamingScroll()
         const code = parseFitErrorCode(data)
         if (code === 'invalid_description' || code === 'description_rejected') {
           setFieldError(
@@ -201,7 +169,6 @@ export function RoleFitForm({
         typeof data.answer !== 'string' ||
         !data.answer.trim()
       ) {
-        stopStreamingScroll()
         setGeneralError(dictionary.unableToAssess)
         setStatus('error')
         playInteractionSound('error')
@@ -211,7 +178,6 @@ export function RoleFitForm({
       playInteractionSound('ready')
       revealAnswer(data.answer)
     } catch {
-      stopStreamingScroll()
       setGeneralError(dictionary.connectionError)
       setStatus('error')
       playInteractionSound('error')
@@ -221,7 +187,7 @@ export function RoleFitForm({
   const isBusy = status === 'loading' || status === 'revealing'
 
   return (
-    <div className="text-sm leading-relaxed" lang={localeTag(locale)} ref={rootRef}>
+    <div className="text-sm leading-relaxed" lang={localeTag(locale)}>
       <form className="flex flex-col gap-5" onSubmit={handleSubmit} noValidate>
         <div>
           <label
@@ -243,7 +209,6 @@ export function RoleFitForm({
             maxLength={MAX_ROLE_DESCRIPTION_LENGTH}
             name="role-description"
             onChange={(event) => {
-              stopStreamingScroll()
               setDescription(event.target.value)
               setFieldError('')
               setGeneralError('')
@@ -284,23 +249,12 @@ export function RoleFitForm({
       </p>
 
       {answer ? (
-        <section className="mt-7" aria-labelledby="fit-assessment">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-[0.8125rem] font-medium" id="fit-assessment">
-              {dictionary.assessment}
-            </h2>
-            <button
-              {...dismissSoundProps}
-              className={`${softLinkClassName} -mr-4 cursor-pointer`}
-              onClick={() => closeAction('fit')}
-              type="button"
-            >
-              {closeLabel}
-            </button>
-          </div>
+        <section ref={assessmentRef} className="mt-7 text-start" aria-labelledby="fit-assessment">
+          <h2 className="text-[0.8125rem] font-medium" id="fit-assessment">
+            {dictionary.assessment}
+          </h2>
           <div className="mt-3 text-black/75 dark:text-white/85">
             <RoleFitAnswer>{visibleAnswer}</RoleFitAnswer>
-            <span aria-hidden="true" ref={answerEndRef} />
           </div>
         </section>
       ) : null}
@@ -309,7 +263,7 @@ export function RoleFitForm({
         <div className="mt-6">
           <button
             {...actionSoundProps}
-            className={`${softLinkClassName} -ml-4 cursor-pointer`}
+            className={`${softLinkClassName} min-h-9 w-fit cursor-pointer !bg-black/[0.07] [font-family:inherit] disabled:cursor-wait disabled:opacity-50 dark:!bg-white/[0.08]`}
             onClick={() => openAction('schedule')}
             type="button"
           >

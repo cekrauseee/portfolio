@@ -463,7 +463,7 @@ export function Guestbook({
       lang={localeTag(locale)}
       data-action-layout-pending={loadState === 'idle' || loadState === 'loading'}
     >
-      <p className="mb-5 text-pretty text-black/65 dark:text-white/70">{dictionary.publicNotice}</p>
+      <p className="mb-4 text-pretty text-black/65 dark:text-white/70">{dictionary.publicNotice}</p>
 
       <div>
         <div
@@ -522,7 +522,7 @@ export function Guestbook({
               >
                 <div className="min-h-0 overflow-hidden">
                   <div
-                    className={`ease-standard pb-6 transition-[opacity,translate] duration-(--motion-feedback) motion-reduce:transition-none ${entering || collapsed ? '-translate-y-0.5 opacity-0' : 'translate-y-0 opacity-100'}`}
+                    className={`ease-standard pb-4 transition-[opacity,translate] duration-(--motion-feedback) motion-reduce:transition-none ${entering || collapsed ? '-translate-y-0.5 opacity-0' : 'translate-y-0 opacity-100'}`}
                   >
                     <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                       <strong className="min-w-0 font-medium break-words text-black dark:text-white">
@@ -595,7 +595,7 @@ export function Guestbook({
         </div>
       </div>
 
-      <div className="mt-5" ref={rootRef}>
+      <div className="mt-4" ref={rootRef}>
         <button
           {...toggleSoundProps}
           aria-controls="guestbook-composer"

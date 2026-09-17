@@ -158,11 +158,7 @@ export default async function Home() {
                   content: (
                     <Fragment key="fit">
                       <p className="mb-5 text-pretty">{dictionary.fit.description}</p>
-                      <RoleFitForm
-                        closeLabel={dictionary.home.contact.close}
-                        locale={locale}
-                        dictionary={dictionary.fit.form}
-                      />
+                      <RoleFitForm locale={locale} dictionary={dictionary.fit.form} />
                     </Fragment>
                   ),
                 },

@@ -137,7 +137,7 @@ export function HomeActions({
           {actions.map((action) => (
             <span
               key={action.id}
-              className={`hover:blur-0 focus-within:blur-0 ease-standard transition-[filter,opacity] duration-(--motion-settle) focus-within:opacity-100 hover:opacity-100 motion-reduce:transition-none ${active !== null && active !== action.id ? 'opacity-35 blur-[1.5px]' : 'blur-0 opacity-100'}`}
+              className={`hover:blur-0 focus-within:blur-0 ease-standard transition-[filter,opacity] duration-(--motion-settle) focus-within:opacity-100 hover:opacity-100 motion-reduce:transition-none ${active !== null && active !== action.id && action.href !== undefined ? 'opacity-35 blur-[1.5px]' : 'blur-0 opacity-100'}`}
             >
               {action.href !== undefined ? (
                 <Link {...linkSoundProps} className={quietLinkClassName} href={action.href}>
@@ -185,7 +185,7 @@ export function HomeActions({
                   <button
                     {...dismissSoundProps}
                     type="button"
-                    className={`${softLinkClassName} mt-5 -ml-4 cursor-pointer`}
+                    className={`${softLinkClassName} mt-4 -ml-4 cursor-pointer`}
                     onClick={() => close(action.id)}
                   >
                     {closeLabel}

@@ -16,3 +16,10 @@ test('homepage blur keeps the action container clear when its own action is open
   assert.match(homeActionsSource, /data-action-background\s+data-action-open=\{active !== null\}/)
   assert.doesNotMatch(homeSource, /<div id="schedule" data-action-background/)
 })
+
+test('home action triggers stay sharp while another action is open', () => {
+  assert.match(
+    homeActionsSource,
+    /active !== null && active !== action\.id && action\.href !== undefined \? 'opacity-35 blur-\[1\.5px\]' : 'blur-0 opacity-100'/,
+  )
+})
