@@ -13,10 +13,12 @@ export function noteMetadata(
   pageTitles: Readonly<Record<string, string>> = {},
 ): Metadata {
   const pageTitle = (pageTitles[note.id]?.trim() || note.id).toLowerCase()
+  const title = `${pageTitle} · ${site.name.toLowerCase()}`
+  const description = note.summary.toLowerCase()
   const pathname = notePath(note.slug)
   return {
-    title: pageTitle,
-    description: note.summary,
+    title,
+    description,
     alternates: { canonical: pathname },
     robots:
       note.status === 'published'
@@ -35,8 +37,8 @@ export function noteMetadata(
     openGraph: {
       type: 'article',
       url: pathname,
-      title: pageTitle,
-      description: note.summary,
+      title,
+      description,
       siteName: site.name,
       locale: localeDetails[note.contentLocale].openGraphLocale,
       publishedTime: note.publishedAt ?? undefined,
@@ -44,7 +46,7 @@ export function noteMetadata(
     },
     twitter: {
       card: 'summary_large_image',
-      title: pageTitle,
+      title,
       description: note.summary,
       creator: `@${site.xHandle}`,
     },

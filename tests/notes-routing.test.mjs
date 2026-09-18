@@ -32,21 +32,33 @@ test('each locale gets concise translated ID metadata with the same canonical ro
     const localized = localizeNote(snapshot.notes[0], locale)
     const pageTitle = dictionaries[locale].home.notes.pageTitles[localized.id].toLowerCase()
     const metadata = noteMetadata(localized, dictionaries[locale].home.notes.pageTitles)
+    const title = `${pageTitle} · henrique krause`
     assert.equal(metadata.alternates.canonical, notePath(note.slug))
-    assert.equal(metadata.title, pageTitle)
+    assert.equal(metadata.title, title)
     assert.equal(metadata.description, localized.summary)
     assert.equal(metadata.openGraph.type, 'article')
-    assert.equal(metadata.openGraph.title, pageTitle)
-    assert.equal(metadata.twitter.title, pageTitle)
+    assert.equal(metadata.openGraph.title, title)
+    assert.equal(metadata.twitter.title, title)
     assert.equal(metadata.robots.index, true)
   }
 })
 
+test('note metadata follows the lowercase portfolio style', () => {
+  const metadata = noteMetadata(
+    { ...note, summary: 'A reflection on why ideas change.' },
+    { [note.id]: 'The gap between starting and shipping' },
+  )
+  assert.equal(metadata.title, 'the gap between starting and shipping · henrique krause')
+  assert.equal(metadata.description, 'a reflection on why ideas change.')
+  assert.equal(metadata.openGraph.description, 'a reflection on why ideas change.')
+})
+
 test('metadata falls back to the stable ID when a translation is unavailable', () => {
   const metadata = noteMetadata({ ...note, title: 'a very long editorial title' })
-  assert.equal(metadata.title, note.id)
-  assert.equal(metadata.openGraph.title, note.id)
-  assert.equal(metadata.twitter.title, note.id)
+  const title = `${note.id} · henrique krause`
+  assert.equal(metadata.title, title)
+  assert.equal(metadata.openGraph.title, title)
+  assert.equal(metadata.twitter.title, title)
 })
 
 test('structured article data identifies the post, language, author and actual publication time', () => {
