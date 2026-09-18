@@ -56,7 +56,7 @@ function difference(left, right) {
 
 test('locale constants expose the supported locales and deployment tags', () => {
   assert.deepEqual(locales, ['en', 'fr', 'es', 'pt', 'ja'])
-  assert.deepEqual(noteLocales, ['en', 'pt', 'ja'])
+  assert.deepEqual(noteLocales, ['en', 'fr', 'es', 'pt', 'ja'])
   assert.equal(defaultLocale, 'en')
   assert.deepEqual(
     Object.fromEntries(locales.map((locale) => [locale, localeDetails[locale].languageTag])),

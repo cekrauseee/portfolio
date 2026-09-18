@@ -33,8 +33,26 @@ function manifestFor(sources) {
         ),
         generationConfigHash: 'a'.repeat(64),
         markdownPath: `content/notes/published-note/note${locale === 'en' ? '' : `.${locale}`}.md`,
-        title: locale === 'en' ? 'a note' : locale === 'pt' ? 'uma nota' : 'ノート',
-        summary: locale === 'en' ? 'a summary' : locale === 'pt' ? 'um resumo' : '概要',
+        title:
+          locale === 'en'
+            ? 'a note'
+            : locale === 'fr'
+              ? 'une note'
+              : locale === 'es'
+                ? 'una nota'
+                : locale === 'pt'
+                  ? 'uma nota'
+                  : 'ノート',
+        summary:
+          locale === 'en'
+            ? 'a summary'
+            : locale === 'fr'
+              ? 'un résumé'
+              : locale === 'es'
+                ? 'un resumen'
+                : locale === 'pt'
+                  ? 'um resumo'
+                  : '概要',
         audioUrl: `https://notes.public.blob.vercel-storage.com/published-note/${locale}.mp3`,
         alignmentUrl: `https://notes.public.blob.vercel-storage.com/published-note/${locale}.json`,
         durationMs: 1200,
@@ -79,6 +97,18 @@ test('notes sync previews local source text and writes a validated snapshot atom
       title: 'a note',
       summary: 'a summary',
       body: 'a thought with **emphasis**.',
+    }),
+    fr: source({
+      locale: 'fr',
+      title: 'une note',
+      summary: 'un résumé',
+      body: 'une idée avec **emphase**.',
+    }),
+    es: source({
+      locale: 'es',
+      title: 'una nota',
+      summary: 'un resumen',
+      body: 'una idea con **énfasis**.',
     }),
     pt: source({
       locale: 'pt',
@@ -127,6 +157,18 @@ test('notes sync preserves tagged Markdown while deriving clean spoken text', as
       summary: 'a summary',
       body: '[calm, measured] A thought with [literal] brackets.',
     }),
+    fr: source({
+      locale: 'fr',
+      title: 'une note',
+      summary: 'un résumé',
+      body: '[thoughtful] Une idée avec [crochets] littéraux.',
+    }),
+    es: source({
+      locale: 'es',
+      title: 'una nota',
+      summary: 'un resumen',
+      body: '[thoughtful] Una idea con [corchetes] literales.',
+    }),
     pt: source({
       locale: 'pt',
       title: 'uma nota',
@@ -164,6 +206,35 @@ test('notes sync preserves tagged Markdown while deriving clean spoken text', as
   }
 })
 
+test('development sync reads fr/es sources with a legacy three-locale manifest', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'portfolio-notes-legacy-manifest-'))
+  const sources = {
+    en: source({ locale: 'en', title: 'a note', summary: 'a summary', body: 'a thought.' }),
+    fr: source({ locale: 'fr', title: 'une note', summary: 'un résumé', body: 'une pensée.' }),
+    es: source({ locale: 'es', title: 'una nota', summary: 'un resumen', body: 'un pensamiento.' }),
+    pt: source({ locale: 'pt', title: 'uma nota', summary: 'um resumo', body: 'uma ideia.' }),
+    ja: source({ locale: 'ja', title: 'ノート', summary: '概要', body: '考え。' }),
+  }
+  try {
+    const manifest = await writeLocalNotes(root, sources)
+    delete manifest.notes[0].locales.fr
+    delete manifest.notes[0].locales.es
+    await writeFile(path.join(root, '.notes/manifest.json'), JSON.stringify(manifest))
+    const result = await syncNotes({
+      mode: 'development',
+      repository: '',
+      localPath: root,
+      outputPath: path.join(root, 'snapshot.json'),
+    })
+    assert.equal(result.snapshot.notes[0].locales.fr.spokenText, 'une pensée.')
+    assert.equal(result.snapshot.notes[0].locales.es.spokenText, 'un pensamiento.')
+    assert.equal(result.snapshot.notes[0].locales.fr.audioUrl, '')
+    assert.equal(result.snapshot.notes[0].locales.es.audioUrl, '')
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
 test('local preview exposes matching generated audio through local asset URLs', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'notes-local-assets-'))
   const sources = {
@@ -172,6 +243,18 @@ test('local preview exposes matching generated audio through local asset URLs', 
       title: 'a note',
       summary: 'a summary',
       body: 'a thought.',
+    }),
+    fr: source({
+      locale: 'fr',
+      title: 'une note',
+      summary: 'un résumé',
+      body: 'une pensée.',
+    }),
+    es: source({
+      locale: 'es',
+      title: 'una nota',
+      summary: 'un resumen',
+      body: 'un pensamiento.',
     }),
     pt: source({
       locale: 'pt',
@@ -233,7 +316,7 @@ test('local preview exposes matching generated audio through local asset URLs', 
       outputPath: path.join(root, 'snapshot.json'),
     })
     const note = result.snapshot.notes[0]
-    for (const locale of ['en', 'pt', 'ja']) {
+    for (const locale of ['en', 'fr', 'es', 'pt', 'ja']) {
       assert.equal(
         note.locales[locale].audioUrl,
         '/api/notes-assets/published-note/' + locale + '/' + generationHash + '/audio.mp3',
@@ -259,6 +342,18 @@ test('notes sync resolves a remote commit before reading manifest and Markdown',
       title: 'a note',
       summary: 'a summary',
       body: 'a thought.',
+    }),
+    fr: source({
+      locale: 'fr',
+      title: 'une note',
+      summary: 'un résumé',
+      body: 'une pensée.',
+    }),
+    es: source({
+      locale: 'es',
+      title: 'una nota',
+      summary: 'un resumen',
+      body: 'un pensamiento.',
     }),
     pt: source({
       locale: 'pt',
@@ -295,7 +390,7 @@ test('notes sync resolves a remote commit before reading manifest and Markdown',
             content: Buffer.from(JSON.stringify(manifest)).toString('base64'),
           })
         }
-        const locale = parsed.pathname.match(/note(?:\.(pt|ja))?\.md$/)?.[1] ?? 'en'
+        const locale = parsed.pathname.match(/note(?:\.(fr|es|pt|ja))?\.md$/)?.[1] ?? 'en'
         const body = sources[locale]
         return Response.json({
           encoding: 'base64',
@@ -336,10 +431,10 @@ test('the populated fixture preserves rich Markdown and every locale', async () 
   assert.equal(note.locales.en.markdownBody.includes('**small**'), true)
   assert.equal(note.locales.ja.markdownBody.includes('**小さな**'), true)
   assert.equal(localizeNote(note, 'en').contentLocale, 'en')
+  assert.equal(localizeNote(note, 'fr').title, 'penser en public')
+  assert.equal(localizeNote(note, 'es').title, 'pensar en público')
   assert.equal(localizeNote(note, 'pt').title, 'pensar em público')
   assert.equal(localizeNote(note, 'ja').title, '人前で考える')
-  assert.equal(localizeNote(note, 'fr').title, localizeNote(note, 'en').title)
-  assert.equal(localizeNote(note, 'es').title, localizeNote(note, 'en').title)
 })
 
 for (const failure of ['404', 'network']) {
@@ -388,7 +483,7 @@ test('local preview includes drafts and unpublished media without weakening prod
   const root = await mkdtemp(path.join(os.tmpdir(), 'notes-drafts-'))
   try {
     const sources = Object.fromEntries(
-      ['en', 'pt', 'ja'].map((locale) => [
+      ['en', 'fr', 'es', 'pt', 'ja'].map((locale) => [
         locale,
         source({
           locale,
@@ -418,7 +513,7 @@ test('local preview includes drafts and unpublished media without weakening prod
       () => parseNotesSnapshot(result.snapshot, { allowPreview: false }),
       /only allowed in development/,
     )
-    for (const locale of ['en', 'pt', 'ja']) {
+    for (const locale of ['en', 'fr', 'es', 'pt', 'ja']) {
       const filename = locale === 'en' ? 'note.md' : `note.${locale}.md`
       await writeFile(
         path.join(root, 'content/notes/published-note', filename),

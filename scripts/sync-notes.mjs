@@ -14,9 +14,9 @@ export const DEFAULT_NOTES_OUTPUT_PATH = path.join(process.cwd(), '.cache', 'not
 export const DEFAULT_NOTES_LOCAL_PATH = path.resolve(process.cwd(), '..', 'notes')
 export const DEFAULT_NOTES_REF = 'main'
 export const DEFAULT_REQUEST_TIMEOUT_MS = 10_000
-const NOTE_LOCALES = ['en', 'pt', 'ja']
+const NOTE_LOCALES = ['en', 'fr', 'es', 'pt', 'ja']
 const LOCAL_ASSET_PATH_PATTERN =
-  /^\/api\/notes-assets\/[a-z0-9]+(?:-[a-z0-9]+)*\/(?:en|pt|ja)\/[a-f0-9]{64}\/(?:audio\.mp3|alignment\.json)$/u
+  /^\/api\/notes-assets\/[a-z0-9]+(?:-[a-z0-9]+)*\/(?:en|fr|es|pt|ja)\/[a-f0-9]{64}\/(?:audio\.mp3|alignment\.json)$/u
 const AUDIO_TAGS = [
   'calm, conversational',
   'calm, measured',
@@ -168,7 +168,13 @@ function validateManifest(value, preview = false) {
     for (const locale of NOTE_LOCALES) {
       const localeEntry = entry.locales[locale]
       const localeContext = `${context}.locales.${locale}`
-      if (!isRecord(localeEntry)) throw new Error(`${localeContext} must be an object.`)
+      // A local working tree may still have a pre-fr/es publication manifest.
+      // The source files remain authoritative for the preview; production
+      // manifests must contain every first-class note locale.
+      if (!isRecord(localeEntry)) {
+        if (preview) continue
+        throw new Error(`${localeContext} must be an object.`)
+      }
       for (const field of [
         'markdownSha256',
         'spokenTextSha256',
@@ -611,6 +617,7 @@ async function buildLocalNotesSnapshot(localPath) {
   try {
     published = validateManifest(
       JSON.parse(await readFile(path.join(localPath, '.notes/manifest.json'), 'utf8')),
+      true,
     ).notes
   } catch (error) {
     if (error.code !== 'ENOENT') throw error

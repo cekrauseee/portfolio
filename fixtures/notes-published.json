@@ -23,6 +23,28 @@
             "alignmentUrl": "https://notes.public.blob.vercel-storage.com/thinking-in-public/en.json",
             "durationMs": 4200
           },
+          "fr": {
+            "markdownSha256": "2dc831b7e555bf6043d7526fbf405b936c9565f006121b4a4be5002bf46198e9",
+            "spokenTextSha256": "b5b3e699c19b2fe7fe0e3bf76a64b8b0130fea9b95fbf68fa88d9e94056ffef6",
+            "generationConfigHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "markdownPath": "content/notes/thinking-in-public/note.fr.md",
+            "title": "penser en public",
+            "summary": "une note avec de la place pour changer.",
+            "audioUrl": "https://notes.public.blob.vercel-storage.com/thinking-in-public/fr.mp3",
+            "alignmentUrl": "https://notes.public.blob.vercel-storage.com/thinking-in-public/fr.json",
+            "durationMs": 4200
+          },
+          "es": {
+            "markdownSha256": "2cbcc4e7f211f1871eec88c2bb7bfaf8dc3999814c73bd0f954dc4dc1cb4bea9",
+            "spokenTextSha256": "6b05df62120a7361c528284953994f1f5712b2a28fd7aab6d444ad509d79a462",
+            "generationConfigHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "markdownPath": "content/notes/thinking-in-public/note.es.md",
+            "title": "pensar en público",
+            "summary": "una nota con espacio para cambiar.",
+            "audioUrl": "https://notes.public.blob.vercel-storage.com/thinking-in-public/es.mp3",
+            "alignmentUrl": "https://notes.public.blob.vercel-storage.com/thinking-in-public/es.json",
+            "durationMs": 4200
+          },
           "pt": {
             "markdownSha256": "aa5f11aa7f1a2f64ab29dcf0bdbcda5045aee936bf6feed8b1311f79bcc8b826",
             "spokenTextSha256": "02ec52aed18633ee4ff487d9906ee623fdba7959e02be2f2321946aca83b9e3a",
@@ -63,6 +85,20 @@
           "rawMarkdown": "---\nid: thinking-in-public\nstatus: published\ndate: 2026-09-10\ntitle: \"thinking in public\"\nsummary: \"a note with room to change.\"\nlocale: en\npublishedAt: 2026-09-10T00:00:00.000Z\n---\n\n# thinking\n\n**small** [link](https://example.com) `code`.\n\n> stay open.\n",
           "markdownBody": "# thinking\n\n**small** [link](https://example.com) `code`.\n\n> stay open.",
           "spokenText": "thinking\n\nsmall link code.\n\nstay open."
+        },
+        "fr": {
+          "markdownSha256": "2dc831b7e555bf6043d7526fbf405b936c9565f006121b4a4be5002bf46198e9",
+          "spokenTextSha256": "b5b3e699c19b2fe7fe0e3bf76a64b8b0130fea9b95fbf68fa88d9e94056ffef6",
+          "rawMarkdown": "---\nid: thinking-in-public\nstatus: published\ndate: 2026-09-10\ntitle: \"penser en public\"\nsummary: \"une note avec de la place pour changer.\"\nlocale: fr\npublishedAt: 2026-09-10T00:00:00.000Z\n---\n\n# réfléchir\n\n**petit** [lien](https://example.com) `code`.\n\n> rester ouvert.\n",
+          "markdownBody": "# réfléchir\n\n**petit** [lien](https://example.com) `code`.\n\n> rester ouvert.",
+          "spokenText": "réfléchir\n\npetit lien code.\n\nrester ouvert."
+        },
+        "es": {
+          "markdownSha256": "2cbcc4e7f211f1871eec88c2bb7bfaf8dc3999814c73bd0f954dc4dc1cb4bea9",
+          "spokenTextSha256": "6b05df62120a7361c528284953994f1f5712b2a28fd7aab6d444ad509d79a462",
+          "rawMarkdown": "---\nid: thinking-in-public\nstatus: published\ndate: 2026-09-10\ntitle: \"pensar en público\"\nsummary: \"una nota con espacio para cambiar.\"\nlocale: es\npublishedAt: 2026-09-10T00:00:00.000Z\n---\n\n# pensar\n\n**pequeño** [enlace](https://example.com) `código`.\n\n> seguir abierto.\n",
+          "markdownBody": "# pensar\n\n**pequeño** [enlace](https://example.com) `código`.\n\n> seguir abierto.",
+          "spokenText": "pensar\n\npequeño enlace código.\n\nseguir abierto."
         },
         "pt": {
           "markdownSha256": "aa5f11aa7f1a2f64ab29dcf0bdbcda5045aee936bf6feed8b1311f79bcc8b826",

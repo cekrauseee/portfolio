@@ -4,7 +4,7 @@ import path from 'node:path'
 export const runtime = 'nodejs'
 
 const NOTE_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u
-const LOCALES = new Set(['en', 'pt', 'ja'])
+const LOCALES = new Set(['en', 'fr', 'es', 'pt', 'ja'])
 const HASH_PATTERN = /^[a-f0-9]{64}$/u
 const ASSETS = {
   'audio.mp3': 'audio/mpeg',
