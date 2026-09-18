@@ -157,6 +157,7 @@ export const ja: Dictionary = {
       connectionError: '比較できませんでした。接続を確認して、もう一度お試しください。',
       characterCount: '{count} / {max}文字',
       scheduleConversation: '話す時間を予約',
+      editDescription: '仕事内容を編集',
     },
   },
   schedule: {

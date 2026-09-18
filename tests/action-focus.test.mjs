@@ -11,10 +11,15 @@ const homeActionsSource = readFileSync(
 test('homepage blur keeps the action container clear when its own action is open', () => {
   assert.match(
     homeSource,
-    /\[data-action-background\]:not\(:focus-within\):not\(\[data-action-open=true\]\)\]:blur-\[1\.5px\]/,
+    /\[data-action-background\]:not\(:hover\):not\(:focus-within\):not\(\[data-action-open=true\]\)\]:blur-\[1\.5px\]/,
   )
   assert.match(homeActionsSource, /data-action-background\s+data-action-open=\{active !== null\}/)
   assert.doesNotMatch(homeSource, /<div id="schedule" data-action-background/)
+  assert.match(
+    homeSource,
+    /\[data-action-background\]\[data-action-keep-blur\]:not\(:hover\):not\(\[data-action-open=true\]\)\]:blur-\[1\.5px\]/,
+  )
+  assert.match(homeSource, /<div\s+data-action-background\s+data-action-keep-blur/)
 })
 
 test('home action triggers stay sharp while another action is open', () => {

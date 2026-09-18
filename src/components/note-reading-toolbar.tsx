@@ -5,7 +5,13 @@ import { Provider as TooltipProvider } from '@radix-ui/react-tooltip'
 import { ChevronDown, ChevronLeft, ChevronUp, Monitor, Moon, Sun } from 'lucide-react'
 import { NoteToolbarTooltip } from '@/components/note-toolbar-tooltip'
 import { NotePlaybackButton } from '@/components/note-playback-button'
-import { focusVisibleClassName, toggleSoundProps } from '@/components/links'
+import {
+  dismissSoundProps,
+  disclosureSoundProps,
+  interactionSoundProps,
+  focusVisibleClassName,
+  toggleSoundProps,
+} from '@/components/links'
 import { useTheme } from '@/theme/theme-provider'
 import { THEME_MEDIA_QUERY } from '@/theme/config'
 import { useToolbarDocking } from '@/features/notes/use-toolbar-docking'
@@ -143,7 +149,7 @@ export function NoteReadingToolbar({
                 label={dictionary.closeReading}
               >
                 <button
-                  {...toggleSoundProps}
+                  {...dismissSoundProps}
                   type="button"
                   className={`${focusVisibleClassName} ${styles.control}`}
                   aria-label={dictionary.closeReading}
@@ -203,7 +209,7 @@ export function NoteReadingToolbar({
                 label={navigation.languageNavigation}
               >
                 <button
-                  {...toggleSoundProps}
+                  {...interactionSoundProps('toggle', pending)}
                   type="button"
                   data-locale-switcher
                   disabled={pending}
@@ -243,7 +249,7 @@ export function NoteReadingToolbar({
               label={minimized ? dictionary.expandToolbar : dictionary.minimizeToolbar}
             >
               <button
-                {...toggleSoundProps}
+                {...disclosureSoundProps(!minimized)}
                 type="button"
                 ref={minimizeRef}
                 className={`${focusVisibleClassName} ${styles.control}`}

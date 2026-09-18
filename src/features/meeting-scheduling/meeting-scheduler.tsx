@@ -1,12 +1,13 @@
 'use client'
 
+import { Input } from '@/components/input'
 import { AnimatedButtonLabel } from '@/components/animated-button-label'
 
 import type { SubmitEvent } from 'react'
 import { useRef, useState } from 'react'
 import {
   softLinkClassName,
-  actionSoundProps,
+  interactionSoundProps,
   ExternalLink,
   focusVisibleClassName,
 } from '@/components/links'
@@ -296,7 +297,7 @@ export function MeetingScheduler({
         {field(
           'name',
           dictionary.name,
-          <input
+          <Input
             autoComplete="name"
             className={inputClass('name')}
             id="meeting-name"
@@ -312,7 +313,7 @@ export function MeetingScheduler({
         {field(
           'email',
           dictionary.email,
-          <input
+          <Input
             autoComplete="email"
             className={inputClass('email')}
             id="meeting-email"
@@ -330,7 +331,7 @@ export function MeetingScheduler({
         {field(
           'date',
           dictionary.date,
-          <input
+          <Input
             className={`${inputClass('date')} box-border block max-w-full cursor-pointer`}
             id="meeting-date"
             min={minDate}
@@ -383,7 +384,7 @@ export function MeetingScheduler({
         <div>
           <FormErrorFeedback message={generalError} />
           <button
-            {...actionSoundProps}
+            {...interactionSoundProps('pulse', submitting)}
             className={`${softLinkClassName} min-h-9 w-fit cursor-pointer !bg-black/[0.07] [font-family:inherit] disabled:cursor-wait disabled:opacity-50 dark:!bg-white/[0.08]`}
             disabled={submitting}
             type="submit"

@@ -2,7 +2,7 @@
 
 import type { ComponentPropsWithRef } from 'react'
 import { CirclePause, Volume2 } from 'lucide-react'
-import { focusVisibleClassName, toggleSoundProps } from '@/components/links'
+import { focusVisibleClassName, interactionSoundProps } from '@/components/links'
 
 export function NotePlaybackButton({
   isPlaying,
@@ -15,7 +15,7 @@ export function NotePlaybackButton({
 }) {
   return (
     <button
-      {...toggleSoundProps}
+      {...interactionSoundProps('toggle', buttonProps.disabled)}
       {...buttonProps}
       aria-label={label}
       type="button"

@@ -175,7 +175,8 @@ test('fit passes only the stable privacy-safe identifier upstream', async () => 
   const handler = createFitPost({
     protect: async () => protection(),
     guardRoleDescription: approveRoleDescription,
-    assessRoleFit: async (_description, identifier) => {
+    assessRoleFit: async (_description, identifier, { onDelta }) => {
+      onDelta('answer')
       identifiers.push(identifier)
       return { answer: 'answer', requestId: 'req_fit_test' }
     },
@@ -184,6 +185,7 @@ test('fit passes only the stable privacy-safe identifier upstream', async () => 
   })
   const result = await handler(jsonRequest('/api/fit', { description: 'Build APIs' }))
   assert.equal(result.status, 200)
+  await result.text()
   assert.deepEqual(identifiers, ['stable-test-identity'])
   assert.equal(identifiers[0].includes('Build APIs'), false)
   assertCookie(result)
@@ -212,10 +214,10 @@ test('fit emits one privacy-safe wide event with provider metadata', async () =>
       return protection()
     },
     guardRoleDescription: approveRoleDescription,
-    assessRoleFit: async () => ({
-      answer: 'answer',
-      requestId: 'req_fit_test',
-    }),
+    assessRoleFit: async (_description, _identifier, { onDelta }) => {
+      onDelta('answer')
+      return { answer: 'answer', requestId: 'req_fit_test' }
+    },
     acquire: async () => 'owner',
     release: async () => {},
     logOperation: (event) => logs.push(event),
@@ -223,6 +225,7 @@ test('fit emits one privacy-safe wide event with provider metadata', async () =>
   const result = await handler(jsonRequest('/api/fit', { description: 'Build private APIs' }))
 
   assert.equal(result.status, 200)
+  await result.text()
   assert.equal(logs.length, 1)
   assert.equal(logs[0].event, 'fit_assessment')
   assert.equal(logs[0].outcome, 'completed')
@@ -251,8 +254,10 @@ test('fit wide event classifies upstream failures without leaking details', asyn
   })
   const result = await handler(jsonRequest('/api/fit', { description: 'Private role description' }))
 
-  assert.equal(result.status, 502)
-  assert.equal((await result.json()).error.code, 'assessment_failed')
+  assert.equal(result.status, 200)
+  const terminal = JSON.parse((await result.text()).trim())
+  assert.equal(terminal.type, 'error')
+  assert.equal(terminal.error.code, 'assessment_failed')
   assert.equal(logs.length, 1)
   assert.equal(logs[0].assessment.failure.reason, 'authentication')
   assert.equal(logs[0].assessment.failure.code, 'invalid_api_key')
@@ -706,4 +711,84 @@ test('the browser keeps one idempotency key for the same canonical payload', asy
 
   scheduler.removeStoredIdempotency(storage)
   assert.equal(values.size, 0)
+})
+
+test('fit returns a delta before generation finishes and holds the lock until completion', async () => {
+  let finish
+  const waiting = new Promise((resolve) => {
+    finish = resolve
+  })
+  let released = 0
+  const logs = []
+  const handler = createFitPost({
+    protect: async () => protection(),
+    guardRoleDescription: approveRoleDescription,
+    acquire: async () => 'owner',
+    release: async () => {
+      released++
+    },
+    logOperation: (event) => logs.push(event),
+    assessRoleFit: async (_description, _identity, { onDelta }) => {
+      onDelta('First ')
+      await waiting
+      onDelta('word.')
+      return { answer: 'First word.', requestId: 'req_stream' }
+    },
+  })
+  const response = await handler(jsonRequest('/api/fit', { description: 'Build APIs' }))
+  assert.match(response.headers.get('content-type'), /application\/x-ndjson/)
+  assertCookie(response)
+  const reader = response.body.getReader()
+  const first = await reader.read()
+  assert.deepEqual(JSON.parse(new TextDecoder().decode(first.value)), {
+    type: 'delta',
+    delta: 'First ',
+  })
+  assert.equal(released, 0)
+  assert.equal(logs.length, 0)
+  finish()
+  let rest = ''
+  while (true) {
+    const chunk = await reader.read()
+    if (chunk.done) break
+    rest += new TextDecoder().decode(chunk.value)
+  }
+  assert.match(rest, /"type":"done"/)
+  assert.equal(released, 1)
+  assert.equal(logs.length, 1)
+  assert.equal(logs[0].outcome, 'completed')
+})
+
+test('cancelling the client stream aborts generation and releases the lock once', async () => {
+  let upstreamSignal
+  let released = 0
+  let logCompleted
+  const logged = new Promise((resolve) => {
+    logCompleted = resolve
+  })
+  const handler = createFitPost({
+    protect: async () => protection(),
+    guardRoleDescription: approveRoleDescription,
+    acquire: async () => 'owner',
+    release: async () => {
+      released++
+    },
+    logOperation: logCompleted,
+    assessRoleFit: async (_description, _identity, { onDelta, signal }) => {
+      upstreamSignal = signal
+      onDelta('First ')
+      await new Promise((_resolve, reject) =>
+        signal.addEventListener('abort', () => reject(signal.reason), { once: true }),
+      )
+      throw new Error('must not finish')
+    },
+  })
+  const response = await handler(jsonRequest('/api/fit', { description: 'Build APIs' }))
+  const reader = response.body.getReader()
+  await reader.read()
+  await reader.cancel()
+  const event = await logged
+  assert.equal(upstreamSignal.aborted, true)
+  assert.equal(released, 1)
+  assert.equal(event.outcome, 'cancelled')
 })

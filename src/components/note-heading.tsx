@@ -19,7 +19,7 @@ export function NoteHeading({
     <header data-note-header className="lowercase" lang={localeTag(note.contentLocale)}>
       <Title
         data-note-shared="title"
-        className="text-base leading-relaxed font-medium text-black lowercase dark:text-white"
+        className={`text-base leading-relaxed font-medium lowercase ${detail ? 'text-black dark:text-white' : 'ease-standard text-black/65 transition-colors duration-(--motion-feedback) group-hover/note:text-black group-focus-visible/note:text-black motion-reduce:transition-none dark:text-white/70 dark:group-hover/note:text-white dark:group-focus-visible/note:text-white'}`}
       >
         {note.title}
       </Title>

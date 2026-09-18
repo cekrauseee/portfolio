@@ -6,7 +6,12 @@ import type { Locale } from '@/i18n/config'
 import styles from './note-reading.module.css'
 import { NoteMarkdown } from '@/components/note-markdown'
 import { decodeAlignmentArtifact, type AlignmentArtifact } from '@/features/notes/alignment'
-import { canContinuePlayback, nextPlaybackRequest, prepareNoteAudio } from '@/features/notes/audio'
+import {
+  canContinuePlayback,
+  nextPlaybackRequest,
+  prepareNoteAudio,
+  setNoteAudioVolume,
+} from '@/features/notes/audio'
 import type { ReadableNote } from '@/content/notes'
 import type { Dictionary } from '@/i18n/dictionary'
 
@@ -76,6 +81,7 @@ export function NoteReader({
     setAudioStatus('idle')
     setCurrentTimeMs(0)
     setDurationMs(note.durationMs)
+    setNoteAudioVolume(audio)
     audio.preload = 'none'
     audio.src = note.audioUrl
 

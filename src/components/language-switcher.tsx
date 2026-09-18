@@ -126,7 +126,7 @@ export function LanguageSwitcher({
       >
         {locales.map((candidate) => (
           <button
-            {...toggleSoundProps}
+            {...(candidate === locale ? {} : toggleSoundProps)}
             className={preferenceOptionClassName}
             onClick={(event) => {
               if (candidate === locale) {

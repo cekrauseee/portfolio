@@ -130,7 +130,11 @@ export function parseRoleDescription(body: unknown) {
 export async function assessRoleFit(
   description: string,
   safetyIdentifier?: string,
-  dependencies: { openai?: Pick<OpenAI, 'responses'> } = {},
+  dependencies: {
+    openai?: Pick<OpenAI, 'responses'>
+    onDelta?: (delta: string) => void
+    signal?: AbortSignal
+  } = {},
 ) {
   const openai =
     dependencies.openai ??
@@ -138,21 +142,48 @@ export async function assessRoleFit(
       apiKey: process.env.OPENAI_API_KEY,
       ...ROLE_FIT_CLIENT_OPTIONS,
     })
-  const response = await openai.responses.create({
-    model: ROLE_FIT_MODEL,
-    instructions: ROLE_FIT_EVALUATOR_INSTRUCTIONS,
-    input: description,
-    max_output_tokens: 700,
-    reasoning: { effort: 'low' },
-    text: { verbosity: 'low' },
-    store: false,
-    safety_identifier: safetyIdentifier,
-  })
-  const answer = response.output_text.trim()
-
-  if (!answer) {
-    throw new Error('Empty response from OpenAI.')
+  const signal = AbortSignal.any([
+    AbortSignal.timeout(ROLE_FIT_REQUEST_TIMEOUT_MS),
+    ...(dependencies.signal ? [dependencies.signal] : []),
+  ])
+  const { data: stream, request_id: requestId } = await openai.responses
+    .create(
+      {
+        model: ROLE_FIT_MODEL,
+        instructions: ROLE_FIT_EVALUATOR_INSTRUCTIONS,
+        input: description,
+        max_output_tokens: 700,
+        reasoning: { effort: 'low' },
+        text: { verbosity: 'low' },
+        store: false,
+        safety_identifier: safetyIdentifier,
+        stream: true,
+      },
+      { signal },
+    )
+    .withResponse()
+  let answer = ''
+  let completed = false
+  try {
+    for await (const event of stream) {
+      if (event.type === 'response.output_text.delta') {
+        answer += event.delta
+        dependencies.onDelta?.(event.delta)
+      } else if (event.type === 'response.completed') {
+        completed = true
+      } else if (
+        event.type === 'response.failed' ||
+        event.type === 'response.incomplete' ||
+        event.type === 'error' ||
+        event.type === 'response.refusal.delta'
+      ) {
+        throw new Error('Assessment stream did not complete.')
+      }
+    }
+    signal.throwIfAborted()
+    if (!completed || !answer.trim()) throw new Error('Incomplete or empty assessment stream.')
+    return { answer: answer.trim(), requestId: requestId ?? undefined }
+  } finally {
+    stream.controller.abort()
   }
-
-  return { answer, requestId: response._request_id ?? undefined }
 }

@@ -1,5 +1,7 @@
 'use client'
 
+import { Textarea } from '@/components/textarea'
+import { Input } from '@/components/input'
 import { AnimatedButtonLabel } from '@/components/animated-button-label'
 
 import type { SubmitEvent } from 'react'
@@ -10,7 +12,8 @@ import {
   actionSoundProps,
   focusVisibleClassName,
   softLinkClassName,
-  toggleSoundProps,
+  disclosureSoundProps,
+  interactionSoundProps,
 } from '@/components/links'
 import {
   appendUniqueMessages,
@@ -479,6 +482,7 @@ export function Guestbook({
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-red-700 dark:text-red-400">
                   <span>{dictionary.loadError}</span>
                   <button
+                    {...actionSoundProps}
                     className={`${softLinkClassName} cursor-pointer !text-red-700 dark:!text-red-400`}
                     onClick={() => void loadInitial()}
                     type="button"
@@ -557,7 +561,7 @@ export function Guestbook({
           <div className="min-h-0 overflow-x-visible overflow-y-clip">
             <div className="pt-1">
               <button
-                {...actionSoundProps}
+                {...disclosureSoundProps(canCollapse, loadMoreState === 'loading')}
                 className={`${softLinkClassName} -ms-4 min-h-9 w-fit cursor-pointer [font-family:inherit] disabled:cursor-wait disabled:opacity-50`}
                 disabled={loadMoreState === 'loading'}
                 onClick={() => {
@@ -597,7 +601,7 @@ export function Guestbook({
 
       <div className="mt-4" ref={rootRef}>
         <button
-          {...toggleSoundProps}
+          {...disclosureSoundProps(composerOpen)}
           aria-controls="guestbook-composer"
           aria-expanded={composerOpen}
           className={`${softLinkClassName} -ms-4 cursor-pointer ${composerOpen ? 'text-black dark:text-white' : '!bg-black/[0.07] dark:!bg-white/[0.08]'}`}
@@ -636,7 +640,7 @@ export function Guestbook({
                   >
                     {dictionary.name}
                   </label>
-                  <input
+                  <Input
                     aria-describedby={nameErrorMessage ? 'guestbook-name-error' : undefined}
                     aria-invalid={Boolean(nameErrorMessage)}
                     autoComplete="name"
@@ -662,7 +666,7 @@ export function Guestbook({
                   >
                     {dictionary.message}
                   </label>
-                  <textarea
+                  <Textarea
                     aria-describedby={messageErrorMessage ? 'guestbook-message-error' : undefined}
                     aria-invalid={Boolean(messageErrorMessage)}
                     className={`${inputClassName(Boolean(messageErrorMessage))} mt-2 max-h-64 min-h-28 resize-y rounded-3xl`}
@@ -683,7 +687,7 @@ export function Guestbook({
                 <div>
                   <FormErrorFeedback message={generalErrorText} />
                   <button
-                    {...actionSoundProps}
+                    {...interactionSoundProps('pulse', submitting)}
                     className={`${softLinkClassName} min-h-9 w-fit cursor-pointer !bg-black/[0.07] [font-family:inherit] disabled:cursor-wait disabled:opacity-50 dark:!bg-white/[0.08]`}
                     disabled={submitting}
                     type="submit"

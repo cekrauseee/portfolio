@@ -60,6 +60,8 @@
     "redis": "^6.2.1",
     "remark-parse": "^11.0.0",
     "resend": "^6.20.0",
+    "streamdown": "^2.6.0",
+    "uisfx": "^0.4.0",
     "unified": "^11.0.5",
     "zod": "^4.4.3"
   },

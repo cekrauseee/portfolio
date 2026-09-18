@@ -118,6 +118,7 @@ export type Dictionary = {
       connectionError: string
       characterCount: string
       scheduleConversation: string
+      editDescription: string
     }
   }
   schedule: {

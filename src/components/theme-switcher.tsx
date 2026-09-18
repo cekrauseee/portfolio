@@ -20,7 +20,7 @@ export function ThemeSwitcher({
       <div className="flex max-w-full flex-wrap items-center gap-x-2 gap-y-1">
         {themePreferences.map((candidate) => (
           <button
-            {...toggleSoundProps}
+            {...(candidate === preference ? {} : toggleSoundProps)}
             className={preferenceOptionClassName}
             type="button"
             aria-pressed={candidate === preference}
