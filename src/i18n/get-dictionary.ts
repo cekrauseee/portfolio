@@ -5,6 +5,8 @@ import type { Dictionary } from '@/i18n/dictionary'
 
 const dictionaries: Record<Locale, () => Promise<Dictionary>> = {
   en: () => import('@/i18n/dictionaries/en').then((module) => module.en),
+  fr: () => import('@/i18n/dictionaries/fr').then((module) => module.fr),
+  es: () => import('@/i18n/dictionaries/es').then((module) => module.es),
   pt: () => import('@/i18n/dictionaries/pt').then((module) => module.pt),
   ja: () => import('@/i18n/dictionaries/ja').then((module) => module.ja),
 }

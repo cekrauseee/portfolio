@@ -22,7 +22,7 @@ const translationKeys = [
   'summary',
 ] as const
 
-const supportedLocales = ['en', 'pt', 'ja'] as const
+const supportedLocales = ['en', 'fr', 'es', 'pt', 'ja'] as const
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)

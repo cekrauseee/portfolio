@@ -9,7 +9,9 @@ published alignment artifact and prepares its audio directly from public Blob
 URLs. Notes have dedicated reading pages but no index route.
 
 The manifest must contain only published entries with `en`, `pt`, and `ja`
-locales. Each locale source must follow the shared canonical Markdown-to-speech
+locales. The portfolio may render these notes while its interface is in French
+or Spanish, but those requests currently fall back to the English note source.
+Each locale source must follow the shared canonical Markdown-to-speech
 projection and match `markdownSha256` and `spokenTextSha256`. Audio and
 alignment URLs must be HTTPS Vercel Blob URLs. Drafts remain in the notes
 repository but are absent from the published manifest and portfolio snapshot.

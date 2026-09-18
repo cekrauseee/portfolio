@@ -53,6 +53,8 @@ test('localized projects select requested content and fall back to English', () 
 
   assert.equal(localizeProject(project, 'pt').summary, 'Resumo em português.')
   assert.equal(localizeProject(project, 'pt').contentLocale, 'pt')
+  assert.equal(localizeProject(project, 'fr').summary, 'English summary.')
+  assert.equal(localizeProject(project, 'es').summary, 'English summary.')
   assert.equal(localizeProject(project, 'ja').summary, 'English summary.')
   assert.equal(localizeProject(project, 'ja').contentLocale, 'en')
 })
@@ -97,7 +99,7 @@ test('project reader accepts localized content and rejects unsupported locales',
               ...localized,
               translations: {
                 ...localized.translations,
-                fr: localized.translations.en,
+                de: localized.translations.en,
               },
             },
           ],

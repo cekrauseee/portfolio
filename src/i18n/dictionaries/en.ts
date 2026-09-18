@@ -14,7 +14,7 @@ export const en: Dictionary = {
     languageNavigation: 'language',
     appearanceNavigation: 'appearance',
     externalLinkNewTab: ' (opens in a new tab)',
-    languages: { en: 'english', pt: 'português', ja: '日本語' },
+    languages: { en: 'english', fr: 'français', es: 'español', pt: 'português', ja: '日本語' },
     appearance: { system: 'system', light: 'light', dark: 'dark' },
   },
   home: {

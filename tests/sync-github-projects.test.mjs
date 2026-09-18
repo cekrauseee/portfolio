@@ -51,7 +51,7 @@ function translationMarkdown(content, overrides = {}) {
 }
 
 function isLocalizedProjectPath(pathname) {
-  return /\/project\.(?:pt|ja)\.md$/.test(pathname)
+  return /\/project\.(?:fr|es|pt|ja)\.md$/.test(pathname)
 }
 
 function response(status, body, headers = {}) {
@@ -518,7 +518,7 @@ test('deduplicates repository overlap across pages by immutable identity', async
       snapshot.projects.map(({ slug }) => slug),
       ['one', 'two', 'three'],
     )
-    assert.equal(fetches.filter((pathname) => pathname.includes('/one/contents/')).length, 3)
+    assert.equal(fetches.filter((pathname) => pathname.includes('/one/contents/')).length, 5)
   } finally {
     await rm(directory, { recursive: true, force: true })
   }

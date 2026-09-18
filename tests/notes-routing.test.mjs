@@ -3,6 +3,8 @@ import test from 'node:test'
 import { readFileSync } from 'node:fs'
 import { localizeNote, parseNotesSnapshot, readableNote } from '../src/content/notes.ts'
 import { en } from '../src/i18n/dictionaries/en.ts'
+import { es } from '../src/i18n/dictionaries/es.ts'
+import { fr } from '../src/i18n/dictionaries/fr.ts'
 import { ja } from '../src/i18n/dictionaries/ja.ts'
 import { pt } from '../src/i18n/dictionaries/pt.ts'
 import {
@@ -23,10 +25,10 @@ const snapshot = parseNotesSnapshot(
   JSON.parse(readFileSync(new URL('../fixtures/notes-published.json', import.meta.url), 'utf8')),
 )
 const note = localizeNote(snapshot.notes[0], 'en')
-const dictionaries = { en, pt, ja }
+const dictionaries = { en, fr, es, pt, ja }
 
 test('each locale gets concise translated ID metadata with the same canonical route', () => {
-  for (const locale of ['en', 'pt', 'ja']) {
+  for (const locale of ['en', 'fr', 'es', 'pt', 'ja']) {
     const localized = localizeNote(snapshot.notes[0], locale)
     const pageTitle = dictionaries[locale].home.notes.pageTitles[localized.id].toLowerCase()
     const metadata = noteMetadata(localized, dictionaries[locale].home.notes.pageTitles)

@@ -1,11 +1,11 @@
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import matter from 'gray-matter'
-import type { Locale } from '@/i18n/config'
+import { noteLocales, type Locale, type NoteLocale } from '@/i18n/config'
 import { normalizeNoteForSpeech, stripAudioTagsFromMarkdown } from '@/content/notes-markdown'
 
-export const NOTE_LOCALES = ['en', 'pt', 'ja'] as const
-export type NoteLocale = (typeof NOTE_LOCALES)[number]
+export const NOTE_LOCALES = noteLocales
+export type { NoteLocale } from '@/i18n/config'
 
 type ManifestLocaleEntry = {
   markdownSha256: string

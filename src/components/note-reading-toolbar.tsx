@@ -17,7 +17,7 @@ import { THEME_MEDIA_QUERY } from '@/theme/config'
 import { useToolbarDocking } from '@/features/notes/use-toolbar-docking'
 import { toolbarPresentation } from '@/features/notes/toolbar-docking'
 import { readingThemeOptions } from '@/features/notes/reading-layout'
-import { locales, type Locale } from '@/i18n/config'
+import { noteLocales, type NoteLocale } from '@/i18n/config'
 import { setLocalePreference } from '@/i18n/actions'
 import { requestLocaleTransition } from '@/i18n/locale-transition'
 import type { Dictionary } from '@/i18n/dictionary'
@@ -34,7 +34,7 @@ export function NoteReadingToolbar({
   onPlayback,
   onLanguageChange,
   onClose,
-  locale,
+  contentLocale,
   dictionary,
   navigation,
 }: {
@@ -48,7 +48,7 @@ export function NoteReadingToolbar({
   onPlayback: () => void
   onLanguageChange: () => void
   onClose: () => void
-  locale: Locale
+  contentLocale: NoteLocale
   dictionary: Dictionary['notes']
   navigation: Dictionary['navigation']
 }) {
@@ -95,7 +95,7 @@ export function NoteReadingToolbar({
     }
     focusBeforeRef.current = null
   }, [docked, collapsed, focusBeforeRef])
-  const nextLocale = locales[(locales.indexOf(locale) + 1) % locales.length]
+  const nextLocale = noteLocales[(noteLocales.indexOf(contentLocale) + 1) % noteLocales.length]
 
   useLayoutEffect(() => {
     if (rootRef.current) setFontFamily(getComputedStyle(rootRef.current).fontFamily)
@@ -227,7 +227,7 @@ export function NoteReadingToolbar({
                     })
                   }}
                 >
-                  {locale}
+                  {contentLocale}
                 </button>
               </NoteToolbarTooltip>
               <span
