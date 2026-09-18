@@ -2,9 +2,9 @@ export const locales = ['en', 'fr', 'es', 'pt', 'ja'] as const
 
 export type Locale = (typeof locales)[number]
 
-// Notes are published independently and currently have only these translations.
-// Keep this order separate from the full interface locale order.
-export const noteLocales = ['en', 'pt', 'ja'] as const
+// Notes are published independently, but currently use the same five locales as
+// the interface. Keep this order separate from the full interface locale order.
+export const noteLocales = ['en', 'fr', 'es', 'pt', 'ja'] as const
 
 export type NoteLocale = (typeof noteLocales)[number]
 

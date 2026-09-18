@@ -56,7 +56,7 @@ export type LocalizedNote = SnapshotLocale &
 
 const snapshotPath = path.join(process.cwd(), '.cache', 'notes.json')
 const LOCAL_ASSET_PATH_PATTERN =
-  /^\/api\/notes-assets\/[a-z0-9]+(?:-[a-z0-9]+)*\/(?:en|pt|ja)\/[a-f0-9]{64}\/(?:audio\.mp3|alignment\.json)$/u
+  /^\/api\/notes-assets\/[a-z0-9]+(?:-[a-z0-9]+)*\/(?:en|fr|es|pt|ja)\/[a-f0-9]{64}\/(?:audio\.mp3|alignment\.json)$/u
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
