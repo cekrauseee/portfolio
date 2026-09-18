@@ -10,7 +10,7 @@ import {
 } from 'react'
 import { motion } from '@/lib/motion'
 import { useCollapsibleHash } from '@/lib/use-collapsible-hash'
-import { focusVisibleClassName, disclosureSoundProps } from '@/components/links'
+import { disclosureSoundProps, linkFocusClassName } from '@/components/links'
 import {
   accommodateReadyContent,
   releaseCollapsedViewport,
@@ -203,7 +203,7 @@ export function ProjectCollapsibleList({
                 {...disclosureSoundProps(isOpen)}
                 aria-controls={panelId}
                 aria-expanded={isOpen}
-                className={`${focusVisibleClassName} group block w-full cursor-pointer touch-manipulation text-left`}
+                className={`${linkFocusClassName} group block w-full cursor-pointer text-left`}
                 id={triggerId}
                 onClick={() => toggleProject(project.slug)}
                 type="button"

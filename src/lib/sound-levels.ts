@@ -1,5 +1,6 @@
-/** The engines have different native gains; equal percentages do not sound equally loud. */
+/** Keep each audio source on an explicit baseline; the engines have different native gains. */
 export const soundLevels = {
-  cuelume: 0.25,
-  typing: { master: 0.8, cue: 0.12 },
+  cuelume: 0.75,
+  typing: { master: 1, cue: 0.3 },
+  noteNarration: 0.7,
 } as const

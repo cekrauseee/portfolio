@@ -77,7 +77,7 @@ test('typing, deleting and inserting a line trigger the Zen typing cue', async (
     await Promise.resolve()
   }
   assert.equal(view.sounds.length, 4)
-  assert.deepEqual(view.sounds[0], ['typing', { retrigger: 'restart', volume: 0.12 }])
+  assert.deepEqual(view.sounds[0], ['typing', { retrigger: 'restart', volume: 0.3 }])
 })
 
 test('paste, drop, replacement, undo and synthetic edits stay silent', async (t) => {

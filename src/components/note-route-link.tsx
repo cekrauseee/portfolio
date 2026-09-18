@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { startNoteRouteTransition } from '@/features/notes/route-transition'
 import type { ReactNode } from 'react'
-import { focusVisibleClassName, linkSoundProps } from '@/components/links'
+import { linkFocusClassName, linkSoundProps } from '@/components/links'
 import { getViewportScroller } from '@/lib/viewport-scroll'
 import { rememberNoteReturn } from '@/features/notes/navigation'
 
@@ -16,7 +16,7 @@ export function NoteRouteLink({ slug, children }: { slug: string; children: Reac
       href={`/notes/${slug}`}
       prefetch={true}
       data-note-link={slug}
-      className={`${focusVisibleClassName} group/note block lowercase`}
+      className={`${linkFocusClassName} group/note block lowercase`}
       onNavigate={(event) => {
         event.preventDefault()
         startNoteRouteTransition(slug, 'open', '/notes/' + slug, () =>

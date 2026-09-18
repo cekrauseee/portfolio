@@ -75,7 +75,7 @@ export default async function Home() {
     <PageShell
       locale={locale}
       navigation={dictionary.navigation}
-      className="[&_[data-action-background]]:transition-[filter,opacity] [&_[data-action-background]]:duration-(--motion-settle) motion-reduce:[&_[data-action-background]]:transition-none [&:has([data-action-open=true])_[data-action-background]:not(:focus-within):not([data-action-open=true])]:opacity-50 [&:has([data-action-open=true])_[data-action-background]:not(:focus-within):not([data-action-open=true])]:blur-[1.5px]"
+      className="[&_[data-action-background]]:transition-[filter,opacity] [&_[data-action-background]]:duration-(--motion-settle) motion-reduce:[&_[data-action-background]]:transition-none [&:has([data-action-open=true])_[data-action-background]:not(:hover):not(:focus-within):not([data-action-open=true])]:opacity-50 [&:has([data-action-open=true])_[data-action-background]:not(:hover):not(:focus-within):not([data-action-open=true])]:blur-[1.5px] [&:has([data-action-open=true])_[data-action-background][data-action-keep-blur]:not(:hover):not([data-action-open=true])]:opacity-50 [&:has([data-action-open=true])_[data-action-background][data-action-keep-blur]:not(:hover):not([data-action-open=true])]:blur-[1.5px]"
     >
       <script
         type="application/ld+json"
@@ -123,7 +123,11 @@ export default async function Home() {
           aria-label={dictionary.navigation.primaryLinks}
           className="flex flex-col gap-3 text-sm leading-relaxed"
         >
-          <div data-action-background className="flex flex-wrap gap-x-5 gap-y-2">
+          <div
+            data-action-background
+            data-action-keep-blur
+            className="flex flex-wrap gap-x-5 gap-y-2"
+          >
             <a {...linkSoundProps} className={quietLinkClassName} href={`mailto:${profile.email}`}>
               {profile.email}
             </a>

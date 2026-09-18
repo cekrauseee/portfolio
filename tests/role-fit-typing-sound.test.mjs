@@ -46,8 +46,8 @@ test('Zen typing is bounded to one voice and only follows revealed words', async
   view.sound.word()
   view.sound.word()
   assert.deepEqual(view.cues, [
-    ['typing', { retrigger: 'restart', volume: 0.12 }],
-    ['typing', { retrigger: 'restart', volume: 0.12 }],
+    ['typing', { retrigger: 'restart', volume: 0.3 }],
+    ['typing', { retrigger: 'restart', volume: 0.3 }],
   ])
   view.sound.stop()
   view.sound.word()

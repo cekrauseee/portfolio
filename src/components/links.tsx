@@ -4,7 +4,7 @@ import type { ComponentProps } from 'react'
 export const focusVisibleClassName =
   'focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-foreground dark:focus-visible:outline-foreground-dark'
 
-export const linkFocusClassName = `touch-manipulation ${focusVisibleClassName}`
+export const linkFocusClassName = 'touch-manipulation focus-visible:outline-none'
 
 export const textLinkClassName = `${linkFocusClassName} underline [text-decoration-skip-ink:auto] [text-decoration-thickness:from-font] underline-offset-[0.28em] hover:decoration-[0.12em] focus-visible:decoration-[0.12em]`
 

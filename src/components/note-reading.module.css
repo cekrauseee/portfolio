@@ -71,6 +71,9 @@
 }
 .toolbar[data-minimized='true'] .controls {
   grid-template-columns: 0fr;
+  flex-basis: 0;
+  width: 0;
+  height: 0;
   opacity: 0;
   pointer-events: none;
 }
@@ -109,10 +112,12 @@
 .readerContent {
   min-width: 0;
 }
-.control:hover {
+.control:hover,
+.control:focus-visible {
   background: rgb(0 0 0 / 5%);
 }
-:global(.dark) .control:hover {
+:global(.dark) .control:hover,
+:global(.dark) .control:focus-visible {
   background: rgb(255 255 255 / 8%);
 }
 .control:disabled {
@@ -138,6 +143,10 @@
 }
 .toolbar[data-docked='true'] .separator {
   margin-inline: 0;
+}
+.toolbar[data-docked='true'] .controlRow > [data-note-toolbar-separator]:first-of-type {
+  flex-basis: 0;
+  opacity: 0;
 }
 .toolbar[data-docked='true'] .minimizeSeparator {
   flex-basis: 0;
@@ -231,6 +240,8 @@
   border-end-end-radius: 0.75rem;
 }
 .minimizeControl {
+  display: flex;
+  align-items: center;
   width: 2.25rem;
   flex-shrink: 0;
   overflow: hidden;
