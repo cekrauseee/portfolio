@@ -3,7 +3,26 @@ import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { RoleFitAnswer } from '../src/features/role-fit/role-fit-answer.tsx'
+import ts from 'typescript'
+
+// Compile this client component as ESM, as Next does; the suite's TSX loader defaults to CJS.
+const componentSource = readFileSync(
+  new URL('../src/features/role-fit/role-fit-answer.tsx', import.meta.url),
+  'utf8',
+)
+const { outputText } = ts.transpileModule(componentSource, {
+  compilerOptions: { module: ts.ModuleKind.ESNext, jsx: ts.JsxEmit.ReactJSX },
+})
+const moduleSource = outputText
+  .replaceAll('"react/jsx-runtime"', JSON.stringify(import.meta.resolve('react/jsx-runtime')))
+  .replaceAll("'streamdown'", JSON.stringify(import.meta.resolve('streamdown')))
+  .replaceAll(
+    "'@/lib/motion'",
+    JSON.stringify(new URL('../src/lib/motion.ts', import.meta.url).href),
+  )
+const { RoleFitAnswer } = await import(
+  `data:text/javascript;base64,${Buffer.from(moduleSource).toString('base64')}`
+)
 
 function render(answer) {
   return renderToStaticMarkup(createElement(RoleFitAnswer, null, answer))
@@ -41,20 +60,26 @@ test('role-fit answer accepts empty, partial, and plain text during reveal', () 
   assert.match(render('Experiência em aplicações.'), /<p>Experiência em aplicações\.<\/p>/)
 })
 
-test('role-fit form preserves reveal, reduced motion, and scheduling', () => {
+test('role-fit form consumes live deltas and keeps scheduling after completion', () => {
   const source = readFileSync(
     new URL('../src/features/role-fit/role-fit-form.tsx', import.meta.url),
     'utf8',
   )
-  assert.match(source, /<RoleFitAnswer>\{visibleAnswer\}<\/RoleFitAnswer>/)
-  assert.match(source, /ref=\{assessmentRef\}/)
+  assert.match(source, /for await \(const delta of readFitStream\(response.body\)\)/)
+  assert.match(source, /words.push\(delta\)/)
   assert.match(source, /prefers-reduced-motion: reduce/)
-  assert.match(source, /const WORD_INTERVAL_MS = 24/)
-  assert.match(source, /stabilizeViewportAnchor\(assessmentRef\.current, 24\)/)
-  assert.match(source, /<section ref=\{assessmentRef\} className="mt-7 text-start"/)
-  assert.doesNotMatch(source, /createStreamingScrollFollower|streamingScroll|stopStreamingScroll/)
+  assert.match(source, /createRoleFitRevealLayout\(rootRef\.current\)/)
   assert.match(source, /openAction\('schedule'\)/)
-  assert.doesNotMatch(source, /closeAction\('fit'\)/)
-  assert.match(source, /min-h-9 w-fit cursor-pointer !bg-black\/\[0\.07\]/)
-  assert.doesNotMatch(source, /-ml-4 min-h-9 w-fit cursor-pointer/)
+  assert.doesNotMatch(source, /visibleWordCount|stabilizeViewportAnchor/)
+})
+
+test('streaming words fade using the shared slower motion token', () => {
+  const html = renderToStaticMarkup(
+    createElement(RoleFitAnswer, { isStreaming: true }, 'Henrique builds **reliable software'),
+  )
+  assert.match(html, /data-sd-animate/)
+  assert.match(html, /--sd-duration:300ms/)
+  assert.doesNotMatch(html, /\*\*/)
+  assert.match(html, /<strong>/)
+  assert.doesNotMatch(html, /hidden|blurIn|slideUp/)
 })

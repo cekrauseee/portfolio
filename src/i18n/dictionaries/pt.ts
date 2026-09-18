@@ -157,6 +157,7 @@ export const pt: Dictionary = {
       connectionError: 'não foi possível comparar esta vaga. confira sua conexão e tente de novo.',
       characterCount: '{count} / {max} caracteres',
       scheduleConversation: 'agendar uma conversa',
+      editDescription: 'editar descrição',
     },
   },
   schedule: {

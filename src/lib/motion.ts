@@ -9,11 +9,13 @@ export const motion = {
   distance: { enter: 8, exit: 12, context: 24 },
   stagger: { item: 25, section: 90, footer: 240 },
   pressScale: 0.96,
+  loadingCycle: 1800,
   icon: { scale: 0.25, blur: 4 },
 } as const
 
 // Render on <html> so the same values are available before hydration and in portals.
 export const motionStyles: CSSProperties & Record<`--motion-${string}`, string | number> = {
+  '--motion-loading-cycle': `${motion.loadingCycle}ms`,
   '--motion-feedback': `${motion.duration.feedback}ms`,
   '--motion-settle': `${motion.duration.settle}ms`,
   '--motion-control': `${motion.duration.control}ms`,

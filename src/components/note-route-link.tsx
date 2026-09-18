@@ -16,7 +16,7 @@ export function NoteRouteLink({ slug, children }: { slug: string; children: Reac
       href={`/notes/${slug}`}
       prefetch={true}
       data-note-link={slug}
-      className={`${focusVisibleClassName} block lowercase`}
+      className={`${focusVisibleClassName} group/note block lowercase`}
       onNavigate={(event) => {
         event.preventDefault()
         startNoteRouteTransition(slug, 'open', '/notes/' + slug, () =>

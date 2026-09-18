@@ -1,3 +1,4 @@
+import { encodeFitStreamEvent } from '@/features/role-fit/stream'
 import {
   assessRoleFit,
   parseRoleDescription,
@@ -164,6 +165,7 @@ export function createFitPost(overrides: Partial<FitDependencies> = {}) {
         )
       }
 
+      let streaming = false
       let response: Response
       let outcome: string
       try {
@@ -208,35 +210,85 @@ export function createFitPost(overrides: Partial<FitDependencies> = {}) {
           }
 
           stage = 'assessment'
+          streaming = true
+          const abort = new AbortController()
+          const signal = AbortSignal.any([request.signal, abort.signal])
           const assessmentStartedAt = Date.now()
-          try {
-            const result = await dependencies.assessRoleFit(description, protection.identity)
-            assessment = {
-              outcome: 'completed',
-              duration_ms: Date.now() - assessmentStartedAt,
-              model: ROLE_FIT_MODEL,
-              request_id: result.requestId,
-            }
-            response = withSession(
-              Response.json({ answer: result.answer }),
-              protection.sessionCookie,
-            )
-            outcome = 'completed'
-          } catch (error) {
-            assessment = {
-              outcome: 'failed',
-              duration_ms: Date.now() - assessmentStartedAt,
-              model: ROLE_FIT_MODEL,
-              failure: openAIFailureDetails(error),
-            }
-            response = errorResponse('assessment_failed', 502, undefined, protection.sessionCookie)
-            outcome = 'assessment_failed'
-          }
+          let cancelled = false
+          const body = new ReadableStream<Uint8Array>({
+            async start(controller) {
+              let streamOutcome = 'completed'
+              try {
+                const result = await dependencies.assessRoleFit(description, protection.identity, {
+                  signal,
+                  onDelta(delta) {
+                    if (!cancelled && !signal.aborted)
+                      controller.enqueue(encodeFitStreamEvent({ type: 'delta', delta }))
+                  },
+                })
+                signal.throwIfAborted()
+                assessment = {
+                  outcome: 'completed',
+                  duration_ms: Date.now() - assessmentStartedAt,
+                  model: ROLE_FIT_MODEL,
+                  request_id: result.requestId,
+                }
+              } catch (error) {
+                streamOutcome = signal.aborted ? 'cancelled' : 'assessment_failed'
+                assessment = {
+                  outcome: 'failed',
+                  duration_ms: Date.now() - assessmentStartedAt,
+                  model: ROLE_FIT_MODEL,
+                  failure: openAIFailureDetails(error),
+                }
+              } finally {
+                const releaseError = await releaseBestEffort(
+                  dependencies.release,
+                  lockKey,
+                  lockOwner,
+                )
+                if (releaseError) lock!.release_error = releaseError
+                // The transport is already 200; record the actual terminal outcome separately.
+                complete(new Response(null, { status: 200 }), streamOutcome)
+                if (!cancelled) {
+                  controller.enqueue(
+                    encodeFitStreamEvent(
+                      streamOutcome === 'completed'
+                        ? { type: 'done' }
+                        : {
+                            type: 'error',
+                            error: {
+                              code: 'assessment_failed',
+                              operationId: operation.operationId,
+                            },
+                          },
+                    ),
+                  )
+                  controller.close()
+                }
+              }
+            },
+            cancel() {
+              cancelled = true
+              abort.abort()
+            },
+          })
+          return withSession(
+            new Response(body, {
+              headers: {
+                'Content-Type': 'application/x-ndjson; charset=utf-8',
+                'Cache-Control': 'no-store, no-transform',
+                'X-Accel-Buffering': 'no',
+                'X-Operation-Id': operation.operationId,
+              },
+            }),
+            protection.sessionCookie,
+          )
         }
       } finally {
-        const releaseError = await releaseBestEffort(dependencies.release, lockKey, lockOwner)
-        if (releaseError) {
-          lock.release_error = releaseError
+        if (!streaming) {
+          const releaseError = await releaseBestEffort(dependencies.release, lockKey, lockOwner)
+          if (releaseError) lock.release_error = releaseError
         }
       }
       return complete(response, outcome)

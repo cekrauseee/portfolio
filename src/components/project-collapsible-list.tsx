@@ -10,7 +10,7 @@ import {
 } from 'react'
 import { motion } from '@/lib/motion'
 import { useCollapsibleHash } from '@/lib/use-collapsible-hash'
-import { focusVisibleClassName, toggleSoundProps } from '@/components/links'
+import { focusVisibleClassName, disclosureSoundProps } from '@/components/links'
 import {
   accommodateReadyContent,
   releaseCollapsedViewport,
@@ -200,7 +200,7 @@ export function ProjectCollapsibleList({
           >
             <h3 className="animate-journal-rise origin-left motion-reduce:animate-none">
               <button
-                {...toggleSoundProps}
+                {...disclosureSoundProps(isOpen)}
                 aria-controls={panelId}
                 aria-expanded={isOpen}
                 className={`${focusVisibleClassName} group block w-full cursor-pointer touch-manipulation text-left`}
@@ -208,7 +208,7 @@ export function ProjectCollapsibleList({
                 onClick={() => toggleProject(project.slug)}
                 type="button"
               >
-                <span className="ease-standard block text-[0.9375rem] leading-relaxed font-medium text-black/85 lowercase transition-colors duration-(--motion-feedback) group-hover:text-black motion-reduce:transition-none dark:text-white/85 dark:group-hover:text-white">
+                <span className="ease-standard block text-[0.9375rem] leading-relaxed font-medium text-black/65 lowercase transition-colors duration-(--motion-feedback) group-hover:text-black group-focus-visible:text-black motion-reduce:transition-none dark:text-white/70 dark:group-hover:text-white dark:group-focus-visible:text-white">
                   {project.name}
                 </span>
                 <span

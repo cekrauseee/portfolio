@@ -17,7 +17,7 @@ import {
   linkSoundProps,
   quietLinkClassName,
   softLinkClassName,
-  toggleSoundProps,
+  disclosureSoundProps,
 } from '@/components/links'
 
 export type HomeAction = { id: string; label: string } & (
@@ -145,7 +145,7 @@ export function HomeActions({
                 </Link>
               ) : (
                 <button
-                  {...toggleSoundProps}
+                  {...disclosureSoundProps(active === action.id)}
                   type="button"
                   id={`action-${action.id}-trigger`}
                   ref={(node) => {
@@ -157,7 +157,7 @@ export function HomeActions({
                   }}
                   aria-expanded={active === action.id}
                   aria-controls={`action-${action.id}-panel`}
-                  className={`${quietLinkClassName} cursor-pointer text-left ${active === action.id ? 'text-black dark:text-white' : ''}`}
+                  className={`${quietLinkClassName} cursor-pointer text-left decoration-1 underline-offset-[0.28em] aria-expanded:text-black aria-expanded:underline dark:aria-expanded:text-white`}
                   onClick={() => setActive(active === action.id ? null : action.id)}
                 >
                   {action.label}

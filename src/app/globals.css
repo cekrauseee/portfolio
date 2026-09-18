@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import 'streamdown/styles.css';
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -306,5 +307,43 @@ html[data-note-transition]::view-transition-old(root) {
   ::view-transition-old(*),
   ::view-transition-new(*) {
     animation-duration: 0s !important;
+  }
+}
+
+/* Text-only shimmer, adapted from ui.shadcn.com/docs/utils/shimmer. */
+@supports (color: oklch(from white l c h)) {
+  @media (prefers-reduced-motion: no-preference) and (forced-colors: none) {
+    .role-fit-shimmer {
+      --shimmer-highlight: oklch(from currentColor l c h / calc(alpha * 0.25));
+      background-image: linear-gradient(
+        110deg,
+        currentColor 35%,
+        var(--shimmer-highlight) 50%,
+        currentColor 65%
+      );
+      background-size: 250% 100%;
+      background-repeat: no-repeat;
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: role-fit-shimmer var(--motion-loading-cycle) linear infinite;
+    }
+
+    .dark .role-fit-shimmer {
+      --shimmer-highlight: oklch(from currentColor min(1, calc(l + 0.4)) c h);
+    }
+
+    .role-fit-shimmer:where([dir='rtl'], [dir='rtl'] *) {
+      animation-direction: reverse;
+    }
+  }
+}
+
+@keyframes role-fit-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
   }
 }

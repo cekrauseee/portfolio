@@ -156,6 +156,7 @@ export const en: Dictionary = {
       connectionError: 'unable to compare this job. check your connection and try again.',
       characterCount: '{count} / {max} characters',
       scheduleConversation: 'schedule a conversation',
+      editDescription: 'edit description',
     },
   },
   schedule: {

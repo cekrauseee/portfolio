@@ -1,3 +1,4 @@
+import type { SoundName } from 'cuelume'
 import type { ComponentProps } from 'react'
 
 export const focusVisibleClassName =
@@ -5,29 +6,28 @@ export const focusVisibleClassName =
 
 export const linkFocusClassName = `touch-manipulation ${focusVisibleClassName}`
 
-export const textLinkClassName = `${linkFocusClassName} underline [text-decoration-skip-ink:auto] [text-decoration-thickness:from-font] underline-offset-[0.28em] hover:decoration-[0.12em]`
+export const textLinkClassName = `${linkFocusClassName} underline [text-decoration-skip-ink:auto] [text-decoration-thickness:from-font] underline-offset-[0.28em] hover:decoration-[0.12em] focus-visible:decoration-[0.12em]`
 
-export const quietLinkClassName = `${linkFocusClassName} min-h-6 font-medium no-underline text-black/85 transition-colors duration-(--motion-feedback) ease-standard hover:text-black motion-reduce:transition-none dark:text-white/85 dark:hover:text-white`
+export const quietLinkClassName = `${linkFocusClassName} min-h-6 font-medium no-underline text-black/65 transition-colors duration-(--motion-feedback) ease-standard hover:text-black focus-visible:text-black motion-reduce:transition-none dark:text-white/70 dark:hover:text-white dark:focus-visible:text-white`
 
-export const softLinkClassName = `${linkFocusClassName} inline-flex min-h-8 items-center rounded-full bg-transparent px-4 py-1 text-[0.8125rem] leading-5 font-medium text-black/80 no-underline transition-[background-color,color,scale] duration-(--motion-feedback) ease-standard hover:bg-black/[0.05] hover:text-black focus-visible:bg-black/[0.05] motion-safe:active:scale-(--motion-press-scale) motion-reduce:transition-none dark:text-white/85 dark:hover:bg-white/[0.08] dark:hover:text-white dark:focus-visible:bg-white/[0.08]`
+export const softLinkClassName = `${linkFocusClassName} inline-flex min-h-8 items-center rounded-full bg-transparent px-4 py-1 text-[0.8125rem] leading-5 font-medium text-black/80 no-underline transition-[background-color,color,scale] duration-(--motion-feedback) ease-standard not-disabled:hover:bg-black/[0.10]! not-disabled:hover:text-black focus-visible:bg-black/[0.10]! focus-visible:text-black motion-safe:active:scale-(--motion-press-scale) motion-reduce:transition-none dark:text-white/85 dark:not-disabled:hover:bg-white/[0.14]! dark:not-disabled:hover:text-white dark:focus-visible:bg-white/[0.14]! dark:focus-visible:text-white`
 
-export const linkSoundProps = {
-  'data-cuelume-hover': 'tick',
-  'data-cuelume-press': 'press',
-  'data-cuelume-release': 'release',
-} as const
+/** Cuelume's toggle attribute follows native click activation, including keyboard. */
+export function interactionSoundProps(sound: SoundName, disabled = false) {
+  return {
+    'data-cuelume-hover': disabled ? undefined : 'tick',
+    'data-cuelume-toggle': disabled ? undefined : sound,
+  } as const
+}
 
-export const actionSoundProps = {
-  'data-cuelume-press': 'pulse',
-} as const
+export const linkSoundProps = interactionSoundProps('press')
+export const actionSoundProps = interactionSoundProps('pulse')
+export const toggleSoundProps = interactionSoundProps('toggle')
+export const dismissSoundProps = interactionSoundProps('droplet')
 
-export const toggleSoundProps = {
-  'data-cuelume-toggle': 'toggle',
-} as const
-
-export const dismissSoundProps = {
-  'data-cuelume-press': 'droplet',
-} as const
+export function disclosureSoundProps(expanded: boolean, disabled = false) {
+  return interactionSoundProps(expanded ? 'droplet' : 'bloom', disabled)
+}
 
 type ExternalLinkProps = Omit<ComponentProps<'a'>, 'rel' | 'target'> & {
   newTabLabel?: string

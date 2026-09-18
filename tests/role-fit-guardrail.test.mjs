@@ -79,11 +79,20 @@ test('role-fit evaluator uses native response controls', async () => {
   const result = await assessRoleFit('Backend engineer building APIs.', 'privacy-safe-identity', {
     openai: {
       responses: {
-        create: async (input) => {
+        create: (input) => {
           observedRequest = input
           return {
-            output_text: 'Overall fit\nStrong fit.',
-            _request_id: 'req_fit_test',
+            withResponse: async () => ({
+              request_id: 'req_fit_test',
+              data: {
+                controller: new AbortController(),
+                async *[Symbol.asyncIterator]() {
+                  yield { type: 'response.output_text.delta', delta: 'Overall fit\n' }
+                  yield { type: 'response.output_text.delta', delta: 'Strong fit.' }
+                  yield { type: 'response.completed' }
+                },
+              },
+            }),
           }
         },
       },
@@ -94,6 +103,7 @@ test('role-fit evaluator uses native response controls', async () => {
     answer: 'Overall fit\nStrong fit.',
     requestId: 'req_fit_test',
   })
+  assert.equal(observedRequest.stream, true)
   assert.equal(observedRequest.model, ROLE_FIT_MODEL)
   assert.equal(observedRequest.instructions, ROLE_FIT_EVALUATOR_INSTRUCTIONS)
   assert.equal(observedRequest.input, 'Backend engineer building APIs.')
@@ -159,4 +169,32 @@ test('role-fit guardrail classifies timeout failures without content', async () 
   } finally {
     restore('OPENAI_API_KEY', previousApiKey)
   }
+})
+
+test('evaluator forwards text before completion and rejects a truncated provider stream', async () => {
+  const deltas = []
+  const controller = new AbortController()
+  await assert.rejects(
+    assessRoleFit('Backend role', undefined, {
+      onDelta: (delta) => deltas.push(delta),
+      openai: {
+        responses: {
+          create: () => ({
+            withResponse: async () => ({
+              request_id: 'req_partial',
+              data: {
+                controller,
+                async *[Symbol.asyncIterator]() {
+                  yield { type: 'response.output_text.delta', delta: 'Partial ' }
+                  assert.deepEqual(deltas, ['Partial '])
+                },
+              },
+            }),
+          }),
+        },
+      },
+    }),
+    /Incomplete/,
+  )
+  assert.equal(controller.signal.aborted, true)
 })

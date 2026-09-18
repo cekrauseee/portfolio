@@ -108,7 +108,7 @@ export default async function Home() {
       <div data-action-background>
         <ExperienceList dictionary={dictionary.home.experience} />
       </div>
-      <div>
+      <div data-action-background>
         <NoteList dictionary={dictionary.home.notes} locale={locale} limit={3} />
       </div>
 
@@ -156,10 +156,12 @@ export default async function Home() {
                   id: 'fit',
                   label: dictionary.home.contact.roleFit,
                   content: (
-                    <Fragment key="fit">
-                      <p className="mb-5 text-pretty">{dictionary.fit.description}</p>
-                      <RoleFitForm locale={locale} dictionary={dictionary.fit.form} />
-                    </Fragment>
+                    <RoleFitForm
+                      key="fit"
+                      locale={locale}
+                      dictionary={dictionary.fit.form}
+                      introduction={dictionary.fit.description}
+                    />
                   ),
                 },
                 {
