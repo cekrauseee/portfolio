@@ -80,14 +80,21 @@ through wording alone.
 
 ## Localization
 
-Portuguese (`pt`, with the `pt-BR` language tag), English (`en`), and Japanese
-(`ja`) are authored adaptations of the same meaning. Rewrite sentence structure,
-rhythm, headings, and expressions for each language. Preserve facts, scope,
-uncertainty, and the action a visitor is taking; equal meaning does not require
-equal sentence count or literal phrasing.
+French (`fr`), Spanish (`es`), Portuguese (`pt`, with the `pt-BR` language tag),
+English (`en`), and Japanese (`ja`) are authored adaptations of the same meaning.
+Rewrite sentence structure, rhythm, headings, and expressions for each language.
+Preserve facts, scope, uncertainty, and the action a visitor is taking; equal
+meaning does not require equal sentence count or literal phrasing. Notes remain
+available only in English, Portuguese, and Japanese until their publication
+workflow adds the other languages.
 
 - Portuguese: use natural Brazilian Portuguese with a mature conversational
   register. Avoid English sentence patterns and unnecessary corporate language.
+- French: use natural, concise French with a conversational professional register.
+  Prefer idiomatic phrasing over literal translations and keep interface labels
+  short.
+- Spanish: use clear, natural Spanish with a conversational professional register.
+  Avoid regionalisms that would unnecessarily narrow the audience.
 - English: use idiomatic, concise prose and familiar engineering terminology.
   Preserve the author's personal voice without adding sales language.
 - Japanese: use natural Japanese technical prose, generally with consistent
@@ -96,8 +103,9 @@ equal sentence count or literal phrasing.
   confirmed result.
 
 Keep product and technology names intact: Aviões, Continuity, Shell, Workflows,
-TypeScript, Node.js, and OpenAI. Use IA in Portuguese and AI in English and
-Japanese where the abbreviation is needed. The restrained lowercase interface
+TypeScript, Node.js, and OpenAI. Use IA in Portuguese, French, and Spanish, and
+AI in English and Japanese where the abbreviation is needed. The restrained
+lowercase interface
 is a presentation convention. The relevant components may apply it to rendered
 profile, project, experience, and note copy. Preserve authored lowercase in
 interface dictionaries where it is the existing convention, while keeping
@@ -106,13 +114,13 @@ identifiers, or code to match it.
 
 ## Content sources and maintenance
 
-| Content                                                     | Source                                                                                                        |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| Localized interface, profile, experience, and page metadata | `src/i18n/dictionaries/{en,pt,ja}.ts`, following `src/i18n/dictionary.ts`                                     |
-| Public identity and manifest fallback copy                  | `src/config/site.ts`                                                                                          |
-| Profile and experience facts used by role comparison        | `src/content/portfolio.ts`                                                                                    |
-| Project descriptions and Markdown                           | `.portfolio/project.md`, `.portfolio/project.pt.md`, and `.portfolio/project.ja.md` in each source repository |
-| Note text and publication data                              | The source and snapshot workflow documented in [Notes](notes.md)                                              |
+| Content                                                     | Source                                                                                                  |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Localized interface, profile, experience, and page metadata | `src/i18n/dictionaries/{en,fr,es,pt,ja}.ts`, following `src/i18n/dictionary.ts`                         |
+| Public identity and manifest fallback copy                  | `src/config/site.ts`                                                                                    |
+| Profile and experience facts used by role comparison        | `src/content/portfolio.ts`                                                                              |
+| Project descriptions and Markdown                           | `.portfolio/project.md`, `.portfolio/project.{fr,es,pt,ja}.md` when available in each source repository |
+| Note text and publication data                              | The source and snapshot workflow documented in [Notes](notes.md)                                        |
 
 Keep descriptions, summaries, highlights, metadata, and bodies consistent with
 the same facts. Project snapshots under `.cache/` are derived data, not the

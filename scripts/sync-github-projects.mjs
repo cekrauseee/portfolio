@@ -14,6 +14,8 @@ export const DEFAULT_OUTPUT_PATH = path.join(process.cwd(), '.cache', 'github-pr
 export const PROJECT_FILE_PATH = '.portfolio/project.md'
 export const PROJECTS_SNAPSHOT_VERSION = 3
 const LOCALIZED_PROJECT_FILE_PATHS = {
+  fr: '.portfolio/project.fr.md',
+  es: '.portfolio/project.es.md',
   pt: '.portfolio/project.pt.md',
   ja: '.portfolio/project.ja.md',
 }

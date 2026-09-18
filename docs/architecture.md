@@ -17,11 +17,11 @@ during visitor requests.
 
 ## Internationalization
 
-The site supports `en`, `pt-BR`, and `ja` while keeping stable, unprefixed URLs
+The site supports `en`, `fr`, `es`, `pt-BR`, and `ja` while keeping stable, unprefixed URLs
 for every route. Locale is request state, not URL state. A valid explicit
 preference in the one-year, `SameSite=Lax` `portfolio-locale` cookie wins over
-the trusted deployment country (`JP` or a configured Portuguese-speaking
-country), then supported `Accept-Language`, then English. The shared inline
+the trusted deployment country (`JP`, France, or a configured Portuguese- or
+Spanish-speaking country), then supported `Accept-Language`, then English. The shared inline
 preferences submit a Server Action that validates the locale and sets the
 `HttpOnly` cookie. Next.js then re-renders the current route in the same
 roundtrip. There
@@ -31,9 +31,11 @@ Each request resolves a locale on the server and loads its typed, server-only
 dictionary. The layout sets `<html lang>` and route metadata from that locale;
 `pt` uses the `pt-BR` language tag. Client components receive only the
 serializable dictionary subsets they need. Synchronized project records can
-provide `en`, `pt`, and `ja` editorial translations. English is required and is
-the fallback when a requested translation is absent; the rendered content keeps
-its actual language tag.
+provide `en`, `fr`, `es`, `pt`, and `ja` editorial translations. English is
+required and is the fallback when a requested translation is absent; the
+rendered content keeps its actual language tag. Notes remain an independent
+three-language publication contract in `en`, `pt`, and `ja`; French and Spanish
+requests use the English note content for now.
 
 Canonical metadata and the sitemap emit one URL per route. They do not emit
 `hreflang` variants because language is stateful rather than represented by
@@ -74,15 +76,17 @@ theme.
 Public repositories owned by the explicit `GITHUB_OWNER` opt in with
 `.portfolio/project.md`. The English file contains identity, a unique positive
 `portfolioIndex`, and editorial front matter plus a Markdown body. Optional
-`.portfolio/project.pt.md` and `.portfolio/project.ja.md` files contain localized
-editorial front matter and body content. The sync paginates GitHub, rejects
+`.portfolio/project.fr.md`, `.portfolio/project.es.md`, `.portfolio/project.pt.md`,
+and `.portfolio/project.ja.md` files contain localized editorial front matter and
+body content. The sync paginates GitHub, rejects
 private repositories, validates each record, deduplicates immutable repository
 identities, slugs, and indexes, sorts by `portfolioIndex`, and atomically replaces
 `.cache/github-projects.json`.
 
 The snapshot loader revalidates the complete file and binds it to the configured
 owner. Writer and reader both require a string slug matching the same safe
-pattern. English is required; Portuguese and Japanese are optional. Repositories
+pattern. English is required; French, Spanish, Portuguese, and Japanese are
+optional. Repositories
 without the Markdown record are ignored. The application and snapshot contract
 use the validated Markdown body.
 

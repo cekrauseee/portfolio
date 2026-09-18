@@ -2,7 +2,6 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { NoteReadingToolbar } from '@/components/note-reading-toolbar'
-import type { Locale } from '@/i18n/config'
 import styles from './note-reading.module.css'
 import { NoteMarkdown } from '@/components/note-markdown'
 import { decodeAlignmentArtifact, type AlignmentArtifact } from '@/features/notes/alignment'
@@ -23,7 +22,6 @@ export function NoteReader({
   note,
   dictionary,
   isOpen,
-  locale,
   navigation,
   onClose,
   children,
@@ -31,7 +29,6 @@ export function NoteReader({
   note: ReadableNote
   dictionary: Dictionary['notes']
   isOpen: boolean
-  locale: Locale
   navigation: Dictionary['navigation']
   onClose: () => void
   children: ReactNode
@@ -174,7 +171,7 @@ export function NoteReader({
   return (
     <div ref={rootRef} className={styles.readerContent} data-open={isOpen}>
       <NoteMarkdown
-        locale={locale}
+        locale={note.contentLocale}
         enabled={isOpen}
         focusRequest={focusRequest}
         alignment={alignment}
@@ -249,7 +246,7 @@ export function NoteReader({
             nextPlaybackRequest(playTokenRef)
             audioRef.current?.pause()
           }}
-          locale={locale}
+          contentLocale={note.contentLocale}
           dictionary={dictionary}
           navigation={navigation}
         />

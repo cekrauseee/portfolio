@@ -7,17 +7,14 @@ import { startNoteRouteTransition } from '@/features/notes/route-transition'
 import { canGoBackFromNote } from '@/features/notes/navigation'
 import type { ReadableNote } from '@/content/notes'
 import type { Dictionary } from '@/i18n/dictionary'
-import type { Locale } from '@/i18n/config'
 
 export function NotePageReader({
   note,
-  locale,
   dictionary,
   navigation,
   children,
 }: {
   note: ReadableNote
-  locale: Locale
   dictionary: Dictionary['notes']
   navigation: Dictionary['navigation']
   children: ReactNode
@@ -41,14 +38,7 @@ export function NotePageReader({
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [close, router])
   return (
-    <NoteReader
-      note={note}
-      locale={locale}
-      dictionary={dictionary}
-      navigation={navigation}
-      isOpen
-      onClose={close}
-    >
+    <NoteReader note={note} dictionary={dictionary} navigation={navigation} isOpen onClose={close}>
       {children}
     </NoteReader>
   )

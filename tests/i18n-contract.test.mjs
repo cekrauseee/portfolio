@@ -1,11 +1,20 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { defaultLocale, localeDetails, localeTag, locales } from '../src/i18n/config.ts'
+import {
+  defaultLocale,
+  localeDetails,
+  localeTag,
+  locales,
+  noteLocales,
+} from '../src/i18n/config.ts'
 import { en } from '../src/i18n/dictionaries/en.ts'
+import { es } from '../src/i18n/dictionaries/es.ts'
+import { fr } from '../src/i18n/dictionaries/fr.ts'
 import { ja } from '../src/i18n/dictionaries/ja.ts'
 import { pt } from '../src/i18n/dictionaries/pt.ts'
 import {
   getDeploymentCountry,
+  FRENCH_COUNTRIES,
   localeFromCountry,
   LOCALE_COOKIE_MAX_AGE_SECONDS,
   LOCALE_COOKIE_NAME,
@@ -13,9 +22,10 @@ import {
   parseLocalePreference,
   PORTUGUESE_COUNTRIES,
   resolveLocale,
+  SPANISH_COUNTRIES,
 } from '../src/i18n/locale.ts'
 
-const dictionaries = { en, pt, ja }
+const dictionaries = { en, fr, es, pt, ja }
 
 function leafEntries(value) {
   const entries = new Map()
@@ -45,15 +55,16 @@ function difference(left, right) {
 }
 
 test('locale constants expose the supported locales and deployment tags', () => {
-  assert.deepEqual(locales, ['en', 'pt', 'ja'])
+  assert.deepEqual(locales, ['en', 'fr', 'es', 'pt', 'ja'])
+  assert.deepEqual(noteLocales, ['en', 'pt', 'ja'])
   assert.equal(defaultLocale, 'en')
   assert.deepEqual(
     Object.fromEntries(locales.map((locale) => [locale, localeDetails[locale].languageTag])),
-    { en: 'en', pt: 'pt-BR', ja: 'ja' },
+    { en: 'en', fr: 'fr', es: 'es', pt: 'pt-BR', ja: 'ja' },
   )
   assert.deepEqual(
     locales.map((locale) => localeTag(locale)),
-    ['en', 'pt-BR', 'ja'],
+    ['en', 'fr', 'es', 'pt-BR', 'ja'],
   )
 })
 
@@ -61,6 +72,8 @@ test('explicit locale preferences use a validated one-year cookie contract', () 
   assert.equal(LOCALE_COOKIE_NAME, 'portfolio-locale')
   assert.equal(LOCALE_COOKIE_MAX_AGE_SECONDS, 365 * 24 * 60 * 60)
   assert.equal(parseLocalePreference('en'), 'en')
+  assert.equal(parseLocalePreference('fr'), 'fr')
+  assert.equal(parseLocalePreference('es'), 'es')
   assert.equal(parseLocalePreference('pt'), 'pt')
   assert.equal(parseLocalePreference('ja'), 'ja')
   assert.equal(parseLocalePreference('pt-BR'), undefined)
@@ -87,8 +100,11 @@ test('deployment country headers prefer Vercel and support Cloudflare fallback',
   assert.equal(getDeploymentCountry({}), undefined)
 })
 
-test('deployment countries map Japan and every configured Portuguese country', () => {
+test('deployment countries map each configured language country', () => {
   assert.equal(localeFromCountry(' jp '), 'ja')
+  assert.equal(localeFromCountry(' fr '), 'fr')
+  assert.equal(localeFromCountry(' es '), 'es')
+  assert.equal(localeFromCountry('mx'), 'es')
   assert.equal(localeFromCountry('US'), undefined)
   assert.equal(localeFromCountry(''), undefined)
   assert.equal(localeFromCountry('  '), undefined)
@@ -96,6 +112,12 @@ test('deployment countries map Japan and every configured Portuguese country', (
 
   for (const country of PORTUGUESE_COUNTRIES) {
     assert.equal(localeFromCountry(country.toLowerCase()), 'pt', `${country} should use Portuguese`)
+  }
+  for (const country of FRENCH_COUNTRIES) {
+    assert.equal(localeFromCountry(country.toLowerCase()), 'fr', `${country} should use French`)
+  }
+  for (const country of SPANISH_COUNTRIES) {
+    assert.equal(localeFromCountry(country.toLowerCase()), 'es', `${country} should use Spanish`)
   }
 })
 
@@ -105,6 +127,10 @@ test('Accept-Language supports exact and regional tags', () => {
     ['en-US', 'en'],
     ['pt', 'pt'],
     ['pt-BR', 'pt'],
+    ['fr', 'fr'],
+    ['fr-FR', 'fr'],
+    ['es', 'es'],
+    ['es-ES', 'es'],
     ['ja', 'ja'],
     ['ja-JP', 'ja'],
   ]
@@ -116,13 +142,14 @@ test('Accept-Language supports exact and regional tags', () => {
 
 test('Accept-Language honors quality order and preserves input order for ties', () => {
   assert.equal(parseAcceptLanguage('en;q=0.3, pt-BR;q=0.9, ja-JP;q=0.8'), 'pt')
+  assert.equal(parseAcceptLanguage('en;q=0.3, fr-FR;q=0.9, es-ES;q=0.8'), 'fr')
   assert.equal(parseAcceptLanguage('ja;q=0.8, pt;q=0.8'), 'ja')
   assert.equal(parseAcceptLanguage('pt;q=0, en;q=0.5'), 'en')
   assert.equal(parseAcceptLanguage('en;q=0, pt;q=0'), undefined)
 })
 
 test('Accept-Language ignores unsupported, malformed, and wildcard-only values', () => {
-  for (const header of [undefined, null, '', ',,', 'fr-FR, de;q=0.9', 'xx;q=wat', 'en;q=1.1']) {
+  for (const header of [undefined, null, '', ',,', 'de-DE, it;q=0.9', 'xx;q=wat', 'en;q=1.1']) {
     assert.equal(parseAcceptLanguage(header), undefined, String(header))
   }
 
@@ -135,6 +162,8 @@ test('Accept-Language ignores unsupported, malformed, and wildcard-only values',
 test('locale resolution uses cookie, country, browser, then English precedence', () => {
   assert.equal(resolveLocale({ cookie: 'ja', country: 'BR', acceptLanguage: 'en' }), 'ja')
   assert.equal(resolveLocale({ country: 'JP', acceptLanguage: 'pt-BR' }), 'ja')
+  assert.equal(resolveLocale({ country: 'FR', acceptLanguage: 'en' }), 'fr')
+  assert.equal(resolveLocale({ country: 'MX', acceptLanguage: 'en' }), 'es')
   assert.equal(resolveLocale({ country: 'US', acceptLanguage: 'pt-BR' }), 'pt')
   assert.equal(resolveLocale({}), 'en')
   assert.equal(resolveLocale({ cookie: 'pt-BR', country: 'US', acceptLanguage: 'ja' }), 'ja')
@@ -189,9 +218,9 @@ test('all locale dictionaries have the same string structure and interpolation c
   }
 })
 
-test('Portuguese and Japanese dictionaries contain translated copy', () => {
+test('non-English dictionaries contain translated copy', () => {
   const englishEntries = leafEntries(en)
-  for (const locale of ['pt', 'ja']) {
+  for (const locale of ['fr', 'es', 'pt', 'ja']) {
     const translatedEntries = leafEntries(dictionaries[locale])
     const changed = [...englishEntries].filter(
       ([path, value]) => translatedEntries.get(path) !== value,

@@ -52,7 +52,6 @@ export default async function NotePage({ params }: { params: Promise<{ slug: str
           <div className="pt-7">
             <NotePageReader
               note={readableNote(note)}
-              locale={locale}
               dictionary={dictionary.notes}
               navigation={dictionary.navigation}
             >

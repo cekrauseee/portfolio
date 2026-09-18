@@ -3,6 +3,30 @@ import { defaultLocale, isLocale, type Locale } from '@/i18n/config'
 export const LOCALE_COOKIE_NAME = 'portfolio-locale'
 export const LOCALE_COOKIE_MAX_AGE_SECONDS = 365 * 24 * 60 * 60
 export const PORTUGUESE_COUNTRIES = new Set(['BR', 'PT', 'AO', 'MZ', 'CV', 'GW', 'ST', 'TL'])
+export const FRENCH_COUNTRIES = new Set(['FR'])
+export const SPANISH_COUNTRIES = new Set([
+  'AR',
+  'BO',
+  'CL',
+  'CO',
+  'CR',
+  'CU',
+  'DO',
+  'EC',
+  'ES',
+  'GQ',
+  'GT',
+  'HN',
+  'MX',
+  'NI',
+  'PA',
+  'PE',
+  'PR',
+  'PY',
+  'SV',
+  'UY',
+  'VE',
+])
 
 type HeaderSource = Pick<Headers, 'get'> | Record<string, string | undefined>
 
@@ -38,6 +62,12 @@ export function localeFromCountry(country: string | null | undefined) {
   if (normalized && PORTUGUESE_COUNTRIES.has(normalized)) {
     return 'pt' as const
   }
+  if (normalized && FRENCH_COUNTRIES.has(normalized)) {
+    return 'fr' as const
+  }
+  if (normalized && SPANISH_COUNTRIES.has(normalized)) {
+    return 'es' as const
+  }
   return undefined
 }
 
@@ -48,10 +78,7 @@ export function localeFromLanguageTag(value: string | null | undefined): Locale 
   }
 
   const primaryLanguage = normalized.split('-')[0]
-  if (primaryLanguage === 'en' || primaryLanguage === 'pt' || primaryLanguage === 'ja') {
-    return primaryLanguage
-  }
-  return undefined
+  return isLocale(primaryLanguage) ? primaryLanguage : undefined
 }
 
 export function parseAcceptLanguage(value: string | null | undefined): Locale | undefined {

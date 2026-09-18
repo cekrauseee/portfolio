@@ -91,7 +91,8 @@ branch. Its front matter contains `portfolioIndex`, `slug`, `name`,
 `repositoryUrl`, `description`, `metaDescription`, `summary`, and `highlights`;
 the body contains the English case study. `portfolioIndex` is a positive integer,
 unique across published projects, and lower values appear first. Optional
-`.portfolio/project.pt.md` and `.portfolio/project.ja.md` files repeat only the
+`.portfolio/project.fr.md`, `.portfolio/project.es.md`,
+`.portfolio/project.pt.md`, and `.portfolio/project.ja.md` files repeat only the
 editorial front matter and provide translated bodies. English is required and
 is used when the requested translation is absent.
 

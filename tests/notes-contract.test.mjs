@@ -339,6 +339,7 @@ test('the populated fixture preserves rich Markdown and every locale', async () 
   assert.equal(localizeNote(note, 'pt').title, 'pensar em público')
   assert.equal(localizeNote(note, 'ja').title, '人前で考える')
   assert.equal(localizeNote(note, 'fr').title, localizeNote(note, 'en').title)
+  assert.equal(localizeNote(note, 'es').title, localizeNote(note, 'en').title)
 })
 
 for (const failure of ['404', 'network']) {
