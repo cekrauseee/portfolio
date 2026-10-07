@@ -1,17 +1,19 @@
-import { createHash, randomUUID } from 'node:crypto'
-import { mkdir, readFile, readdir, rename, stat, unlink, writeFile } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
+import { readFile, readdir, stat } from 'node:fs/promises'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import nextEnv from '@next/env'
 import matter from 'gray-matter'
 import { unified } from 'unified'
 import remarkParse from 'remark-parse'
+import { githubRequestError, recoverGithubRateLimit, writeSnapshotAtomic } from './github-sync.mjs'
 
 const { loadEnvConfig } = nextEnv
 
 export const NOTES_SCHEMA_VERSION = 1
 export const DEFAULT_NOTES_OUTPUT_PATH = path.join(process.cwd(), '.cache', 'notes.json')
 export const DEFAULT_NOTES_LOCAL_PATH = path.resolve(process.cwd(), '..', 'notes')
+export const DEFAULT_NOTES_REPOSITORY = 'cekrauseee/notes'
 export const DEFAULT_NOTES_REF = 'main'
 export const DEFAULT_REQUEST_TIMEOUT_MS = 10_000
 const NOTE_LOCALES = ['en', 'fr', 'es', 'pt', 'ja']
@@ -455,7 +457,11 @@ async function githubJson(fetchImpl, url, token, timeoutMs) {
   }
   if (!response.ok) {
     const message = isRecord(body) && typeof body.message === 'string' ? `: ${body.message}` : ''
-    throw new Error(`GitHub notes request failed (${response.status}) for ${url}${message}`)
+    throw githubRequestError(
+      response,
+      body,
+      `GitHub notes request failed (${response.status}) for ${url}${message}`,
+    )
   }
   return body
 }
@@ -521,18 +527,6 @@ async function buildSnapshot({ manifestSource, source, readFileAtPin }) {
   const snapshot = { version: NOTES_SCHEMA_VERSION, source, manifest, notes }
   validateNotesSnapshot(snapshot)
   return snapshot
-}
-
-async function writeSnapshotAtomic(outputPath, snapshot) {
-  const temporaryPath = `${outputPath}.tmp-${process.pid}-${randomUUID()}`
-  try {
-    await mkdir(path.dirname(outputPath), { recursive: true })
-    await writeFile(temporaryPath, `${JSON.stringify(snapshot, null, 2)}\n`, 'utf8')
-    await rename(temporaryPath, outputPath)
-  } catch (error) {
-    await unlink(temporaryPath).catch(() => {})
-    throw error
-  }
 }
 
 function localAssetUrl(noteId, locale, generationHash, asset) {
@@ -702,6 +696,15 @@ async function buildLocalNotesSnapshot(localPath) {
   return snapshot
 }
 
+function emptyNotesSnapshot(now) {
+  return {
+    version: NOTES_SCHEMA_VERSION,
+    source: { kind: 'empty', commit: 'none' },
+    manifest: { schemaVersion: NOTES_SCHEMA_VERSION, generatedAt: now, notes: [] },
+    notes: [],
+  }
+}
+
 export async function syncNotes({
   mode = 'development',
   repository = process.env.NOTES_REPOSITORY?.trim(),
@@ -728,6 +731,20 @@ export async function syncNotes({
     return {
       skipped: true,
       snapshot: JSON.parse(await readFile(outputPath, 'utf8')),
+    }
+  }
+
+  let localMissing = false
+  if (!repository && mode === 'development') {
+    try {
+      await stat(localPath)
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error
+      localMissing = true
+      repository = DEFAULT_NOTES_REPOSITORY
+      console.warn(
+        `Local notes repository not found at ${localPath}; falling back to public repository ${repository}.`,
+      )
     }
   }
 
@@ -761,7 +778,16 @@ export async function syncNotes({
         readFileAtPin,
       })
     } catch (remoteError) {
-      if (mode !== 'development') throw remoteError
+      if (remoteError.code === 'GITHUB_RATE_LIMIT') {
+        snapshot = await recoverGithubRateLimit(remoteError, {
+          outputPath,
+          emptySnapshot: emptyNotesSnapshot(now),
+          validate: (snapshot) =>
+            validateNotesSnapshot(snapshot, { allowPreview: mode === 'development' }),
+        })
+        return { skipped: false, rateLimited: true, snapshot }
+      }
+      if (mode !== 'development' || localMissing) throw remoteError
       console.warn(`Remote notes sync failed; trying local notes at ${localPath}.`)
       try {
         snapshot = await buildLocalNotesSnapshot(localPath)
@@ -775,16 +801,7 @@ export async function syncNotes({
   } else if (mode === 'development') {
     snapshot = await buildLocalNotesSnapshot(localPath)
   } else {
-    snapshot = {
-      version: NOTES_SCHEMA_VERSION,
-      source: { kind: 'empty', commit: 'none' },
-      manifest: {
-        schemaVersion: NOTES_SCHEMA_VERSION,
-        generatedAt: now,
-        notes: [],
-      },
-      notes: [],
-    }
+    snapshot = emptyNotesSnapshot(now)
   }
 
   await writeSnapshotAtomic(outputPath, snapshot)
@@ -796,6 +813,7 @@ async function main() {
   const mode = modeArgument ? modeArgument.slice('--mode='.length) : 'development'
   loadEnvConfig(process.cwd(), mode === 'development', console, true)
   const result = await syncNotes({ mode })
+  if (result.rateLimited) return
   if (result.skipped) {
     console.log(`Skipping notes reconciliation because NOTES_SYNC_SKIP=1.`)
     return

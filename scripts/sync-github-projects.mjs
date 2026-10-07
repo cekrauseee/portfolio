@@ -1,10 +1,9 @@
-import { randomUUID } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
-import { mkdir, rename, unlink, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import nextEnv from '@next/env'
 import matter from 'gray-matter'
+import { githubRequestError, recoverGithubRateLimit, writeSnapshotAtomic } from './github-sync.mjs'
 
 const { loadEnvConfig } = nextEnv
 
@@ -202,7 +201,9 @@ async function getJson(fetchImpl, url, token, timeoutMs) {
   }
 
   if (!response.ok) {
-    throw new Error(
+    throw githubRequestError(
+      response,
+      body,
       `GitHub request failed (${response.status}) for ${url}${responseDiagnostics(response, body)}`,
     )
   }
@@ -275,7 +276,9 @@ async function getRepositoryFile({
     body = null
   }
   if (!response.ok) {
-    throw new Error(
+    throw githubRequestError(
+      response,
+      body,
       `GitHub project file request failed (${response.status}) for ${repository}${responseDiagnostics(response, body)}`,
     )
   }
@@ -307,7 +310,30 @@ function validateRepository(repo) {
   return repo
 }
 
-export async function syncGithubProjects({
+export async function syncGithubProjects(options = {}) {
+  try {
+    return await reconcileGithubProjects(options)
+  } catch (error) {
+    if (error.code !== 'GITHUB_RATE_LIMIT') throw error
+    const owner = options.owner ?? process.env.GITHUB_OWNER
+    return recoverGithubRateLimit(error, {
+      outputPath: options.outputPath ?? DEFAULT_OUTPUT_PATH,
+      emptySnapshot: {
+        version: PROJECTS_SNAPSHOT_VERSION,
+        owner,
+        generatedAt: (options.now ?? new Date()).toISOString(),
+        projects: [],
+      },
+      validate: (snapshot) => {
+        validateSnapshot(snapshot)
+        if (snapshot.owner !== owner)
+          throw new Error('GitHub project snapshot owner does not match.')
+      },
+    })
+  }
+}
+
+async function reconcileGithubProjects({
   fetchImpl = globalThis.fetch,
   owner = process.env.GITHUB_OWNER,
   token = process.env.GITHUB_TOKEN || '',
@@ -460,18 +486,20 @@ export async function syncGithubProjects({
     generatedAt: now.toISOString(),
     projects,
   }
-  const temporaryPath = `${outputPath}.tmp-${process.pid}-${randomUUID()}`
-
-  try {
-    await mkdir(path.dirname(outputPath), { recursive: true })
-    await writeFile(temporaryPath, `${JSON.stringify(snapshot, null, 2)}\n`, 'utf8')
-    await rename(temporaryPath, outputPath)
-  } catch (error) {
-    await unlink(temporaryPath).catch(() => {})
-    throw error
-  }
+  await writeSnapshotAtomic(outputPath, snapshot)
 
   return snapshot
+}
+
+function validateSnapshot(snapshot) {
+  if (
+    snapshot?.version !== PROJECTS_SNAPSHOT_VERSION ||
+    typeof snapshot.generatedAt !== 'string' ||
+    typeof snapshot.owner !== 'string' ||
+    !Array.isArray(snapshot.projects)
+  ) {
+    throw new Error('Invalid GitHub project snapshot shape.')
+  }
 }
 
 async function main() {
@@ -489,14 +517,7 @@ async function main() {
     }
     try {
       const snapshot = JSON.parse(readFileSync(DEFAULT_OUTPUT_PATH, 'utf8'))
-      if (
-        snapshot?.version !== PROJECTS_SNAPSHOT_VERSION ||
-        typeof snapshot.generatedAt !== 'string' ||
-        typeof snapshot.owner !== 'string' ||
-        !Array.isArray(snapshot.projects)
-      ) {
-        throw new Error('invalid snapshot shape')
-      }
+      validateSnapshot(snapshot)
     } catch (error) {
       throw new Error(`PROJECTS_SYNC_SKIP=1 requires a valid snapshot at ${DEFAULT_OUTPUT_PATH}.`, {
         cause: error,
@@ -508,7 +529,7 @@ async function main() {
 
   const snapshot = await syncGithubProjects()
   console.log(
-    `Wrote ${snapshot.projects.length} GitHub project${snapshot.projects.length === 1 ? '' : 's'} to ${DEFAULT_OUTPUT_PATH}.`,
+    `Using ${snapshot.projects.length} GitHub project${snapshot.projects.length === 1 ? '' : 's'} from ${DEFAULT_OUTPUT_PATH}.`,
   )
 }
 

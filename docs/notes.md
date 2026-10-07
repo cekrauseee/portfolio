@@ -25,6 +25,9 @@ SHA before reading any source. `GITHUB_TOKEN` is optional and is used only to
 raise the public GitHub API rate limit.
 
 During local development, leaving `NOTES_REPOSITORY` empty reads `../notes`.
+If that local directory is missing, the sync warns and falls back to the public
+`cekrauseee/notes` repository at `NOTES_REF`. An existing but invalid local source
+still fails validation; a failed public fallback preserves the previous snapshot.
 If a configured remote source fails in development, the sync warns and tries
 `NOTES_LOCAL_PATH` (default `../notes`) with the same content validation. If both
 sources fail, the error reports both failures and preserves the previous snapshot.
@@ -48,7 +51,9 @@ Set `NOTES_LOCAL_PATH` to override that path. This is a development/offline
 option and is not used by production sync. If production has no
 `NOTES_REPOSITORY`, the sync writes an intentional empty snapshot. If a
 repository is configured and its manifest or source is unavailable, the build
-fails and keeps the failure visible.
+fails and keeps the failure visible. GitHub rate limits instead warn and reuse
+the existing valid snapshot without changing it, or write an empty catalog when
+there is no snapshot. This applies in both modes and does not retry requests.
 
 Run `npm run notes:sync -- --mode=development` to refresh the local snapshot.
 `npm run dev` and `npm run build` run the sync through their lifecycle hooks.
