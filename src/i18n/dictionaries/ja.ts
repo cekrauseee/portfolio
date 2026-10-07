@@ -4,7 +4,7 @@ export const ja: Dictionary = {
   site: {
     title: 'henrique krause',
     description:
-      'リスボンでソフトウェアエンジニアをしています。人やaiエージェントが使うプロダクト、インターフェース、ツールをつくっています。',
+      'リスボンのソフトウェアエンジニア。eloa labsで内部利用向けのプロダクトを開発し、プロダクト設計とaiの活用に取り組んでいます。',
     role: 'ソフトウェアエンジニア',
     location: 'リスボン',
   },
@@ -44,15 +44,21 @@ export const ja: Dictionary = {
       },
     },
     bio: {
-      intro:
-        'リスボンでソフトウェアエンジニアをしています。人やaiエージェントが使うプロダクト、インターフェース、ツールをつくっています。',
-      process: 'アプリケーションのアーキテクチャと実装に取り組み、使う人の体験に気を配っています。',
+      intro: 'リスボンでソフトウェアエンジニアをしています。現在はeloa labsで働いています。',
+      process:
+        'forward deployed engineerとして、プロダクト開発とaiの活用に取り組んでいます。設計から実装まで、使う人の体験にも気を配っています。',
       interests:
         '主にtypescriptとnode.jsを使っています。最近は、aiエージェントが連携して働く仕組みや、必要な文脈を引き継ぐ方法を試しています。',
     },
     experience: {
       title: 'これまでの仕事',
       entries: {
+        eloaLabs: {
+          role: 'ソフトウェアエンジニア',
+          period: '2026年10月–現在',
+          description:
+            '内部利用向けのプロダクトで、機能の追加や不具合の修正、アーキテクチャの設計に携わっています。プロダクトの開発とaiの活用の両方に取り組む仕事です。',
+        },
         teamIt: {
           role: 'ソフトウェアエンジニア',
           period: '2026年2月–7月',
@@ -75,8 +81,7 @@ export const ja: Dictionary = {
     },
     contact: {
       close: '閉じる',
-      description:
-        '新しい機会やフリーランスのプロジェクトを歓迎しています。今取り組んでいることについて、お話ししましょう。',
+      description: '今つくっているものや、プロダクト開発、aiの活用についてお話ししましょう。',
       schedule: '話す時間を予約',
       roleFit: '求人と経験を比べる',
       guestbook: 'ゲストブック',

@@ -18,7 +18,7 @@ import { getRequestLocale } from '@/i18n/request-locale'
 
 const homeTitle = 'henrique krause'
 const homeDescription =
-  'software engineer in lisbon. i like turning ideas into software and caring about how it feels to use.'
+  'software engineer in lisbon, working on internal products at eloa labs across product engineering and applied ai.'
 
 export async function generateMetadata(
   _props: PageProps<'/'>,

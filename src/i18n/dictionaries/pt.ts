@@ -4,7 +4,7 @@ export const pt: Dictionary = {
   site: {
     title: 'henrique krause',
     description:
-      'sou engenheiro de software em lisboa. crio produtos, interfaces e ferramentas para pessoas e agentes de ia.',
+      'engenheiro de software em lisboa. trabalho nos produtos internos da eloa labs, entre engenharia de produto e ia aplicada.',
     role: 'engenheiro de software',
     location: 'lisboa',
   },
@@ -44,16 +44,21 @@ export const pt: Dictionary = {
       },
     },
     bio: {
-      intro:
-        'sou engenheiro de software em lisboa. crio produtos, interfaces e ferramentas para pessoas e agentes de ia.',
+      intro: 'sou engenheiro de software em lisboa. hoje, trabalho na eloa labs.',
       process:
-        'trabalho na arquitetura e na implementação de aplicações, com atenção à experiência de uso.',
+        'atuo como forward deployed engineer, entre engenharia de produto e ia aplicada. trabalho na arquitetura e na implementação, com atenção à experiência de uso.',
       interests:
         'trabalho principalmente com typescript e node.js. ultimamente, tenho explorado como agentes de ia podem trabalhar juntos e manter o contexto de que precisam.',
     },
     experience: {
       title: 'experiência',
       entries: {
+        eloaLabs: {
+          role: 'engenheiro de software',
+          period: 'outubro de 2026–atual',
+          description:
+            'trabalho nos produtos internos da empresa, implementando funcionalidades, corrigindo bugs e contribuindo para a arquitetura. a atuação combina engenharia de produto e ia aplicada.',
+        },
         teamIt: {
           role: 'engenheiro de software',
           period: 'fevereiro–julho de 2026',
@@ -77,7 +82,7 @@ export const pt: Dictionary = {
     contact: {
       close: 'fechar',
       description:
-        'estou aberto a novas oportunidades e projetos freelance. podemos conversar sobre o que você está desenvolvendo.',
+        'podemos conversar sobre o que você está desenvolvendo, engenharia de produto ou ia aplicada.',
       schedule: 'agendar uma conversa',
       roleFit: 'comparar uma vaga',
       guestbook: 'livro de visitas',

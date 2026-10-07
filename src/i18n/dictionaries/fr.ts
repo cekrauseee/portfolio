@@ -4,7 +4,7 @@ export const fr: Dictionary = {
   site: {
     title: 'henrique krause',
     description:
-      "je suis ingénieur logiciel à lisbonne. je crée des produits, des interfaces et des outils pour les personnes et les agents d'IA.",
+      'ingénieur logiciel à lisbonne. je développe des produits internes chez eloa labs, en associant développement produit et IA appliquée.',
     role: 'ingénieur logiciel',
     location: 'lisbonne',
   },
@@ -45,16 +45,21 @@ export const fr: Dictionary = {
       },
     },
     bio: {
-      intro:
-        "je suis ingénieur logiciel à lisbonne. je crée des produits, des interfaces et des outils pour les personnes et les agents d'IA.",
+      intro: 'je suis ingénieur logiciel à lisbonne. je travaille actuellement chez eloa labs.',
       process:
-        "je travaille sur l'architecture et l'implémentation d'applications, en accordant de l'attention à l'expérience utilisateur.",
+        "mon rôle de forward deployed engineer mêle développement produit et IA appliquée. je travaille sur l'architecture et l'implémentation, en prêtant attention à l'expérience utilisateur.",
       interests:
         "je travaille principalement avec typescript et node.js. dernièrement, j'explore la manière dont les agents d'IA peuvent collaborer et conserver le contexte dont ils ont besoin.",
     },
     experience: {
       title: 'expérience',
       entries: {
+        eloaLabs: {
+          role: 'ingénieur logiciel',
+          period: 'octobre 2026–aujourd’hui',
+          description:
+            "je travaille sur les produits internes de l'entreprise : j'ajoute des fonctionnalités, corrige des bugs et contribue aux choix d'architecture. ce travail associe développement produit et IA appliquée.",
+        },
         teamIt: {
           role: 'ingénieur logiciel',
           period: 'février–juillet 2026',
@@ -78,7 +83,7 @@ export const fr: Dictionary = {
     contact: {
       close: 'fermer',
       description:
-        'je suis ouvert aux nouvelles opportunités et aux projets freelance. parlons de ce que vous construisez.',
+        "parlons de ce que vous construisez, de développement produit ou d'IA appliquée.",
       schedule: 'planifier une conversation',
       roleFit: 'voir si le poste me correspond',
       guestbook: "livre d'or",

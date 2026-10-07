@@ -21,6 +21,15 @@ export const socialLinks = [
 
 export const experience = [
   {
+    id: 'eloaLabs',
+    company: 'eloa labs',
+    role: 'software engineer',
+    period: 'october 2026–present',
+    details: [
+      'I work on internal products, building features, fixing bugs, and contributing to product architecture. My role combines forward deployed engineering, product engineering, and applied AI.',
+    ],
+  },
+  {
     id: 'teamIt',
     company: 'team.it',
     role: 'software engineer',

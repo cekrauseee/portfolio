@@ -4,7 +4,7 @@ export const en: Dictionary = {
   site: {
     title: 'henrique krause',
     description:
-      "i'm a software engineer in lisbon. i build products, interfaces, and tools for people and ai agents.",
+      'software engineer in lisbon, working on internal products at eloa labs across product engineering and applied ai.',
     role: 'software engineer',
     location: 'lisbon',
   },
@@ -44,16 +44,21 @@ export const en: Dictionary = {
       },
     },
     bio: {
-      intro:
-        "i'm a software engineer in lisbon. i build products, interfaces, and tools for people and ai agents.",
+      intro: "i'm a software engineer in lisbon, currently at eloa labs.",
       process:
-        'i work on application architecture and implementation, with attention to the user experience.',
+        'my work combines forward deployed engineering and applied ai. i work on product architecture and implementation, with attention to the user experience.',
       interests:
         "i mostly work with typescript and node.js. lately, i've been exploring how ai agents can work together and keep the context they need.",
     },
     experience: {
       title: 'experience',
       entries: {
+        eloaLabs: {
+          role: 'software engineer',
+          period: 'october 2026–present',
+          description:
+            "i work on the company's internal products, building features, fixing bugs, and helping shape the architecture. the role brings together product engineering and applied ai.",
+        },
         teamIt: {
           role: 'software engineer',
           period: 'february–july 2026',
@@ -76,8 +81,7 @@ export const en: Dictionary = {
     },
     contact: {
       close: 'close',
-      description:
-        "i'm open to new opportunities and freelance projects. we can talk about what you're building.",
+      description: "we can talk about what you're building, product engineering, or applied ai.",
       schedule: 'schedule a conversation',
       roleFit: 'check role fit',
       guestbook: 'guestbook',
