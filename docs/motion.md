@@ -58,3 +58,45 @@ superseded animations; never delay navigation or leave content hidden when motio
 `tests/motion.test.mjs` checks token availability before hydration, CSS/JavaScript
 timing agreement, curve bounds, and prevents numeric duration/easing drift in source.
 The existing route, scroll, locale, theme and control tests cover their behavior.
+
+## Resident bird
+
+`PixelBird` lives in the root layout, outside the clipped scrolling content. Its
+pixel SVG follows the pointer throughout the available margin, crosses sides after
+a brief dwell beyond the column's center, and accompanies scrolling. A temporary
+branch unfolds at the landing point as the bird approaches, yields slightly on
+landing, and retracts when it leaves. Branches are separate from the moving sprite;
+their width adapts to the available margin.
+
+Pointer attention expires after 0.9 seconds and is released immediately when the
+pointer leaves the window, the window loses focus, scrolling starts, or a form field
+receives focus. The bird blends back to a nearby visible heading instead of
+remaining at the pointer's last coordinates. Notes suppress vertical pointer
+following. After 4.5 seconds without interaction it sleeps with pixel Zs.
+
+Returning cursor activity first raises the bird's attention while it stays perched:
+a brief pixel exclamation and sparks appear once, with a head lift and tail flick.
+Following requires at least 24 pixels of movement over the shared control duration (300 ms);
+isolated nudges do not accumulate. Once engaged, following keeps its quick response
+until the pointer is released.
+
+During note narration, the bird opens a pixel book beside the active paragraph.
+The reader's `data-note-audio-state` and existing `data-note-state="current"` word
+markers identify the active paragraph. The reading pose and its gentle continuous
+gesture remain stable between words and during scrolling; the last spoken word is
+retained through gaps. The perch stays within the reading band, without falling
+back to a heading when no word is highlighted. Pausing, buffering, ending,
+changing language, or leaving the note ends the reading pose. This decoration
+never controls playback or the reading camera.
+
+A critically damped spring preserves velocity when the destination changes. Local
+following uses the shared page duration; crossing the column uses 1.6 times that
+response time, returning to the faster response on approach. The climb and descent
+go through the same spring, without adding offsets to the rendered position.
+Sprite cycles derive from the existing motion tokens.
+
+The `portfolio-bird` view-transition name carries the same bird across note routes;
+its destination is measured after note scroll restoration. Ordinary route changes
+use the same persistent flight controller. Animation frames stop when settled,
+hidden, or in a background tab. Reduced motion leaves a static bird in the margin.
+The localized footer preference hides it and remembers the choice in local storage.

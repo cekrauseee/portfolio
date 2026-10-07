@@ -10,6 +10,7 @@ import { ThemeProvider } from '@/theme/theme-provider'
 import { ThemeScript } from '@/theme/theme-script'
 import { NoteRouteRestoration } from '@/components/note-route-restoration'
 import { InteractionSounds } from '@/components/interaction-sounds'
+import { PixelBird } from '@/components/pixel-bird'
 import { motionStyles } from '@/lib/motion'
 import { localeDetails } from '@/i18n/config'
 import { getDictionary } from '@/i18n/get-dictionary'
@@ -104,6 +105,7 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
           <InteractionSounds />
           <NoteRouteRestoration />
           {children}
+          <PixelBird />
           <Analytics />
           <SpeedInsights />
         </ThemeProvider>

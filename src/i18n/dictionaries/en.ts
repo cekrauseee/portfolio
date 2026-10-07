@@ -16,6 +16,7 @@ export const en: Dictionary = {
     externalLinkNewTab: ' (opens in a new tab)',
     languages: { en: 'english', fr: 'français', es: 'español', pt: 'português', ja: '日本語' },
     appearance: { system: 'system', light: 'light', dark: 'dark' },
+    bird: { label: 'little bird', on: 'on', off: 'off' },
   },
   home: {
     projects: 'projects',

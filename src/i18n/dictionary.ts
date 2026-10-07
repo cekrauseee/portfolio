@@ -13,6 +13,7 @@ export type Dictionary = {
     languageNavigation: string
     appearanceNavigation: string
     externalLinkNewTab: string
+    bird: { label: string; on: string; off: string }
     languages: Record<Locale, string>
     appearance: {
       system: string

@@ -109,6 +109,25 @@ html[data-note-transition]::view-transition-old(root) {
 ::view-transition-group(.note-page) {
   z-index: 0;
 }
+::view-transition-group(portfolio-bird),
+::view-transition-group(portfolio-perch-left),
+::view-transition-group(portfolio-perch-right) {
+  z-index: 35;
+  animation-duration: var(--note-route-duration);
+  animation-timing-function: var(--note-route-easing);
+}
+::view-transition-old(portfolio-bird),
+::view-transition-old(portfolio-perch-left),
+::view-transition-old(portfolio-perch-right) {
+  display: none;
+}
+::view-transition-new(portfolio-bird),
+::view-transition-new(portfolio-perch-left),
+::view-transition-new(portfolio-perch-right) {
+  height: 100%;
+  animation: none;
+  mix-blend-mode: normal;
+}
 ::view-transition-old(.note-page) {
   animation: note-page-out var(--motion-settle) var(--note-route-easing) both;
 }

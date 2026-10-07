@@ -1,5 +1,6 @@
 import { LanguageSwitcher } from '@/components/language-switcher'
 import { ThemeSwitcher } from '@/components/theme-switcher'
+import { BirdPreference } from '@/components/pixel-bird'
 import type { Locale } from '@/i18n/config'
 import type { Dictionary } from '@/i18n/dictionary'
 
@@ -21,6 +22,7 @@ export function Preferences({ locale, dictionary }: PreferencesProps) {
         label={dictionary.languageNavigation}
       />
       <ThemeSwitcher labels={dictionary.appearance} label={dictionary.appearanceNavigation} />
+      <BirdPreference labels={dictionary.bird} />
     </div>
   )
 }

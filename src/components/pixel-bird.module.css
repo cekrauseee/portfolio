@@ -1,0 +1,375 @@
+.habitat {
+  --bird-ink: #343834;
+  --bird-wing: #555d53;
+  --bird-feather: #7c8575;
+  --bird-breast: #c97956;
+  --bird-belly: #e5b28a;
+  --bird-beak: #96734b;
+  --bird-eye: #f6f3dc;
+  --bird-branch: #8f795e;
+  --bird-page: #f0e8d5;
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  pointer-events: none;
+}
+
+.bird {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 35;
+  width: 48px;
+  height: 48px;
+  pointer-events: none;
+  opacity: 0;
+  contain: layout style;
+  view-transition-name: portfolio-bird;
+  transition: opacity var(--motion-settle) var(--motion-easing);
+}
+
+:global(.dark) .habitat {
+  --bird-ink: #c9c9b5;
+  --bird-wing: #9caa98;
+  --bird-feather: #e1dfc8;
+  --bird-breast: #d98b65;
+  --bird-belly: #efc298;
+  --bird-beak: #cda56c;
+  --bird-eye: #252e29;
+  --bird-branch: #9e8e73;
+}
+
+.habitat[data-ready='true'] .bird {
+  opacity: 1;
+}
+
+.branch {
+  position: fixed;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  clip-path: inset(0 0 0 100%);
+  transform-origin: right center;
+  transition:
+    opacity var(--motion-page) var(--motion-easing),
+    translate var(--motion-page) var(--motion-easing),
+    rotate var(--motion-control) var(--motion-easing),
+    clip-path var(--motion-page) var(--motion-easing);
+}
+
+.branch[data-bird-perch='left'] {
+  view-transition-name: portfolio-perch-left;
+}
+
+.branch[data-bird-perch='right'] {
+  transform: scaleX(-1);
+  transform-origin: center;
+  view-transition-name: portfolio-perch-right;
+}
+
+/* The route snapshot owns this movement; capture the destination geometry. */
+@supports (view-transition-class: note-container) {
+  :global(html[data-note-transition]) .branch {
+    transition: none;
+  }
+}
+
+.habitat[data-ready='true'][data-perching='true'][data-side='left'] .branch[data-bird-perch='left'],
+.habitat[data-ready='true'][data-perching='true'][data-side='right']
+  .branch[data-bird-perch='right'] {
+  opacity: 0.65;
+  clip-path: inset(0);
+}
+
+.habitat[data-side='left'][data-landed='true'] .branch[data-bird-perch='left'] {
+  rotate: -1deg;
+}
+
+.habitat[data-side='right'][data-landed='true'] .branch[data-bird-perch='right'] {
+  rotate: 1deg;
+}
+
+.turn {
+  width: 100%;
+  height: 100%;
+  transform: scaleX(var(--bird-facing, 1));
+}
+
+.sprite {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transform: rotate(var(--bird-tilt, 0deg));
+  image-rendering: pixelated;
+}
+
+.head {
+  transform: translateY(var(--bird-look, 0px));
+  transform-origin: 16px 10px;
+  transition: transform var(--motion-control) var(--motion-easing);
+}
+
+.shadow {
+  position: absolute;
+  bottom: 4%;
+  left: 29%;
+  width: 42%;
+  height: 2px;
+  background: var(--bird-ink);
+  opacity: 0.12;
+  transition: opacity var(--motion-settle) var(--motion-easing);
+}
+
+.eye {
+  animation: blink calc(var(--motion-loading-cycle) * 3) steps(1, end) infinite;
+}
+
+.closedEye,
+.wingUp,
+.wingOut,
+.wingDown,
+.dream,
+.notice {
+  opacity: 0;
+}
+
+.bird[data-state='attentive'] .head {
+  transform: translateY(-1px) rotate(-6deg);
+}
+
+.book {
+  opacity: 0;
+  transform: translateY(2px);
+  transition:
+    opacity var(--motion-settle) var(--motion-easing),
+    transform var(--motion-control) var(--motion-easing);
+}
+
+.bird[data-state='reading'] .book {
+  opacity: 1;
+  transform: none;
+}
+
+.bird[data-state='reading'] .head {
+  transform: translateY(1px) rotate(7deg);
+  animation: reading-nod calc(var(--motion-loading-cycle) * 2) var(--motion-easing) infinite;
+}
+
+.bird[data-state='reading'] .foldedWing {
+  transform: translate(1px, 2px);
+}
+
+.bird[data-state='reading'] .bookLine {
+  animation: reading-line calc(var(--motion-loading-cycle) * 2) var(--motion-easing) infinite;
+}
+
+.foldedWing,
+.feet {
+  transition:
+    opacity var(--motion-settle) var(--motion-easing),
+    transform var(--motion-control) var(--motion-easing);
+}
+
+.bird[data-state='flying'] .foldedWing,
+.bird[data-state='flying'] .feet,
+.bird[data-state='flying'] .shadow {
+  opacity: 0;
+}
+
+.bird[data-state='flying'] .wingUp,
+.bird[data-state='flying'] .wingOut,
+.bird[data-state='flying'] .wingDown {
+  animation: flap calc(var(--motion-control) * 1.5) steps(1, end) infinite;
+}
+
+.bird[data-state='flying'] .wingOut {
+  animation-delay: calc(var(--motion-control) / -2);
+}
+
+.bird[data-state='flying'] .wingDown {
+  animation-delay: calc(var(--motion-control) * -1);
+}
+
+.bird[data-state='perched'] .tail {
+  transform-origin: 9px 17px;
+  animation: tail calc(var(--motion-loading-cycle) * 4) steps(1, end) infinite;
+}
+
+.bird[data-state='sleeping'] .eye {
+  opacity: 0;
+  animation: none;
+}
+
+.bird[data-state='sleeping'] .closedEye {
+  opacity: 1;
+}
+
+.bird[data-state='sleeping'] .head {
+  transform: translateY(1px);
+}
+
+.dream,
+.notice {
+  position: absolute;
+  top: -35%;
+  left: 25%;
+  width: 65%;
+  height: 65%;
+  overflow: visible;
+}
+
+.bird[data-state='attentive'] .notice {
+  animation: notice var(--motion-page) var(--motion-easing) both;
+}
+
+.bird[data-state='attentive'] .tail {
+  transform-origin: 9px 17px;
+  animation: notice-tail var(--motion-control) steps(2, end) both;
+}
+
+.bird[data-state='sleeping'] .dream {
+  opacity: 1;
+}
+
+.bird[data-state='sleeping'] .dream g {
+  animation: dream calc(var(--motion-loading-cycle) * 2) var(--motion-easing) infinite;
+}
+
+.bird[data-state='sleeping'] .dream g:nth-child(2) {
+  animation-delay: calc(var(--motion-loading-cycle) / -1.5);
+}
+
+.bird[data-state='sleeping'] .dream g:nth-child(3) {
+  animation-delay: calc(var(--motion-loading-cycle) / -0.75);
+}
+
+.habitat[data-suspended='true'] * {
+  animation-play-state: paused !important;
+}
+
+@keyframes blink {
+  0%,
+  94%,
+  98%,
+  100% {
+    opacity: 1;
+  }
+  95%,
+  97% {
+    opacity: 0;
+  }
+}
+
+@keyframes reading-nod {
+  0%,
+  100% {
+    transform: translateY(1px) rotate(7deg);
+  }
+  50% {
+    transform: translateY(1.5px) rotate(9deg);
+  }
+}
+
+@keyframes reading-line {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes notice {
+  0% {
+    opacity: 0;
+    translate: 0 3px;
+    scale: 0.8;
+  }
+  25%,
+  65% {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1.1;
+  }
+  100% {
+    opacity: 0;
+    translate: 0 -3px;
+    scale: 1;
+  }
+}
+
+@keyframes notice-tail {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  40% {
+    transform: rotate(-12deg);
+  }
+}
+
+@keyframes flap {
+  0%,
+  32% {
+    opacity: 1;
+  }
+  33%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes tail {
+  0%,
+  88%,
+  100% {
+    transform: rotate(0deg);
+  }
+  90%,
+  94% {
+    transform: rotate(-8deg);
+  }
+  92%,
+  96% {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes dream {
+  0%,
+  100% {
+    opacity: 0;
+    translate: 0 0;
+  }
+  40% {
+    opacity: 0.6;
+  }
+  85% {
+    opacity: 0;
+    translate: 2px -8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .habitat,
+  .habitat * {
+    animation: none !important;
+    transition: none !important;
+  }
+  .sprite,
+  .head {
+    transform: none !important;
+  }
+  .dream,
+  .notice {
+    display: none;
+  }
+}
+
+@media print {
+  .habitat {
+    display: none;
+  }
+}

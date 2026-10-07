@@ -169,7 +169,12 @@ export function NoteReader({
           : ''
 
   return (
-    <div ref={rootRef} className={styles.readerContent} data-open={isOpen}>
+    <div
+      ref={rootRef}
+      className={styles.readerContent}
+      data-open={isOpen}
+      data-note-audio-state={audioStatus}
+    >
       <NoteMarkdown
         locale={note.contentLocale}
         enabled={isOpen}
