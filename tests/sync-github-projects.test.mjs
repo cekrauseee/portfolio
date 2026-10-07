@@ -662,7 +662,7 @@ test('rejects duplicate portfolio indexes', async () => {
   }
 })
 
-test('preserves the previous snapshot when reconciliation fails', async () => {
+test('preserves the previous snapshot on upstream errors and rate-limited project files', async (t) => {
   const { directory, outputPath } = await temporaryOutput()
   const original = await syncGithubProjects({
     fetchImpl: async (url) => {
@@ -703,6 +703,64 @@ test('preserves the previous snapshot when reconciliation fails', async () => {
     )
     assert.equal(await readFile(outputPath, 'utf8'), previousContents)
     assert.deepEqual(JSON.parse(previousContents), original)
+
+    const warning = t.mock.method(console, 'warn', () => {})
+    let requests = 0
+    const cached = await syncGithubProjects({
+      fetchImpl: async (url) => {
+        requests += 1
+        if (new URL(url).pathname === '/users/test-owner/repos') {
+          return response(200, [repository('stable'), repository('later')])
+        }
+        return response(
+          403,
+          { message: 'API rate limit exceeded' },
+          { 'x-ratelimit-remaining': '0' },
+        )
+      },
+      owner: 'test-owner',
+      outputPath,
+    })
+    assert.deepEqual(cached, original)
+    assert.equal(await readFile(outputPath, 'utf8'), previousContents)
+    assert.equal(requests, 2)
+    assert.equal(warning.mock.calls.length, 1)
+    assert.match(warning.mock.calls[0].arguments[0], /rate limit.*existing snapshot/i)
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
+test('rate-limited project listing creates an empty snapshot while permission errors still fail', async (t) => {
+  const { directory, outputPath } = await temporaryOutput()
+  const warning = t.mock.method(console, 'warn', () => {})
+  try {
+    const snapshot = await syncGithubProjects({
+      owner: 'test-owner',
+      outputPath,
+      now: fixedDate,
+      fetchImpl: async () => response(429, { message: 'Too many requests' }),
+    })
+    assert.deepEqual(snapshot, {
+      version: 3,
+      owner: 'test-owner',
+      generatedAt: fixedDate.toISOString(),
+      projects: [],
+    })
+    const saved = await readFile(outputPath, 'utf8')
+    assert.deepEqual(JSON.parse(saved), snapshot)
+    assert.equal(warning.mock.calls.length, 1)
+    assert.match(warning.mock.calls[0].arguments[0], /created an empty snapshot/)
+    await assert.rejects(
+      syncGithubProjects({
+        owner: 'test-owner',
+        outputPath,
+        fetchImpl: async () => response(403, { message: 'Resource not accessible by integration' }),
+      }),
+      /403/,
+    )
+    assert.equal(await readFile(outputPath, 'utf8'), saved)
+    assert.equal(warning.mock.calls.length, 1)
   } finally {
     await rm(directory, { recursive: true, force: true })
   }

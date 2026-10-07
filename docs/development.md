@@ -77,8 +77,8 @@ name cookie, moderation commands, API behavior, and isolated integration tests.
 See [Notes](notes.md) for the build-time manifest contract, local and remote
 configuration, reader behavior, and the direct Vercel Deploy Hook used after
 notes publication. Published notes are optional; a missing production repository
-creates an empty snapshot, while failures from a configured repository fail the
-build.
+creates an empty snapshot. Failures from a configured repository fail the build,
+except for GitHub rate limits, which warn and retain the cached catalog.
 
 ### Project content
 
@@ -104,8 +104,11 @@ conveys information and can be empty only when the image is decorative.
 
 The writer and reader enforce the same normalized fields, Markdown body, string
 slug, and project-index contract. Invalid records, unsupported translation keys,
-duplicate slugs or indexes, and upstream failures stop the sync; a successful
-sync atomically replaces the complete snapshot.
+duplicate slugs or indexes, and upstream failures stop the sync. GitHub rate
+limits are the exception: reconciliation stops with a warning and uses the existing
+snapshot without changing it. With no snapshot, it writes a valid empty catalog.
+This applies in development and production; no rate-limited request is retried.
+A successful sync atomically replaces the complete snapshot.
 
 The application renders only from `.cache/github-projects.json`. It never calls
 GitHub during visitor traffic. A valid empty snapshot is supported. Run

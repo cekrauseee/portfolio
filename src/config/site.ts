@@ -3,7 +3,7 @@ export const site = {
   name: 'Henrique Krause',
   title: 'cekrause',
   description:
-    'Software engineer in Lisbon building thoughtful products, interfaces, and tools for humans and agents.',
+    'Software engineer in Lisbon working on internal products at Eloa Labs, across product engineering and applied AI.',
   locale: 'en_US',
   language: 'en',
   xHandle: 'cekrauseee',

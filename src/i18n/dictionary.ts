@@ -31,7 +31,7 @@ export type Dictionary = {
     experience: {
       title: string
       entries: Record<
-        'teamIt' | 'clinia' | 'killing',
+        'eloaLabs' | 'teamIt' | 'clinia' | 'killing',
         {
           role: string
           period: string

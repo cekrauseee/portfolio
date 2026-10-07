@@ -437,6 +437,134 @@ test('the populated fixture preserves rich Markdown and every locale', async () 
   assert.equal(localizeNote(note, 'ja').title, '人前で考える')
 })
 
+test('missing local notes warn and use the public repository without hiding source failures', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'notes-public-fallback-'))
+  const fixture = JSON.parse(
+    await readFile(new URL('../fixtures/notes-published.json', import.meta.url), 'utf8'),
+  )
+  const localPath = path.join(root, 'missing-notes')
+  const outputPath = path.join(root, 'notes.json')
+  const commit = 'b'.repeat(40)
+  const calls = []
+  const warning = t.mock.method(console, 'warn', () => {})
+  const options = {
+    mode: 'development',
+    repository: '',
+    ref: 'published',
+    localPath,
+    outputPath,
+    token: '',
+    fetchImpl: async (url) => {
+      calls.push(url)
+      const parsed = new URL(url)
+      if (parsed.pathname === '/repos/cekrauseee/notes/commits/published') {
+        return Response.json({ sha: commit })
+      }
+      assert.equal(parsed.searchParams.get('ref'), commit)
+      let content
+      if (parsed.pathname === '/repos/cekrauseee/notes/contents/.notes/manifest.json') {
+        content = JSON.stringify(fixture.manifest)
+      } else {
+        const locale = Object.keys(fixture.manifest.notes[0].locales).find(
+          (locale) =>
+            parsed.pathname ===
+            `/repos/cekrauseee/notes/contents/${fixture.manifest.notes[0].locales[locale].markdownPath}`,
+        )
+        assert.ok(locale, `Unexpected notes request: ${url}`)
+        content = fixture.notes[0].locales[locale].rawMarkdown
+      }
+      return Response.json({ encoding: 'base64', content: Buffer.from(content).toString('base64') })
+    },
+  }
+  try {
+    const result = await syncNotes(options)
+    assert.equal(warning.mock.calls.length, 1)
+    assert.match(warning.mock.calls[0].arguments[0], /not found.*falling back.*cekrauseee\/notes/)
+    assert.deepEqual(result.snapshot.source, {
+      kind: 'github',
+      repository: 'cekrauseee/notes',
+      commit,
+    })
+    assert.equal(parseNotesSnapshot(result.snapshot).notes[0].id, 'thinking-in-public')
+    const saved = await readFile(outputPath, 'utf8')
+
+    await assert.rejects(
+      syncNotes({
+        ...options,
+        fetchImpl: async () => {
+          throw new Error('offline')
+        },
+      }),
+      /offline/,
+    )
+    assert.equal(await readFile(outputPath, 'utf8'), saved)
+
+    await mkdir(path.join(localPath, '.notes'), { recursive: true })
+    await writeFile(path.join(localPath, '.notes/manifest.json'), 'invalid json')
+    const requestCount = calls.length
+    await assert.rejects(syncNotes(options), SyntaxError)
+    assert.equal(calls.length, requestCount)
+    assert.equal(await readFile(outputPath, 'utf8'), saved)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('notes rate limits preserve the cache or create an empty catalog, including in production', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'notes-rate-limit-'))
+  const outputPath = path.join(root, 'notes.json')
+  const fixture = JSON.parse(
+    await readFile(new URL('../fixtures/notes-published.json', import.meta.url), 'utf8'),
+  )
+  const warning = t.mock.method(console, 'warn', () => {})
+  const options = { mode: 'production', repository: 'fixture-owner/notes', outputPath }
+  try {
+    const saved = JSON.stringify(fixture)
+    await writeFile(outputPath, saved)
+    let requests = 0
+    const cached = await syncNotes({
+      ...options,
+      fetchImpl: async () => {
+        requests += 1
+        if (requests === 1) return Response.json({ sha: 'a'.repeat(40) })
+        return Response.json(
+          { message: 'You have exceeded a secondary rate limit.' },
+          { status: 403, headers: { 'retry-after': '60' } },
+        )
+      },
+    })
+    assert.equal(cached.rateLimited, true)
+    assert.deepEqual(cached.snapshot, fixture)
+    assert.equal(await readFile(outputPath, 'utf8'), saved)
+    assert.equal(requests, 2)
+    assert.equal(warning.mock.calls.length, 1)
+    assert.match(warning.mock.calls[0].arguments[0], /existing snapshot/)
+
+    await rm(outputPath)
+    const empty = await syncNotes({
+      ...options,
+      fetchImpl: async () => Response.json({ message: 'Too many requests' }, { status: 429 }),
+    })
+    assert.equal(empty.rateLimited, true)
+    assert.equal(parseNotesSnapshot(empty.snapshot).notes.length, 0)
+    const emptyContents = await readFile(outputPath, 'utf8')
+    assert.deepEqual(JSON.parse(emptyContents), empty.snapshot)
+    assert.match(warning.mock.calls[1].arguments[0], /created an empty snapshot/)
+
+    await assert.rejects(
+      syncNotes({
+        ...options,
+        fetchImpl: async () => Response.json({ message: 'Forbidden' }, { status: 403 }),
+      }),
+      /403/,
+    )
+    assert.equal(await readFile(outputPath, 'utf8'), emptyContents)
+    assert.equal(warning.mock.calls.length, 2)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
 for (const failure of ['404', 'network']) {
   test(`development falls back to NOTES_LOCAL_PATH after a remote ${failure} failure`, async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), 'notes-fallback-'))

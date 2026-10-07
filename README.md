@@ -79,8 +79,11 @@ repositories owned by `GITHUB_OWNER` and reading `.portfolio/project.md` from
 each default branch. Visitor requests never call GitHub.
 
 Published notes come from the configured `NOTES_REPOSITORY` at build time. In
-development, an unset repository reads `../notes`; in production, an unset
-repository creates an empty notes snapshot. See [Notes](docs/notes.md) for the
+development, an unset repository reads `../notes`, warning and falling back to
+public `cekrauseee/notes` if the local directory is missing; in production, an unset
+repository creates an empty notes snapshot. GitHub rate limits warn and retain
+the existing project or notes snapshot, creating an empty catalog when none exists.
+See [Notes](docs/notes.md) for the
 manifest contract, local setup, audio behavior, and publication hook.
 
 The complete setup and first-rollout sequence are in [CI and production setup](docs/deployment.md).
