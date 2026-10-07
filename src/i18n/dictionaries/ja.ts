@@ -16,6 +16,7 @@ export const ja: Dictionary = {
     externalLinkNewTab: '（新しいタブで開きます）',
     languages: { en: 'english', fr: 'français', es: 'español', pt: 'português', ja: '日本語' },
     appearance: { system: 'システム', light: 'ライト', dark: 'ダーク' },
+    bird: { label: '小鳥', on: '表示', off: '非表示' },
   },
   home: {
     projects: 'プロジェクト',
