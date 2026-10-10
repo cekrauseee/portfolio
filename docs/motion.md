@@ -72,7 +72,18 @@ Pointer attention expires after 0.9 seconds and is released immediately when the
 pointer leaves the window, the window loses focus, scrolling starts, or a form field
 receives focus. The bird blends back to a nearby visible heading instead of
 remaining at the pointer's last coordinates. Notes suppress vertical pointer
-following. After 4.5 seconds without interaction it sleeps with pixel Zs.
+following. After 12 seconds without interaction it sleeps with pixel Zs and a slow
+breathing cycle. Touch devices never follow a finger.
+
+While perched and awake, the bird acts on its own every 3 to 7 seconds, never
+repeating an act twice in a row: a hop, a hop-turn to look over its shoulder, preening,
+a feather ruffle, a silent pixel song with floating notes, two pecks at the branch, a
+wing stretch, or, rarely, a flight to another visible heading that sometimes crosses the
+text to the other margin. Acts run only on a landed, perched bird and never during
+narration or reduced motion. A tap anywhere on a touch screen makes the bird glance
+toward it; a tap or click within one bird-size of the bird startles it with a hop, the
+exclamation and the `sparkle` cue (silent during narration). Landings glide in with
+spread wings and finish with a short squash on the branch.
 
 Returning cursor activity first raises the bird's attention while it stays perched:
 a brief pixel exclamation and sparks appear once, with a head lift and tail flick.
@@ -80,14 +91,16 @@ Following requires at least 24 pixels of movement over the shared control durati
 isolated nudges do not accumulate. Once engaged, following keeps its quick response
 until the pointer is released.
 
-During note narration, the bird opens a pixel book beside the active paragraph.
-The reader's `data-note-audio-state` and existing `data-note-state="current"` word
-markers identify the active paragraph. The reading pose and its gentle continuous
-gesture remain stable between words and during scrolling; the last spoken word is
-retained through gaps. The perch stays within the reading band, without falling
-back to a heading when no word is highlighted. Pausing, buffering, ending,
-changing language, or leaving the note ends the reading pose. This decoration
-never controls playback or the reading camera.
+During note narration, the bird opens a pixel book beside the active paragraph and
+reads along: its beak opens briefly for each spoken word and its head sweeps the
+spoken line, chin down beside the near end and looking across toward the far end,
+mirrored on the right margin. Each new paragraph turns a page in the book. The
+reader's `data-note-audio-state` and existing `data-note-state="current"` word
+markers identify the active word and paragraph. The reading pose remains stable
+between words and during scrolling; the last spoken word is retained through gaps.
+The perch stays within the reading band, without falling back to a heading when no
+word is highlighted. Pausing, buffering, ending, changing language, or leaving the
+note closes the book. This decoration never controls playback or the reading camera.
 
 A critically damped spring preserves velocity when the destination changes. Local
 following uses the shared page duration; crossing the column uses 1.6 times that

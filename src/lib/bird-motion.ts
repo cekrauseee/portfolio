@@ -113,3 +113,41 @@ export function advanceBird(
   const y = axis(flight.y, flight.vy, target.y)
   return { x: x.position, y: y.position, vx: x.velocity, vy: y.velocity }
 }
+
+export const birdSleepDelay = 12000
+
+/** Weighted idle repertoire; a wandering flight to another perch is the rarest act. */
+export const birdActs = {
+  hop: 3,
+  peek: 2,
+  preen: 2,
+  ruffle: 2,
+  sing: 2,
+  peck: 2,
+  stretch: 2,
+  wander: 1,
+} as const
+export type BirdAct = keyof typeof birdActs
+
+/** Never the same act twice in a row; `random` is in [0, 1). */
+export function nextBirdAct(previous: BirdAct | null, random: number): BirdAct {
+  const options = (Object.keys(birdActs) as BirdAct[]).filter((act) => act !== previous)
+  let remaining = random * options.reduce((total, act) => total + birdActs[act], 0)
+  return options.find((act) => (remaining -= birdActs[act]) < 0) ?? options[options.length - 1]
+}
+
+/** Spontaneous acts arrive 3 to 7 seconds apart, never on a fixed beat. */
+export function birdActDelay(random: number) {
+  return 3000 + random * 4000
+}
+
+/** Chin down beside the near end of the spoken line, looking ahead toward its far end. */
+export function birdReadingGaze(
+  wordCenter: number,
+  line: { left: number; right: number },
+  side: 'left' | 'right',
+) {
+  const progress = clamp((wordCenter - line.left) / Math.max(1, line.right - line.left), 0, 1)
+  const distance = side === 'left' ? progress : 1 - progress
+  return 14 - distance * 11
+}

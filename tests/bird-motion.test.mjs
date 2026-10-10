@@ -2,10 +2,14 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   advanceBird,
+  birdActDelay,
+  birdActs,
   birdAttention,
   birdMargin,
+  birdReadingGaze,
   birdReadingPerch,
   boundBird,
+  nextBirdAct,
   noticeBirdPointer,
 } from '../src/lib/bird-motion.ts'
 
@@ -114,4 +118,25 @@ test('the same flight takes the same time at different display refresh rates', (
   const fast = simulate(120)
   assert.ok(Math.abs(slow.y - fast.y) < 0.001)
   assert.ok(Math.abs(slow.vy - fast.vy) < 0.001)
+})
+
+test('idle acts never repeat consecutively and wandering flights stay rare', () => {
+  const counts = {}
+  let previous = null
+  for (let step = 0; step < 2000; step++) {
+    const act = nextBirdAct(previous, (step * 0.618033) % 1)
+    assert.notEqual(act, previous)
+    assert.ok(act in birdActs)
+    counts[act] = (counts[act] ?? 0) + 1
+    previous = act
+  }
+  assert.ok(counts.wander > 0 && counts.wander < counts.hop / 2)
+  assert.ok(birdActDelay(0) >= 3000 && birdActDelay(0.999) < 7000)
+})
+
+test('the reading gaze sweeps from chin-down beside the bird to looking across the line', () => {
+  const line = { left: 100, right: 500 }
+  assert.ok(birdReadingGaze(100, line, 'left') > birdReadingGaze(500, line, 'left'))
+  assert.equal(birdReadingGaze(100, line, 'left'), birdReadingGaze(500, line, 'right'))
+  assert.equal(birdReadingGaze(-50, line, 'left'), birdReadingGaze(100, line, 'left'))
 })
