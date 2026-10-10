@@ -101,6 +101,7 @@
   height: 100%;
   overflow: visible;
   transform: rotate(var(--bird-tilt, 0deg));
+  transform-origin: 50% 85%;
   image-rendering: pixelated;
 }
 
@@ -126,10 +127,13 @@
 }
 
 .closedEye,
+.beakOpen,
+.pageTurn,
 .wingUp,
 .wingOut,
 .wingDown,
 .dream,
+.notes,
 .notice {
   opacity: 0;
 }
@@ -151,9 +155,13 @@
   transform: none;
 }
 
+/* Reading along: the head follows the spoken line and the beak moves with each word. */
 .bird[data-state='reading'] .head {
-  transform: translateY(1px) rotate(7deg);
-  animation: reading-nod calc(var(--motion-loading-cycle) * 2) var(--motion-easing) infinite;
+  transform: translateY(1px) rotate(var(--bird-gaze, 7deg));
+}
+
+.bird[data-speaking='true'] .beakOpen {
+  opacity: 1;
 }
 
 .bird[data-state='reading'] .foldedWing {
@@ -162,6 +170,14 @@
 
 .bird[data-state='reading'] .bookLine {
   animation: reading-line calc(var(--motion-loading-cycle) * 2) var(--motion-easing) infinite;
+}
+
+.pageTurn {
+  transform-origin: 16.5px 19px;
+}
+
+.bird[data-act='page'] .pageTurn {
+  animation: page-turn var(--motion-control) steps(1, end);
 }
 
 .foldedWing,
@@ -191,6 +207,15 @@
   animation-delay: calc(var(--motion-control) * -1);
 }
 
+/* Glide in with the wings spread and the feet reaching for the branch. */
+.bird[data-state='landing'] .foldedWing {
+  opacity: 0;
+}
+
+.bird[data-state='landing'] .wingOut {
+  opacity: 1;
+}
+
 .bird[data-state='perched'] .tail {
   transform-origin: 9px 17px;
   animation: tail calc(var(--motion-loading-cycle) * 4) steps(1, end) infinite;
@@ -209,7 +234,12 @@
   transform: translateY(1px);
 }
 
+.bird[data-state='sleeping'] .sprite {
+  animation: breathe calc(var(--motion-loading-cycle) * 2) var(--motion-easing) infinite;
+}
+
 .dream,
+.notes,
 .notice {
   position: absolute;
   top: -35%;
@@ -219,7 +249,8 @@
   overflow: visible;
 }
 
-.bird[data-state='attentive'] .notice {
+.bird[data-state='attentive'] .notice,
+.bird[data-act='startle'] .notice {
   animation: notice var(--motion-page) var(--motion-easing) both;
 }
 
@@ -244,6 +275,84 @@
   animation-delay: calc(var(--motion-loading-cycle) / -0.75);
 }
 
+/* Spontaneous acts: one-shot gestures while perched, each inside the shared act window. */
+.bird[data-act='hop'] .sprite,
+.bird[data-act='startle'] .sprite {
+  animation: hop var(--motion-page) var(--motion-easing) both;
+}
+
+.bird[data-act='peek'] .sprite {
+  animation:
+    hop var(--motion-page) var(--motion-easing) both,
+    hop var(--motion-page) var(--motion-easing) calc(var(--motion-loading-cycle) * 0.6) both;
+}
+
+.bird[data-act='peek'] .turn {
+  animation: peek calc(var(--motion-loading-cycle) * 0.8) steps(1, end) both;
+}
+
+.bird[data-act='preen'] .head {
+  animation: preen calc(var(--motion-loading-cycle) * 0.8) steps(1, end) both;
+}
+
+.bird[data-act='peck'] .head {
+  animation: peck var(--motion-page) steps(1, end) both;
+}
+
+.bird[data-act='ruffle'] .sprite {
+  animation: ruffle var(--motion-page) steps(1, end) both;
+}
+
+.bird[data-act='ruffle'] .wingOut,
+.bird[data-act='startle'] .wingOut {
+  animation: wing-once var(--motion-page) steps(1, end) both;
+}
+
+.bird[data-act='ruffle'] .foldedWing,
+.bird[data-act='startle'] .foldedWing {
+  animation: wing-fold var(--motion-page) steps(1, end) both;
+}
+
+.bird[data-act='stretch'] .sprite {
+  animation: stretch calc(var(--motion-loading-cycle) * 0.6) var(--motion-easing) both;
+}
+
+.bird[data-act='stretch'] .wingUp {
+  animation: wing-once calc(var(--motion-loading-cycle) * 0.6) steps(1, end) both;
+}
+
+.bird[data-act='stretch'] .foldedWing {
+  animation: wing-fold calc(var(--motion-loading-cycle) * 0.6) steps(1, end) both;
+}
+
+.bird[data-act='sing'] .beakOpen {
+  animation: sing calc(var(--motion-loading-cycle) * 0.75) steps(1, end) both;
+}
+
+.bird[data-act='sing'] .head {
+  animation: sing-head calc(var(--motion-loading-cycle) * 0.75) steps(1, end) both;
+}
+
+.bird[data-act='sing'] .notes {
+  opacity: 1;
+}
+
+.bird[data-act='sing'] .notes g {
+  animation: dream calc(var(--motion-loading-cycle) * 0.75) var(--motion-easing) both;
+}
+
+.bird[data-act='sing'] .notes g:nth-child(2) {
+  animation-delay: calc(var(--motion-loading-cycle) / 9);
+}
+
+.bird[data-act='sing'] .notes g:nth-child(3) {
+  animation-delay: calc(var(--motion-loading-cycle) / 4.5);
+}
+
+.bird[data-act='land'] .sprite {
+  animation: land var(--motion-control) var(--motion-easing) both;
+}
+
 .habitat[data-suspended='true'] * {
   animation-play-state: paused !important;
 }
@@ -261,16 +370,6 @@
   }
 }
 
-@keyframes reading-nod {
-  0%,
-  100% {
-    transform: translateY(1px) rotate(7deg);
-  }
-  50% {
-    transform: translateY(1.5px) rotate(9deg);
-  }
-}
-
 @keyframes reading-line {
   0%,
   100% {
@@ -278,6 +377,26 @@
   }
   50% {
     opacity: 1;
+  }
+}
+
+@keyframes page-turn {
+  0% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+  30% {
+    opacity: 1;
+    transform: scaleX(0.4);
+  }
+  60% {
+    opacity: 1;
+    transform: scaleX(-0.6);
+  }
+  85%,
+  100% {
+    opacity: 1;
+    transform: scaleX(-1);
   }
 }
 
@@ -352,6 +471,200 @@
   }
 }
 
+@keyframes breathe {
+  0%,
+  100% {
+    scale: 1 1;
+  }
+  50% {
+    scale: 1.03 0.97;
+  }
+}
+
+@keyframes hop {
+  0%,
+  100% {
+    translate: 0 0;
+    scale: 1 1;
+  }
+  15% {
+    scale: 1.08 0.9;
+  }
+  45% {
+    translate: 0 -4px;
+    scale: 0.96 1.06;
+  }
+  75% {
+    translate: 0 0;
+    scale: 1.1 0.88;
+  }
+  90% {
+    scale: 0.98 1.02;
+  }
+}
+
+/* Composes with the facing transform, so the bird looks over its shoulder either way. */
+@keyframes peek {
+  0%,
+  11%,
+  86%,
+  100% {
+    scale: 1 1;
+  }
+  12%,
+  85% {
+    scale: -1 1;
+  }
+}
+
+@keyframes preen {
+  0%,
+  100% {
+    transform: translateY(var(--bird-look, 0px));
+  }
+  18%,
+  40%,
+  62% {
+    transform: translate(-2px, 3px) rotate(42deg);
+  }
+  29%,
+  51%,
+  73% {
+    transform: translate(-2px, 4px) rotate(48deg);
+  }
+  84% {
+    transform: translateY(-1px);
+  }
+}
+
+@keyframes peck {
+  0%,
+  50%,
+  100% {
+    transform: translateY(var(--bird-look, 0px));
+  }
+  20%,
+  70% {
+    transform: translate(1px, 4px) rotate(30deg);
+  }
+  30%,
+  80% {
+    transform: translate(1px, 5px) rotate(34deg);
+  }
+}
+
+@keyframes ruffle {
+  0%,
+  100% {
+    scale: 1 1;
+    translate: 0 0;
+  }
+  20% {
+    scale: 1.12 0.92;
+    translate: -1px 0;
+  }
+  40% {
+    scale: 0.94 1.08;
+    translate: 1px 0;
+  }
+  60% {
+    scale: 1.1 0.94;
+    translate: -1px 0;
+  }
+  80% {
+    scale: 0.98 1.03;
+    translate: 0 0;
+  }
+}
+
+@keyframes wing-once {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  20%,
+  60% {
+    opacity: 1;
+  }
+}
+
+@keyframes wing-fold {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  20%,
+  60% {
+    opacity: 0;
+  }
+}
+
+@keyframes stretch {
+  0%,
+  100% {
+    scale: 1 1;
+    translate: 0 0;
+  }
+  20%,
+  60% {
+    scale: 0.97 1.08;
+    translate: 0 -1px;
+  }
+}
+
+@keyframes sing {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  8%,
+  22%,
+  36%,
+  58%,
+  72% {
+    opacity: 1;
+  }
+  15%,
+  29%,
+  47%,
+  65%,
+  82% {
+    opacity: 0;
+  }
+}
+
+@keyframes sing-head {
+  0%,
+  100% {
+    transform: translateY(var(--bird-look, 0px));
+  }
+  8%,
+  36%,
+  72% {
+    transform: translateY(-1px) rotate(-8deg);
+  }
+  30%,
+  55%,
+  90% {
+    transform: translateY(var(--bird-look, 0px));
+  }
+}
+
+@keyframes land {
+  0% {
+    scale: 1.12 0.84;
+    translate: 0 2px;
+  }
+  55% {
+    scale: 0.97 1.04;
+    translate: 0 -1px;
+  }
+  100% {
+    scale: 1 1;
+    translate: 0 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .habitat,
   .habitat * {
@@ -363,6 +676,7 @@
     transform: none !important;
   }
   .dream,
+  .notes,
   .notice {
     display: none;
   }

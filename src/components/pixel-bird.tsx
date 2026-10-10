@@ -4,16 +4,22 @@ import { useLayoutEffect, useRef, useSyncExternalStore } from 'react'
 import { usePathname } from 'next/navigation'
 import {
   advanceBird,
+  birdActDelay,
   birdAttention,
   birdMargin,
   birdPointerIdle,
+  birdReadingGaze,
   birdReadingPerch,
+  birdSleepDelay,
   boundBird,
+  nextBirdAct,
   noticeBirdPointer,
+  type BirdAct,
   type BirdFlight,
   type BirdPoint,
   type BirdPointer,
 } from '@/lib/bird-motion'
+import { playInteractionSound } from '@/lib/interaction-sounds'
 import { motion } from '@/lib/motion'
 import { preferenceOptionClassName } from '@/components/preference-option'
 import type { Dictionary } from '@/i18n/dictionary'
@@ -79,6 +85,8 @@ export function BirdPreference({ labels }: { labels: Dictionary['navigation']['b
   )
 }
 
+type BirdGlance = BirdPoint & { engaged: false; startled: boolean }
+
 /** One resident bird, outside the scrolling pages and their clipping containers. */
 export function PixelBird() {
   const visible = useBirdVisibility()
@@ -114,6 +122,7 @@ export function PixelBird() {
     let followPoint = home
     let attention = 0
     let pointer: BirdPointer | null = null
+    let glance: BirdGlance | null = null
     let frame = 0
     let lastFrame = 0
     let scrollUntil = 0
@@ -121,14 +130,21 @@ export function PixelBird() {
     let idleTimer: ReturnType<typeof setTimeout>
     let returnTimer: ReturnType<typeof setTimeout>
     let crossingTimer: ReturnType<typeof setTimeout>
+    let actTimer: ReturnType<typeof setTimeout>
+    let nextActTimer: ReturnType<typeof setTimeout>
+    let speakTimer: ReturnType<typeof setTimeout>
+    let lastAct: BirdAct | null = null
     let dirty = true
     let sleeping = false
+    let wasAirborne = false
     let side: 'left' | 'right' = 'left'
     let nextSide: 'left' | 'right' = side
     let facing = 1
     let tilt = 0
 
     const resize = new ResizeObserver(onResize)
+    const perchable = (rect: DOMRect) =>
+      rect.bottom > margin.bounds.top + margin.size && rect.top < margin.bounds.bottom
 
     function collect() {
       const next = document.querySelector<HTMLElement>('main [data-locale-content]')
@@ -169,10 +185,7 @@ export function PixelBird() {
       const candidates = (anchor?.isConnected ? [anchor] : headings)
         .filter((heading) => heading.getClientRects().length > 0)
         .map((heading) => heading.getBoundingClientRect())
-        .filter(
-          (rect) =>
-            rect.bottom > margin.bounds.top + margin.size && rect.top < margin.bounds.bottom,
-        )
+        .filter(perchable)
       const perch = candidates.reduce<DOMRect | null>(
         (nearest, rect) =>
           !nearest || Math.abs(rect.bottom - aim) < Math.abs(nearest.bottom - aim) ? rect : nearest,
@@ -236,7 +249,9 @@ export function PixelBird() {
       }
       const dt = lastFrame ? Math.min((now - lastFrame) / 1000, 0.05) : 1 / 60
       lastFrame = now
-      const looking = reduced.matches ? null : birdAttention(pointer, now, scrollUntil)
+      const looking = reduced.matches
+        ? null
+        : (birdAttention(pointer, now, scrollUntil) ?? (now >= scrollUntil ? glance : null))
       const following = looking?.engaged && !reading && !narration ? 1 : 0
       const blend = 1 - Math.exp(-dt / (motion.duration.feedback / 1000))
       attention = following ? 1 : attention * (1 - blend)
@@ -288,13 +303,19 @@ export function PixelBird() {
         now >= routeUntil &&
         distance < 16 &&
         speed < 45
+      // A quiet glance only turns the head; the cursor and a poke earn the exclamation.
+      const noticing = !!looking && !looking.engaged && (looking !== glance || !!glance?.startled)
+      if (wasAirborne && !airborne) {
+        perform('land')
+      }
+      wasAirborne = airborne
       bird.dataset.state = narration
         ? 'reading'
         : airborne
           ? landing
             ? 'landing'
             : 'flying'
-          : looking && !looking.engaged
+          : noticing
             ? 'attentive'
             : sleeping
               ? 'sleeping'
@@ -335,16 +356,71 @@ export function PixelBird() {
       }
     }
 
+    /** One-shot gesture; the attribute drives its CSS animation and clears itself. */
+    function perform(name: BirdAct | 'land' | 'page' | 'startle') {
+      clearTimeout(actTimer)
+      if (bird.dataset.act === name) {
+        delete bird.dataset.act
+        void bird.offsetWidth // Restart the same animation.
+      }
+      bird.dataset.act = name
+      // shortcut: every act shares one loading-cycle window, split per act if one needs longer
+      actTimer = setTimeout(() => {
+        delete bird.dataset.act
+        scheduleAct()
+      }, motion.loadingCycle)
+    }
+
+    function scheduleAct() {
+      clearTimeout(nextActTimer)
+      if (reduced.matches || sleeping || narration) {
+        return
+      }
+      nextActTimer = setTimeout(() => {
+        if (bird.dataset.state !== 'perched' || scene.dataset.landed !== 'true') {
+          scheduleAct()
+          return
+        }
+        lastAct = nextBirdAct(lastAct, Math.random())
+        if (lastAct === 'wander') {
+          wander()
+        } else {
+          perform(lastAct)
+        }
+      }, birdActDelay(Math.random()))
+    }
+
+    /** Flit to another visible heading, sometimes across the text to the other margin. */
+    function wander() {
+      const perchBottom = home.y + margin.size - 2
+      const options = headings.filter((heading) => {
+        const rect = heading.getBoundingClientRect()
+        return perchable(rect) && Math.abs(rect.bottom - perchBottom) > margin.size
+      })
+      const pick = options[Math.floor(Math.random() * options.length)]
+      if (pick) {
+        anchor = pick
+      }
+      if (!pick || Math.random() < 0.4) {
+        side = nextSide = side === 'left' ? 'right' : 'left'
+      }
+      perchAim = null
+      dirty = true
+      wake()
+    }
+
     function activity() {
       sleeping = false
       clearTimeout(idleTimer)
       if (narration) {
         return
       }
+      scheduleAct()
       idleTimer = setTimeout(() => {
         sleeping = true
+        clearTimeout(nextActTimer)
         releasePointer()
-      }, 4500)
+      }, birdSleepDelay)
     }
 
     function releasePointer() {
@@ -354,6 +430,7 @@ export function PixelBird() {
         dirty = true
       }
       pointer = null
+      glance = null
       nextSide = side
       clearTimeout(returnTimer)
       clearTimeout(crossingTimer)
@@ -395,6 +472,38 @@ export function PixelBird() {
       returnTimer = setTimeout(releasePointer, birdPointerIdle)
     }
 
+    /** A tap anywhere earns a glance; a poke beside the bird startles it. */
+    function onTap(event: PointerEvent) {
+      if (
+        reduced.matches ||
+        !flight ||
+        (event.target instanceof Element &&
+          event.target.closest('input, textarea, select, [contenteditable="true"]'))
+      ) {
+        return
+      }
+      const startled =
+        !pointer?.engaged &&
+        Math.hypot(
+          event.clientX - flight.x - margin.size / 2,
+          event.clientY - flight.y - margin.size / 2,
+        ) <= margin.size
+      if (!startled && event.pointerType !== 'touch') {
+        return
+      }
+      activity()
+      glance = { x: event.clientX, y: event.clientY, engaged: false, startled }
+      if (startled) {
+        perform('startle')
+        if (!narration) {
+          playInteractionSound('sparkle')
+        }
+      }
+      clearTimeout(returnTimer)
+      returnTimer = setTimeout(releasePointer, birdPointerIdle)
+      wake()
+    }
+
     function onScroll() {
       releasePointer()
       anchor = null
@@ -425,6 +534,7 @@ export function PixelBird() {
         cancelAnimationFrame(frame)
         frame = 0
         clearTimeout(idleTimer)
+        clearTimeout(nextActTimer)
       } else {
         lastFrame = 0
         activity()
@@ -449,10 +559,26 @@ export function PixelBird() {
         readingWord = word
         const block = word.closest<HTMLElement>('p, h1, h2, h3, li, pre, blockquote')
         if (block !== readingBlock) {
+          if (readingBlock) {
+            perform('page')
+          }
           readingBlock = block
           readingAnchor = word
           dirty = true
           wake()
+        }
+        if (!reduced.matches) {
+          // Read along: the head sweeps the spoken line and the beak moves with each word.
+          const rect = word.getBoundingClientRect()
+          const gaze = birdReadingGaze(
+            rect.left + rect.width / 2,
+            block?.getBoundingClientRect() ?? rect,
+            side,
+          )
+          bird.style.setProperty('--bird-gaze', `${gaze}deg`)
+          bird.dataset.speaking = 'true'
+          clearTimeout(speakTimer)
+          speakTimer = setTimeout(() => delete bird.dataset.speaking, motion.duration.feedback)
         }
       }
     }
@@ -503,6 +629,7 @@ export function PixelBird() {
     activity()
     wake()
     document.addEventListener('pointermove', onPointer, { passive: true })
+    document.addEventListener('pointerdown', onTap, { passive: true })
     document.documentElement.addEventListener('pointerleave', releasePointer)
     document.addEventListener('focusin', onFocus)
     document.addEventListener('scroll', onScroll, { capture: true, passive: true })
@@ -516,9 +643,13 @@ export function PixelBird() {
       clearTimeout(idleTimer)
       clearTimeout(returnTimer)
       clearTimeout(crossingTimer)
+      clearTimeout(actTimer)
+      clearTimeout(nextActTimer)
+      clearTimeout(speakTimer)
       resize.disconnect()
       mutations.disconnect()
       document.removeEventListener('pointermove', onPointer)
+      document.removeEventListener('pointerdown', onTap)
       document.documentElement.removeEventListener('pointerleave', releasePointer)
       document.removeEventListener('focusin', onFocus)
       document.removeEventListener('scroll', onScroll, true)
@@ -583,6 +714,10 @@ export function PixelBird() {
               <path d="M11 5h6v1h2v2h1v4h-3v1h-4v-1h-3V7h1z" fill="var(--bird-ink)" />
               <path d="M11 5h6v1h-6zM10 7h1v3h-1z" fill="var(--bird-feather)" />
               <path d="M19 9h3v1h1v1h-4z" fill="var(--bird-beak)" />
+              <g className={styles.beakOpen}>
+                <path d="M19 8h3v1h1v1h-4zM19 11h3v1h-3z" fill="var(--bird-beak)" />
+                <path d="M19 10h4v1h-4z" fill="var(--bird-ink)" />
+              </g>
               <path d="M16 10h3v2h-3z" fill="var(--bird-breast)" />
               <g className={styles.eye}>
                 <path d="M16 7h2v2h-2z" fill="var(--bird-eye)" />
@@ -620,6 +755,7 @@ export function PixelBird() {
                 d="M12 20h2v1h-2zM18 20h2v1h-2z"
                 fill="var(--bird-breast)"
               />
+              <path className={styles.pageTurn} d="M17 17h1v-1h3v5h-4z" fill="var(--bird-page)" />
             </g>
           </svg>
         </div>
@@ -649,6 +785,22 @@ export function PixelBird() {
           </g>
           <g>
             <path d="M18 2h5v1h-1v1h-1v1h-1v1h3v1h-5V6h1V5h1V4h1V3h-3z" />
+          </g>
+        </svg>
+        <svg
+          className={styles.notes}
+          viewBox="0 0 24 24"
+          fill="var(--bird-breast)"
+          shapeRendering="crispEdges"
+        >
+          <g>
+            <path d="M6 10h1v7H6zM7 11h2v2H7zM4 16h3v2H4z" />
+          </g>
+          <g>
+            <path d="M14 3h1v7h-1zM15 4h2v2h-2zM12 9h3v2h-3z" />
+          </g>
+          <g>
+            <path d="M19 12h1v6h-1zM20 13h2v2h-2zM17 17h3v2h-3z" />
           </g>
         </svg>
       </div>
