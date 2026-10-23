@@ -46,7 +46,7 @@
     "@vercel/speed-insights": "^2.0.0",
     "botid": "^1.5.11",
     "cuelume": "^0.2.2",
-    "drizzle-orm": "1.0.0-rc.4",
+    "drizzle-orm": "1.0.0-rc.5-5935859",
     "googleapis": "^175.0.0",
     "gray-matter": "^4.0.3",
     "lucide-react": "^1.45.0",
